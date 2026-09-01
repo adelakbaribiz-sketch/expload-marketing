@@ -1,0 +1,5 @@
+import { createDomainItemHandlers } from '@/lib/crud/domain-handler'
+export const { GET, PATCH, DELETE } = createDomainItemHandlers({
+  model: 'landingPage',
+  fields: ['name', 'slug', 'html', 'css', 'config', 'status', 'visitors', 'conversions', 'conversionRate', 'metaTitle', 'metaDescription', 'experimentId', 'publishedAt'],
+})

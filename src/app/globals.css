@@ -1,0 +1,356 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-vazirmatn), var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Brand colors — from CPP flow logo */
+  --color-brand-primary: #1B3A4B;    /* dark navy (CPP) */
+  --color-brand-accent: #F26522;     /* bright orange (P) */
+  --color-brand-light: #8CD4D8;      /* light teal (flow) */
+  --color-brand-bg: #FAF9F6;         /* cream background */
+  --color-brand-muted: #999999;      /* gray text */
+  --color-brand-dark: #0F2530;       /* deeper navy for hover */
+}
+
+:root {
+  --radius: 0.75rem;
+
+  /* Brand color scheme — CPP flow logo */
+  --background: #FAF9F6;            /* cream */
+  --foreground: #1B3A4B;            /* dark navy */
+  --card: #FFFFFF;
+  --card-foreground: #1B3A4B;
+  --popover: #FFFFFF;
+  --popover-foreground: #1B3A4B;
+
+  /* Primary = Dark Navy from logo */
+  --primary: #1B3A4B;
+  --primary-foreground: #FFFFFF;
+
+  /* Secondary = Light Teal from logo */
+  --secondary: #8CD4D8;
+  --secondary-foreground: #1B3A4B;
+
+  /* Muted = Soft gray */
+  --muted: #F0EFEB;
+  --muted-foreground: #999999;
+
+  /* Accent = Bright Orange from logo */
+  --accent: #FFF1E8;
+  --accent-foreground: #F26522;
+
+  --destructive: #EF4444;
+  --border: #E5E2DC;
+  --input: #E5E2DC;
+  --ring: #F26522;
+
+  /* Chart colors — brand palette */
+  --chart-1: #1B3A4B;
+  --chart-2: #F26522;
+  --chart-3: #8CD4D8;
+  --chart-4: #5BAFC4;
+  --chart-5: #C4B8A8;
+
+  /* Sidebar — dark navy primary */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #1B3A4B;
+  --sidebar-primary: #1B3A4B;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FAF9F6;
+  --sidebar-accent-foreground: #1B3A4B;
+  --sidebar-border: #E5E2DC;
+  --sidebar-ring: #F26522;
+}
+
+.dark {
+  --background: #0F2530;
+  --foreground: #FAF9F6;
+  --card: #1B3A4B;
+  --card-foreground: #FAF9F6;
+  --popover: #1B3A4B;
+  --popover-foreground: #FAF9F6;
+
+  --primary: #8CD4D8;
+  --primary-foreground: #0F2530;
+
+  --secondary: #2A4F5E;
+  --secondary-foreground: #8CD4D8;
+
+  --muted: #2A4F5E;
+  --muted-foreground: #8FA5AE;
+
+  --accent: #3D2317;
+  --accent-foreground: #F26522;
+
+  --destructive: #F44336;
+  --border: rgba(255,255,255,0.1);
+  --input: rgba(255,255,255,0.15);
+  --ring: #F26522;
+
+  --chart-1: #8CD4D8;
+  --chart-2: #F26522;
+  --chart-3: #5BAFC4;
+  --chart-4: #FFB088;
+  --chart-5: #8FA5AE;
+
+  --sidebar: #0F2530;
+  --sidebar-foreground: #FAF9F6;
+  --sidebar-primary: #8CD4D8;
+  --sidebar-primary-foreground: #0F2530;
+  --sidebar-accent: #1B3A4B;
+  --sidebar-accent-foreground: #FAF9F6;
+  --sidebar-border: rgba(255,255,255,0.1);
+  --sidebar-ring: #F26522;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* RTL (Persian) + custom scrollbar */
+html[dir='rtl'] body {
+  font-feature-settings: 'ss01' on, 'ss02' on;
+}
+
+/* Subtle custom scrollbar — brand colors */
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: #B0BEC5;
+  border-radius: 4px;
+}
+.dark .scroll-thin::-webkit-scrollbar-thumb {
+  background: #37474F;
+}
+.scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: #FF5722;
+}
+
+/* Animated fade-in for view transitions */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.25s ease-out both;
+}
+
+/* Brand gradient utilities */
+.bg-brand-gradient {
+  background: linear-gradient(135deg, #1B3A4B 0%, #0F2530 50%, #1B3A4B 100%);
+}
+.bg-brand-accent-gradient {
+  background: linear-gradient(135deg, #F26522 0%, #FF8B5A 100%);
+}
+.bg-brand-light-gradient {
+  background: linear-gradient(135deg, #8CD4D8 0%, #5BAFC4 100%);
+}
+.bg-brand-mesh {
+  background-color: #FAF9F6;
+  background-image:
+    radial-gradient(at 20% 20%, rgba(242, 101, 34, 0.08) 0px, transparent 50%),
+    radial-gradient(at 80% 30%, rgba(140, 212, 216, 0.12) 0px, transparent 50%),
+    radial-gradient(at 50% 80%, rgba(27, 58, 75, 0.06) 0px, transparent 50%);
+}
+.text-brand-primary { color: #1B3A4B; }
+.text-brand-accent { color: #F26522; }
+.text-brand-light { color: #8CD4D8; }
+.text-brand-muted { color: #999999; }
+.text-brand-dark { color: #0F2530; }
+
+/* ============================================================
+   3D Card Effects — Framer Motion-style depth on hover
+   ============================================================ */
+.card-3d {
+  transform-style: preserve-3d;
+  transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
+  will-change: transform;
+}
+.card-3d:hover {
+  transform: perspective(1000px) rotateX(2deg) rotateY(-2deg) translateY(-4px);
+  box-shadow:
+    0 20px 40px -10px rgba(27, 58, 75, 0.25),
+    0 10px 20px -5px rgba(242, 101, 34, 0.12);
+}
+.card-3d-flat {
+  transform-style: preserve-3d;
+  transition: transform 0.2s ease-out;
+}
+.card-3d-flat:hover {
+  transform: perspective(800px) translateY(-2px) scale(1.01);
+}
+
+/* Glassmorphism for hero sections */
+.glass-card {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px rgba(27, 58, 75, 0.12);
+}
+.dark .glass-card {
+  background: rgba(15, 37, 48, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* 3D Floating animation for hero icons */
+@keyframes float-3d {
+  0%, 100% { transform: translateY(0) rotateZ(0deg); }
+  50% { transform: translateY(-8px) rotateZ(2deg); }
+}
+.animate-float-3d {
+  animation: float-3d 4s ease-in-out infinite;
+}
+
+/* 3D rotation for loading spinners */
+@keyframes spin-3d {
+  0% { transform: rotateX(0) rotateY(0) rotateZ(0); }
+  100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg); }
+}
+.animate-spin-3d {
+  animation: spin-3d 2s linear infinite;
+  transform-style: preserve-3d;
+}
+
+/* Particle float — for hero backgrounds */
+@keyframes particle-float {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-100vh) translateX(20px); opacity: 0; }
+}
+.animate-particle {
+  animation: particle-float 8s linear infinite;
+}
+
+/* Slide-in from right for panels */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Scale-in for modals */
+@keyframes scale-in {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.animate-scale-in {
+  animation: scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Gradient shift animation for hero backgrounds */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradient-shift 6s ease infinite;
+}
+
+/* Shimmer effect for loading skeletons */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(242, 101, 34, 0.1), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Pulse glow for active/CTA buttons */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(242, 101, 34, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(242, 101, 34, 0); }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+/* 3D button press effect */
+.btn-3d {
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 0 0 #C04E1A, 0 6px 12px rgba(242, 101, 34, 0.25);
+}
+.btn-3d:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 0 #C04E1A, 0 3px 6px rgba(242, 101, 34, 0.2);
+}
+
+/* Tooltip animation */
+@keyframes tooltip-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-tooltip-in {
+  animation: tooltip-in 0.15s ease-out;
+}
+
+/* Locked phase styling */
+.phase-locked {
+  opacity: 0.5;
+  filter: grayscale(0.6);
+  pointer-events: none;
+}
+
+/* Progress pulse animation for active phases */
+@keyframes brand-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(242, 101, 34, 0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(242, 101, 34, 0); }
+}
+.animate-brand-pulse {
+  animation: brand-pulse 2s infinite;
+}

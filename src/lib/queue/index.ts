@@ -1,0 +1,293 @@
+/**
+ * Job queue abstraction.
+ *
+ * In development, uses an in-memory queue with a simple polling worker.
+ * In production, swap the `RedisQueueAdapter` (commented below) by
+ * setting REDIS_URL — the interface stays the same.
+ *
+ * Supported job types:
+ *   - 'email_campaign' : send a campaign to all recipients
+ *   - 'lead_generation': batch lead generation with AI enrichment
+ *   - 'lead_enrich'   : enrich a single lead with AI
+ */
+
+import { sendCampaign } from '@/lib/email/service'
+
+export type JobType = 'email_campaign' | 'lead_generation' | 'lead_enrich'
+
+export interface Job {
+  id: string
+  type: JobType
+  payload: Record<string, any>
+  status: 'queued' | 'processing' | 'completed' | 'failed'
+  progress: number
+  result?: any
+  error?: string
+  createdAt: Date
+  startedAt?: Date
+  completedAt?: Date
+}
+
+interface QueueAdapter {
+  enqueue(job: Job): Promise<void>
+  dequeue(): Promise<Job | null>
+  update(job: Job): Promise<void>
+  get(id: string): Promise<Job | null>
+  list(): Promise<Job[]>
+}
+
+// ============================================================================
+// In-Memory Adapter (dev mode)
+// ============================================================================
+
+class InMemoryQueueAdapter implements QueueAdapter {
+  private jobs = new Map<string, Job>()
+  private queue: string[] = []
+
+  async enqueue(job: Job): Promise<void> {
+    this.jobs.set(job.id, job)
+    this.queue.push(job.id)
+  }
+
+  async dequeue(): Promise<Job | null> {
+    const id = this.queue.shift()
+    if (!id) return null
+    return this.jobs.get(id) ?? null
+  }
+
+  async update(job: Job): Promise<void> {
+    this.jobs.set(job.id, job)
+  }
+
+  async get(id: string): Promise<Job | null> {
+    return this.jobs.get(id) ?? null
+  }
+
+  async list(): Promise<Job[]> {
+    return Array.from(this.jobs.values()).sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    )
+  }
+}
+
+// ============================================================================
+// Redis Adapter (production — activate by setting REDIS_URL)
+// ============================================================================
+
+import Redis from 'ioredis'
+
+class RedisQueueAdapter implements QueueAdapter {
+  private redis: Redis
+  private readonly keyPrefix = 'marketing-saas:'
+
+  constructor(url: string) {
+    this.redis = new Redis(url, {
+      maxRetriesPerRequest: 3,
+      enableReadyCheck: true,
+      retryStrategy: (times) => Math.min(times * 500, 5000),
+    })
+
+    this.redis.on('error', (err) => {
+      console.error('[queue] Redis error:', err.message)
+    })
+
+    this.redis.on('connect', () => {
+      console.log('[queue] Redis connected')
+    })
+  }
+
+  private jobKey(id: string): string {
+    return `${this.keyPrefix}job:${id}`
+  }
+
+  private readonly queueKey = `${this.keyPrefix}queue:jobs`
+  private readonly indexKey = `${this.keyPrefix}job:index` // sorted set by timestamp
+
+  async enqueue(job: Job): Promise<void> {
+    const multi = this.redis.multi()
+    multi.hset(this.jobKey(job.id), 'data', JSON.stringify(job))
+    multi.lpush(this.queueKey, job.id)
+    multi.zadd(this.indexKey, job.createdAt.getTime(), job.id)
+    await multi.exec()
+  }
+
+  async dequeue(): Promise<Job | null> {
+    // BRPOP blocks for up to 30 seconds waiting for a job
+    const result = await this.redis.brpop(this.queueKey, 30)
+    if (!result) return null
+    const [, id] = result
+    const data = await this.redis.hget(this.jobKey(id), 'data')
+    if (!data) return null
+    return JSON.parse(data) as Job
+  }
+
+  async update(job: Job): Promise<void> {
+    const multi = this.redis.multi()
+    multi.hset(this.jobKey(job.id), 'data', JSON.stringify(job))
+    if (job.status === 'completed' || job.status === 'failed') {
+      // Remove from index after 24 hours (TTL)
+      multi.expire(this.jobKey(job.id), 86400)
+    }
+    await multi.exec()
+  }
+
+  async get(id: string): Promise<Job | null> {
+    const data = await this.redis.hget(this.jobKey(id), 'data')
+    if (!data) return null
+    return JSON.parse(data) as Job
+  }
+
+  async list(): Promise<Job[]> {
+    // Get newest 100 job ids from sorted set (descending)
+    const ids = await this.redis.zrevrange(this.indexKey, 0, 99)
+    if (ids.length === 0) return []
+    const pipeline = this.redis.pipeline()
+    ids.forEach((id) => pipeline.hget(this.jobKey(id), 'data'))
+    const results = await pipeline.exec()
+    if (!results) return []
+    return results
+      .filter(([err, data]) => !err && data)
+      .map(([, data]) => JSON.parse(data as string) as Job)
+  }
+}
+
+// ============================================================================
+// Queue Manager
+// ============================================================================
+
+let adapter: QueueAdapter | null = null
+let workerRunning = false
+
+function getAdapter(): QueueAdapter {
+  if (adapter) return adapter
+  if (process.env.REDIS_URL) {
+    console.log('[queue] Using Redis adapter:', process.env.REDIS_URL.replace(/:[^:@]+@/, ':****@'))
+    adapter = new RedisQueueAdapter(process.env.REDIS_URL)
+  } else {
+    console.log('[queue] Using in-memory adapter (set REDIS_URL for production)')
+    adapter = new InMemoryQueueAdapter()
+  }
+  return adapter
+}
+
+function generateJobId(): string {
+  return `job_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+}
+
+/** Enqueue a new job. */
+export async function enqueue(
+  type: JobType,
+  payload: Record<string, any>,
+): Promise<Job> {
+  const job: Job = {
+    id: generateJobId(),
+    type,
+    payload,
+    status: 'queued',
+    progress: 0,
+    createdAt: new Date(),
+  }
+  await getAdapter().enqueue(job)
+  // Start worker if not running
+  startWorker()
+  return job
+}
+
+/** Get a job by id. */
+export async function getJob(id: string): Promise<Job | null> {
+  return getAdapter().get(id)
+}
+
+/** List all jobs (newest first). */
+export async function listJobs(): Promise<Job[]> {
+  return getAdapter().list()
+}
+
+/** Start the background worker (idempotent). */
+function startWorker() {
+  if (workerRunning) return
+  workerRunning = true
+  // Run async — don't block the caller
+  processJobQueue().catch((err) => {
+    console.error('[queue] worker error:', err)
+    workerRunning = false
+  })
+}
+
+async function processJobQueue() {
+  while (true) {
+    try {
+      const job = await getAdapter().dequeue()
+      if (!job) {
+        // No jobs — wait a bit and try again
+        await new Promise((r) => setTimeout(r, 1000))
+        continue
+      }
+
+      job.status = 'processing'
+      job.startedAt = new Date()
+      await getAdapter().update(job)
+
+      try {
+        const result = await processJob(job)
+        job.status = 'completed'
+        job.progress = 100
+        job.result = result
+        job.completedAt = new Date()
+      } catch (err: any) {
+        job.status = 'failed'
+        job.error = String(err?.message ?? err).slice(0, 500)
+        job.completedAt = new Date()
+      }
+
+      await getAdapter().update(job)
+    } catch (err) {
+      console.error('[queue] dequeue error:', err)
+      await new Promise((r) => setTimeout(r, 2000))
+    }
+  }
+}
+
+/** Process a single job based on its type. */
+async function processJob(job: Job): Promise<any> {
+  switch (job.type) {
+    case 'email_campaign': {
+      const { campaignId } = job.payload
+      if (!campaignId) throw new Error('campaignId required')
+      const result = await sendCampaign(campaignId)
+      return result
+    }
+
+    case 'lead_enrich': {
+      const { leadId } = job.payload
+      if (!leadId) throw new Error('leadId required')
+      // Dynamic import to avoid circular dependency
+      const { extractLeadInfo } = await import('@/lib/ai/lead-extractor')
+      const { db } = await import('@/lib/db')
+      const lead = await db.lead.findUnique({ where: { id: leadId } })
+      if (!lead) throw new Error('Lead not found')
+      const rawText = [lead.name, lead.industry, lead.description, lead.website].filter(Boolean).join('\n')
+      const info = await extractLeadInfo(rawText)
+      const updated = await db.lead.update({
+        where: { id: leadId },
+        data: {
+          industry: info.industry ?? lead.industry,
+          description: info.description ?? lead.description,
+          email: info.contactEmail ?? lead.email,
+          services: info.services.length ? JSON.stringify(info.services) : lead.services,
+          score: info.score,
+        },
+      })
+      return { leadId: updated.id, score: updated.score }
+    }
+
+    case 'lead_generation': {
+      // Batch lead generation — handled by the search API directly
+      // This is here for future async batch processing
+      return { note: 'Use /api/leads/search for lead generation' }
+    }
+
+    default:
+      throw new Error(`Unknown job type: ${job.type}`)
+  }
+}

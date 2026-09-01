@@ -1,0 +1,4337 @@
+// Autonomous Marketing SaaS - Multi-tenant schema
+// Supports SQLite (dev) and PostgreSQL (production) — just change the
+// datasource provider and DATABASE_URL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+  // For PostgreSQL production deployment:
+  //   provider = "postgresql"
+  //   url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  domain    String   @unique
+  isActive  Boolean  @default(true)
+  plan      String   @default("free") // free | pro | enterprise
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users                       User[]
+  projects                    Project[]
+  leads                       Lead[]
+  contacts                    Contact[]
+  companies                   Company[]
+  campaigns                   EmailCampaign[]
+  templates                   EmailTemplate[]
+  deals                       Deal[]
+  pipelines                   Pipeline[]
+  tasks                       Task[]
+  seoProjects                 SeoProject[]
+  contentIdeas                ContentIdea[]
+  contentPieces               ContentPiece[]
+  socialAccounts              SocialAccount[]
+  adAccounts                  AdAccount[]
+  analyticsEvents             AnalyticsEvent[]
+  analyticsReports            AnalyticsReport[]
+  aiAgents                    AiAgent[]
+  workflows                   Workflow[]
+  backlinkOpportunities       BacklinkOpportunity[]
+  authorityTrackers           AuthorityTracker[]
+  socialAnalyses              SocialAnalysis[]
+  competitorProfiles          CompetitorProfile[]
+  exportMarkets               ExportMarket[]
+  exportProducts              ExportProduct[]
+  marketResearch              MarketResearch[]
+  whatsappMessages            WhatsAppMessage[]
+  whatsappTemplates           WhatsAppTemplate[]
+  chatbotConversations        ChatbotConversation[]
+  reviewMonitors              ReviewMonitor[]
+  abTestExperiments           AbTestExperiment[]
+  landingPages                LandingPage[]
+  monthlyReports              MonthlyReport[]
+  businessDiagnostics         BusinessDiagnostic[]
+  chatbotWidgets              ChatbotWidget[]
+  agentCycles                 AgentCycle[]
+  subscription                Subscription?
+  invoices                    Invoice[]
+  goals                       Goal[]
+  onboardingSteps             OnboardingStep[]
+  calendarEvents              CalendarEvent[]
+  teamInvitations             TeamInvitation[]
+  approvalRequests            ApprovalRequest[]
+  notifications               Notification[]
+  brandMentions               BrandMention[]
+  brandKeywords               BrandKeyword[]
+  pricingCalculations         PricingCalculation[]
+  progressiveUnlock           ProgressiveUnlock?
+  apiKeys                     ApiKey[]
+  clubMembership              ClubMembership?
+  clubAdvertisements          ClubAdvertisement[]
+  ecommerceProducts           EcommerceProduct[]
+  resellerApplications        ResellerApplication[]
+  profitEstimates             ProfitEstimate[]
+  attributionEvents           AttributionEvent[]
+  fraudRules                  FraudRule[]
+  cohorts                     Cohort[]
+  marketingFunnels            MarketingFunnel[]
+  customerJourneys            CustomerJourney[]
+  pushNotifications           PushNotification[]
+  smsMessages                 SmsMessage[]
+  webhookSubscriptions        WebhookSubscription[]
+  roles                       Role[]
+  auditLogs                   AuditLogEntry[]
+  projectMembers              ProjectMember[]
+  whiteLabelConfig            WhiteLabelConfig?
+  resellerCustomers           ResellerCustomer[]           @relation("ResellerCustomers")
+  commissions                 Commission[]                 @relation("CommissionsEarned")
+  payments                    Payment[]
+  paymentMethods              PaymentMethod[]
+  financialAlerts             FinancialAlert[]
+  referrerReferrals           Referral[]                   @relation("ReferrerTenant")
+  refereeReferrals            Referral[]                   @relation("RefereeTenant")
+  customerOfResellers         ResellerCustomer[]           @relation("CustomerOfReseller")
+  promoLinks                  PromoLink[]
+  competitorAnalyses          CompetitorAnalysis[]
+  investorProfiles            InvestorProfile[]
+  cofounderProfiles           CofounderProfile[]
+  partnershipOpportunities    PartnershipOpportunity[]
+  // Wholesale distribution & internal staff
+  distributor                 Distributor?
+  cryptoPayments              CryptoPayment[]
+  cryptoWallets               CryptoWallet[]
+  financialReports            FinancialReport[]
+  // Multi-LLM & negotiation
+  onboardingSessions          OnboardingSession[]
+  negotiationSessions         NegotiationSession[]
+  llmUsageRecords             LlmUsageRecord[]
+  // Virtual assistants, payroll, support, vector search
+  assistantAssignments        AssistantAssignment[]
+  supportSubscriptions        SupportSubscription[]
+  supportTickets              SupportTicketItem[]
+  vectorIndices               VectorIndex[]
+  // Project briefs + campaign schedules + demos
+  projectBriefs               ProjectBrief[]
+  campaignScheduleSuggestions CampaignScheduleSuggestion[]
+  sandboxSessions             SandboxSession[]
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String?
+  hashedPassword String?
+  role           String   @default("member") // owner | admin | manager | editor | viewer
+  isActive       Boolean  @default(true)
+  tenantId       String
+  roleId         String? // links to Role model for granular permissions
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userRole       Role?    @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  activities       Activity[]
+  campaigns        EmailCampaign[]
+  emailTemplates   EmailTemplate[]
+  contentPieces    ContentPiece[]
+  projectMembers   ProjectMember[]
+  superAdmin       SuperAdmin?
+  internalEmployee InternalEmployee?
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  status      String   @default("active") // active | paused | archived
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  leads   Lead[]
+  members ProjectMember[]
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  website   String?
+  industry  String?
+  address   String?
+  phone     String?
+  size      String? // e.g. "11-50"
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  leads    Lead[]
+  contacts Contact[]
+  deals    Deal[]
+}
+
+model Lead {
+  id           String   @id @default(cuid())
+  name         String
+  email        String?
+  phone        String?
+  website      String?
+  address      String?
+  industry     String?
+  description  String?
+  services     String? // JSON-serialized list of services
+  rating       Float? // Google Maps rating (0-5)
+  reviewsCount Int? // Number of Google Maps reviews
+  score        Float    @default(0)
+  status       String   @default("new") // new | contacted | qualified | won | lost
+  source       String? // serper | maps | manual | ai
+  tenantId     String
+  projectId    String?
+  companyId    String?
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project      Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  company      Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  activities Activity[]
+  emailLogs  EmailLog[]
+  deals      Deal[]
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  position  String?
+  tenantId  String
+  companyId String?
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deals Deal[]
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  type      String // created | updated | contacted | enriched | scored | auth | email_sent
+  message   String
+  userId    String?
+  leadId    String?
+  tenantId  String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  lead      Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+// ============================================================================
+// Phase 2: Email Marketing
+// ============================================================================
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  subject   String
+  body      String // HTML or plain text body with {{variables}}
+  design    String? // JSON-serialized design (for future visual editor)
+  category  String   @default("general") // general | welcome | follow_up | newsletter | promotional
+  tenantId  String
+  createdBy String?
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  creator   User?    @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campaigns EmailCampaign[]
+}
+
+model EmailCampaign {
+  id              String         @id @default(cuid())
+  name            String
+  subject         String
+  body            String // Snapshot of template body at send time
+  status          String         @default("draft") // draft | scheduled | sending | sent | failed | cancelled
+  recipientFilter String? // JSON: { status, industry, minScore, projectId }
+  recipientCount  Int            @default(0)
+  sentCount       Int            @default(0)
+  openCount       Int            @default(0)
+  clickCount      Int            @default(0)
+  bounceCount     Int            @default(0)
+  scheduledAt     DateTime?
+  sentAt          DateTime?
+  tenantId        String
+  templateId      String?
+  createdBy       String?
+  tenant          Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  template        EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  creator         User?          @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  logs EmailLog[]
+}
+
+model EmailLog {
+  id          String        @id @default(cuid())
+  campaignId  String
+  leadId      String?
+  to          String // recipient email
+  status      String        @default("pending") // pending | sent | delivered | opened | clicked | bounced | failed
+  error       String?
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  openedAt    DateTime?
+  clickedAt   DateTime?
+  campaign    EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  lead        Lead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  createdAt   DateTime      @default(now())
+
+  @@index([campaignId])
+  @@index([leadId])
+  @@index([status])
+}
+
+// ============================================================================
+// Phase 3: CRM Domain — Contacts, Companies, Deals, Pipelines
+// ============================================================================
+
+model Deal {
+  id                String    @id @default(cuid())
+  title             String
+  value             Float     @default(0)
+  currency          String    @default("USD")
+  stage             String    @default("lead") // lead | qualified | proposal | negotiation | won | lost
+  probability       Int       @default(0) // 0-100
+  expectedCloseDate DateTime?
+  closedAt          DateTime?
+  tenantId          String
+  leadId            String?
+  contactId         String?
+  companyId         String?
+  projectId         String?
+  ownerId           String?
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead              Lead?     @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  contact           Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  company           Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([stage])
+}
+
+model Pipeline {
+  id        String   @id @default(cuid())
+  name      String
+  stages    String // JSON array: ["lead", "qualified", "proposal", "negotiation", "won", "lost"]
+  tenantId  String
+  isDefault Boolean  @default(false)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("todo") // todo | in_progress | done | cancelled
+  priority    String    @default("medium") // low | medium | high | urgent
+  dueDate     DateTime?
+  completedAt DateTime?
+  tenantId    String
+  assigneeId  String?
+  leadId      String?
+  dealId      String?
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+// ============================================================================
+// Phase 4: SEO Domain — Crawls, Pages, Issues, Keywords, Backlinks
+// ============================================================================
+
+model SeoProject {
+  id             String    @id @default(cuid())
+  name           String
+  domain         String
+  tenantId       String
+  crawlFrequency String    @default("weekly") // daily | weekly | monthly
+  lastCrawlAt    DateTime?
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  crawls    SeoCrawl[]
+  pages     SeoPage[]
+  issues    SeoIssue[]
+  keywords  SeoKeyword[]
+  backlinks SeoBacklink[]
+}
+
+model SeoCrawl {
+  id           String     @id @default(cuid())
+  seoProjectId String
+  status       String     @default("pending") // pending | running | completed | failed
+  pagesCrawled Int        @default(0)
+  issuesFound  Int        @default(0)
+  duration     Int? // seconds
+  startedAt    DateTime?
+  completedAt  DateTime?
+  seoProject   SeoProject @relation(fields: [seoProjectId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@index([seoProjectId])
+}
+
+model SeoPage {
+  id              String     @id @default(cuid())
+  seoProjectId    String
+  url             String
+  title           String?
+  metaDescription String?
+  h1Count         Int        @default(0)
+  h2Count         Int        @default(0)
+  wordCount       Int        @default(0)
+  loadTime        Float? // seconds
+  mobileFriendly  Boolean    @default(false)
+  hasSchema       Boolean    @default(false)
+  hasSitemap      Boolean    @default(false)
+  score           Int        @default(0) // 0-100
+  seoProject      SeoProject @relation(fields: [seoProjectId], references: [id], onDelete: Cascade)
+  crawledAt       DateTime   @default(now())
+
+  @@index([seoProjectId])
+  @@index([url])
+}
+
+model SeoIssue {
+  id           String     @id @default(cuid())
+  seoProjectId String
+  pageUrl      String
+  type         String // missing_h1 | missing_meta | broken_link | slow_load | no_schema | no_mobile
+  severity     String     @default("warning") // info | warning | error | critical
+  message      String
+  resolved     Boolean    @default(false)
+  seoProject   SeoProject @relation(fields: [seoProjectId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@index([seoProjectId])
+  @@index([severity])
+  @@index([resolved])
+}
+
+model SeoKeyword {
+  id           String     @id @default(cuid())
+  seoProjectId String
+  keyword      String
+  position     Int? // SERP position
+  searchVolume Int? // monthly searches
+  difficulty   Int? // 0-100
+  cpc          Float? // cost per click
+  trend        String? // JSON array of positions over time
+  seoProject   SeoProject @relation(fields: [seoProjectId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([seoProjectId])
+  @@index([keyword])
+}
+
+model SeoBacklink {
+  id              String     @id @default(cuid())
+  seoProjectId    String
+  sourceUrl       String
+  targetUrl       String
+  anchorText      String?
+  domainAuthority Int? // 0-100
+  pageAuthority   Int? // 0-100
+  linkType        String     @default("dofollow") // dofollow | nofollow
+  status          String     @default("active") // active | lost | broken
+  firstSeen       DateTime   @default(now())
+  lastChecked     DateTime   @default(now())
+  seoProject      SeoProject @relation(fields: [seoProjectId], references: [id], onDelete: Cascade)
+
+  @@index([seoProjectId])
+  @@index([status])
+}
+
+// ============================================================================
+// Phase 3 (Strategy): Content Domain — Ideas, Pieces, Calendar
+// ============================================================================
+
+model ContentIdea {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  topic       String?
+  contentType String   @default("blog") // blog | video | social | infographic | podcast
+  keywords    String? // JSON array
+  source      String   @default("manual") // manual | ai | competitor | trend
+  status      String   @default("idea") // idea | approved | in_progress | published | archived
+  aiScore     Int? // 0-100, AI-predicted engagement score
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  pieces ContentPiece[]
+}
+
+model ContentPiece {
+  id          String       @id @default(cuid())
+  title       String
+  body        String // The actual content (markdown/HTML)
+  excerpt     String?
+  contentType String       @default("blog")
+  wordCount   Int          @default(0)
+  status      String       @default("draft") // draft | reviewed | scheduled | published
+  aiGenerated Boolean      @default(false)
+  seoScore    Int? // 0-100
+  tenantId    String
+  ideaId      String?
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  idea        ContentIdea? @relation(fields: [ideaId], references: [id], onDelete: SetNull)
+  createdBy   String?
+  creator     User?        @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  calendar ContentCalendar[]
+}
+
+model ContentCalendar {
+  id             String       @id @default(cuid())
+  contentPieceId String
+  platform       String // blog | linkedin | twitter | facebook | instagram
+  scheduledAt    DateTime
+  publishedAt    DateTime?
+  status         String       @default("scheduled") // scheduled | publishing | published | failed
+  contentPiece   ContentPiece @relation(fields: [contentPieceId], references: [id], onDelete: Cascade)
+  tenantId       String
+  createdAt      DateTime     @default(now())
+
+  @@index([scheduledAt])
+  @@index([status])
+}
+
+// ============================================================================
+// Phase 6: Social Media Domain
+// ============================================================================
+
+model SocialAccount {
+  id            String   @id @default(cuid())
+  platform      String // linkedin | twitter | facebook | instagram | youtube
+  handle        String
+  displayName   String?
+  avatarUrl     String?
+  followerCount Int?
+  isConnected   Boolean  @default(true)
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  posts SocialPost[]
+}
+
+model SocialPost {
+  id              String        @id @default(cuid())
+  socialAccountId String
+  content         String
+  mediaUrls       String? // JSON array
+  status          String        @default("draft") // draft | scheduled | published | failed
+  likes           Int           @default(0)
+  comments        Int           @default(0)
+  shares          Int           @default(0)
+  impressions     Int           @default(0)
+  reach           Int           @default(0)
+  scheduledAt     DateTime?
+  publishedAt     DateTime?
+  socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  tenantId        String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+// ============================================================================
+// Phase 5: Ads Domain
+// ============================================================================
+
+model AdAccount {
+  id        String   @id @default(cuid())
+  platform  String // google_ads | meta_ads | tiktok_ads | linkedin_ads
+  accountId String
+  name      String
+  currency  String   @default("USD")
+  isConnect Boolean  @default(true)
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campaigns AdCampaign[]
+}
+
+model AdCampaign {
+  id          String    @id @default(cuid())
+  adAccountId String
+  name        String
+  status      String    @default("draft") // draft | active | paused | completed
+  budget      Float     @default(0)
+  budgetType  String    @default("daily") // daily | lifetime
+  spend       Float     @default(0)
+  impressions Int       @default(0)
+  clicks      Int       @default(0)
+  conversions Int       @default(0)
+  ctr         Float? // click-through rate
+  cpc         Float? // cost per click
+  cpa         Float? // cost per acquisition
+  roas        Float? // return on ad spend
+  startDate   DateTime?
+  endDate     DateTime?
+  adAccount   AdAccount @relation(fields: [adAccountId], references: [id], onDelete: Cascade)
+  tenantId    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status])
+}
+
+// ============================================================================
+// Phase 8: Analytics Domain
+// ============================================================================
+
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  eventType  String // page_view | click | conversion | signup | purchase
+  eventName  String
+  properties String? // JSON
+  userId     String?
+  sessionId  String?
+  pageUrl    String?
+  referrer   String?
+  userAgent  String?
+  ip         String?
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model AnalyticsReport {
+  id        String   @id @default(cuid())
+  name      String
+  type      String // funnel | summary | cohort | retention | custom
+  config    String // JSON: { metrics, dimensions, filters, dateRange }
+  data      String? // JSON: computed results (cached)
+  schedule  String? // daily | weekly | monthly (for auto-refresh)
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================================
+// Phase 9: AI Agents Domain
+// ============================================================================
+
+model AiAgent {
+  id          String   @id @default(cuid())
+  name        String
+  type        String // strategy | advisor | autonomous | content | seo | ads
+  description String?
+  config      String? // JSON: { model, temperature, systemPrompt, tools }
+  isActive    Boolean  @default(true)
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tasks           AiTask[]
+  recommendations AiRecommendation[]
+}
+
+model AiTask {
+  id          String    @id @default(cuid())
+  agentId     String
+  type        String // analyze | generate | recommend | execute
+  input       String // JSON
+  output      String? // JSON
+  status      String    @default("pending") // pending | running | completed | failed
+  error       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  agent       AiAgent   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  tenantId    String
+  createdAt   DateTime  @default(now())
+
+  @@index([status])
+}
+
+model AiRecommendation {
+  id          String   @id @default(cuid())
+  agentId     String
+  category    String // seo | content | ads | social | email | strategy
+  priority    String   @default("medium") // low | medium | high | critical
+  title       String
+  description String
+  actionData  String? // JSON: actionable steps
+  impact      String? // estimated impact
+  status      String   @default("pending") // pending | approved | rejected | implemented
+  agent       AiAgent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  tenantId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([priority])
+}
+
+// ============================================================================
+// Workflow Engine
+// ============================================================================
+
+model Workflow {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  trigger       String // manual | scheduled | event
+  triggerConfig String? // JSON: { schedule, event, conditions }
+  steps         String // JSON array: [{ id, type, config, next }]
+  isActive      Boolean  @default(true)
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  runs WorkflowRun[]
+}
+
+model WorkflowRun {
+  id          String    @id @default(cuid())
+  workflowId  String
+  status      String    @default("pending") // pending | running | completed | failed | cancelled
+  currentStep Int       @default(0)
+  totalSteps  Int       @default(0)
+  result      String? // JSON
+  error       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  workflow    Workflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  tenantId    String
+  createdAt   DateTime  @default(now())
+
+  @@index([status])
+}
+
+// ============================================================================
+// Phase 7: Backlink Platform — Discovery, Outreach, Authority Tracking
+// ============================================================================
+
+model BacklinkOpportunity {
+  id                 String    @id @default(cuid())
+  sourceDomain       String
+  sourceUrl          String?
+  targetUrl          String
+  domainAuthority    Int? // 0-100
+  pageAuthority      Int? // 0-100
+  relevanceScore     Int? // 0-100, AI-computed
+  linkType           String    @default("dofollow") // dofollow | nofollow | sponsored
+  status             String    @default("discovered") // discovered | contacted | negotiated | acquired | rejected | lost
+  contactEmail       String?
+  contactName        String?
+  outreachTemplate   String?
+  outreachSentAt     DateTime?
+  responseReceivedAt DateTime?
+  acquiredAt         DateTime?
+  notes              String?
+  tenantId           String
+  tenant             Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  outreaches BacklinkOutreach[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([domainAuthority])
+}
+
+model BacklinkOutreach {
+  id            String              @id @default(cuid())
+  opportunityId String
+  subject       String
+  body          String
+  status        String              @default("pending") // pending | sent | replied | follow_up | converted | rejected
+  followUpCount Int                 @default(0)
+  sentAt        DateTime?
+  repliedAt     DateTime?
+  opportunity   BacklinkOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  tenantId      String
+  createdAt     DateTime            @default(now())
+
+  @@index([status])
+}
+
+model AuthorityTracker {
+  id               String   @id @default(cuid())
+  domain           String
+  domainAuthority  Int      @default(0)
+  pageAuthority    Int      @default(0)
+  backlinksCount   Int      @default(0)
+  referringDomains Int      @default(0)
+  trustFlow        Int?
+  citationFlow     Int?
+  spamScore        Int      @default(0)
+  history          String? // JSON: [{ date, da, pa, backlinks }]
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([domain, tenantId])
+  @@index([tenantId])
+}
+
+// ============================================================================
+// Phase 8: Social Media Analyzer — Multi-platform deep analysis
+// ============================================================================
+
+model SocialAnalysis {
+  id                String   @id @default(cuid())
+  platform          String // youtube | instagram | tiktok | twitter | facebook | linkedin
+  handle            String
+  displayName       String?
+  followerCount     Int?
+  followingCount    Int?
+  postCount         Int?
+  // Engagement metrics
+  avgLikes          Float?
+  avgComments       Float?
+  avgShares         Float?
+  engagementRate    Float? // percentage
+  // Growth metrics
+  followerGrowth    Float? // percentage (last 30 days)
+  postingFrequency  Float? // posts per week
+  // Content analysis
+  topHashtags       String? // JSON array
+  bestPostingTime   String? // JSON: { day, hour }
+  contentCategories String? // JSON array of categories
+  // Quality scores
+  influenceScore    Int? // 0-100
+  authenticityScore Int? // 0-100 (detects fake followers)
+  brandFitScore     Int? // 0-100
+  // Competitor comparison
+  competitorRank    Int?
+  marketShare       Float? // percentage
+  // Raw data cache
+  rawData           String? // JSON: full API response
+  analysisDate      DateTime @default(now())
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([platform, handle, tenantId])
+  @@index([tenantId])
+  @@index([platform])
+}
+
+model CompetitorProfile {
+  id               String   @id @default(cuid())
+  name             String
+  domain           String?
+  // Competitor overview
+  description      String?
+  foundedYear      Int?
+  employees        String? // "11-50", "51-200", etc.
+  revenue          String? // "$1M-$10M", etc.
+  // Digital presence
+  websiteTraffic   Int? // monthly visits
+  trafficTrend     Float? // percentage
+  organicKeywords  Int?
+  paidKeywords     Int?
+  backlinks        Int?
+  domainAuthority  Int?
+  // Social presence
+  socialFollowers  String? // JSON: { platform: count }
+  socialEngagement Float? // average engagement rate
+  // Marketing analysis
+  marketingSpend   String? // estimated
+  adChannels       String? // JSON array
+  contentOutput    String? // posts per week
+  seoScore         Int?
+  // SWOT
+  strengths        String? // JSON array
+  weaknesses       String? // JSON array
+  opportunities    String? // JSON array
+  threats          String? // JSON array
+  // Comparison
+  marketPosition   String? // leader | challenger | follower | nicher
+  marketShare      Float? // percentage
+  growthRate       Float? // percentage
+  threat           String   @default("medium") // low | medium | high | critical
+  notes            String?
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  analyses CompetitorAnalysis[]
+
+  @@index([tenantId])
+  @@index([threat])
+}
+
+// ============================================================================
+// Phase 8: Export Market Analyzer — International trade intelligence
+// ============================================================================
+
+model ExportMarket {
+  id                    String   @id @default(cuid())
+  country               String
+  countryCode           String // ISO 2-letter
+  region                String? // e.g. "Middle East", "Southeast Asia"
+  // Market metrics
+  marketSize            Float? // USD billion
+  growthRate            Float? // annual percentage
+  importVolume          Float? // USD million
+  importTrend           Float? // percentage change YoY
+  // Trade barriers
+  tariffRate            Float? // percentage
+  importDuty            Float? // percentage
+  vatRate               Float? // percentage
+  tradeBarriers         String? // JSON array of barriers
+  regulations           String? // JSON array
+  // Opportunity scores
+  opportunityScore      Int? // 0-100
+  competitionLevel      String? // low | medium | high | very_high
+  marketEntryDifficulty String? // easy | moderate | difficult | very_difficult
+  recommendedStrategy   String?
+  // Demographics & demand
+  population            Int?
+  gdpPerCapita          Float?
+  internetPenetration   Float? // percentage
+  // Key data
+  keyCities             String? // JSON array
+  mainPorts             String? // JSON array
+  language              String?
+  currency              String?
+  paymentMethods        String? // JSON array
+  notes                 String?
+  tenantId              String
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([countryCode, tenantId])
+  @@index([tenantId])
+  @@index([opportunityScore])
+}
+
+model ExportProduct {
+  id               String   @id @default(cuid())
+  name             String
+  hsCode           String? // Harmonized System code
+  category         String?
+  description      String?
+  // Global metrics
+  globalMarketSize Float? // USD billion
+  globalGrowthRate Float?
+  topExporters     String? // JSON: [{ country, volume, share }]
+  topImporters     String? // JSON: [{ country, volume, share }]
+  // Pricing
+  avgPrice         Float? // USD per unit
+  priceTrend       Float? // percentage
+  priceVolatility  Float? // 0-100
+  // Competition
+  competitionLevel String?
+  barriers         String? // JSON array
+  certifications   String? // JSON array (ISO, CE, FDA, etc.)
+  // Opportunity
+  targetMarkets    String? // JSON array of country codes
+  opportunityScore Int?
+  notes            String?
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([category])
+}
+
+model MarketResearch {
+  id               String   @id @default(cuid())
+  title            String
+  type             String // market_entry | competitor | product_fit | pricing | distribution
+  country          String?
+  product          String?
+  // Research data
+  summary          String
+  keyFindings      String? // JSON array
+  recommendations  String? // JSON array
+  dataSources      String? // JSON array
+  // Metrics
+  marketSize       Float?
+  growthRate       Float?
+  competitionLevel String?
+  // AI analysis
+  aiAnalysis       String? // JSON: { insights, risks, opportunities }
+  confidenceScore  Int? // 0-100
+  status           String   @default("draft") // draft | in_progress | completed | archived
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([type])
+  @@index([status])
+}
+
+// ============================================================================
+// Phase 2 Gaps: WhatsApp, Conversational AI, Review Monitoring
+// ============================================================================
+
+model WhatsAppMessage {
+  id           String    @id @default(cuid())
+  to           String
+  from         String?
+  body         String
+  mediaUrl     String?
+  status       String    @default("pending") // pending | sent | delivered | read | failed
+  direction    String    @default("outbound") // inbound | outbound
+  templateName String?
+  campaignId   String?
+  leadId       String?
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sentAt       DateTime?
+  deliveredAt  DateTime?
+  readAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model WhatsAppTemplate {
+  id         String   @id @default(cuid())
+  name       String
+  language   String   @default("en")
+  category   String   @default("marketing") // marketing | utility | authentication
+  body       String
+  header     String?
+  footer     String?
+  buttons    String? // JSON array
+  status     String   @default("pending") // pending | approved | rejected
+  templateId String? // WhatsApp Business API template ID
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model ChatbotConversation {
+  id           String           @id @default(cuid())
+  sessionId    String
+  channel      String           @default("website") // website | whatsapp | telegram | messenger
+  visitorName  String?
+  visitorEmail String?
+  status       String           @default("active") // active | resolved | escalated | abandoned
+  leadId       String?
+  tenantId     String
+  messages     ChatbotMessage[]
+  tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model ChatbotMessage {
+  id             String              @id @default(cuid())
+  conversationId String
+  role           String // user | assistant | system
+  content        String
+  tokens         Int?
+  model          String?
+  createdAt      DateTime            @default(now())
+  conversation   ChatbotConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}
+
+model ReviewMonitor {
+  id                 String    @id @default(cuid())
+  platform           String // google | yelp | trustpilot | facebook
+  businessName       String
+  placeId            String? // Google Place ID
+  rating             Float     @default(0)
+  reviewCount        Int       @default(0)
+  avgRating          Float     @default(0)
+  lastChecked        DateTime?
+  // Auto-response settings
+  autoRespond        Boolean   @default(false)
+  responseTemplate   String?
+  // Sentiment analysis
+  sentimentScore     Float? // -1 to 1
+  sentimentBreakdown String? // JSON: { positive, neutral, negative }
+  tenantId           String
+  tenant             Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reviews            Review[]
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([platform])
+}
+
+model Review {
+  id              String        @id @default(cuid())
+  reviewMonitorId String
+  author          String
+  rating          Int // 1-5
+  text            String
+  language        String?
+  date            DateTime
+  response        String?
+  respondedAt     DateTime?
+  sentiment       String? // positive | neutral | negative
+  isFlagged       Boolean       @default(false)
+  reviewMonitor   ReviewMonitor @relation(fields: [reviewMonitorId], references: [id], onDelete: Cascade)
+  tenantId        String
+  createdAt       DateTime      @default(now())
+
+  @@index([reviewMonitorId])
+  @@index([rating])
+}
+
+// ============================================================================
+// Phase 4 Gap: A/B Testing & Landing Page Builder
+// ============================================================================
+
+model AbTestExperiment {
+  id                    String    @id @default(cuid())
+  name                  String
+  description           String?
+  status                String    @default("draft") // draft | running | completed | stopped
+  // Variants
+  controlName           String    @default("Control")
+  controlData           String // JSON: page config
+  variantName           String    @default("Variant A")
+  variantData           String // JSON: page config
+  // Traffic split
+  trafficSplit          Int       @default(50) // percentage to variant
+  // Metrics
+  controlVisitors       Int       @default(0)
+  variantVisitors       Int       @default(0)
+  controlConversions    Int       @default(0)
+  variantConversions    Int       @default(0)
+  controlConversionRate Float?
+  variantConversionRate Float?
+  // Statistical significance
+  confidenceLevel       Float?
+  winner                String? // control | variant | inconclusive
+  // Targeting
+  targetUrl             String?
+  targetMetric          String    @default("conversion") // conversion | click | bounce | revenue
+  startDate             DateTime?
+  endDate               DateTime?
+  tenantId              String
+  tenant                Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model LandingPage {
+  id              String    @id @default(cuid())
+  name            String
+  slug            String
+  html            String
+  css             String?
+  // Builder config (JSON: sections, components, styling)
+  config          String?
+  status          String    @default("draft") // draft | published | archived
+  // Performance
+  visitors        Int       @default(0)
+  conversions     Int       @default(0)
+  conversionRate  Float?
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  // A/B test
+  experimentId    String?
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  publishedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+// ============================================================================
+// Phase 9 Gaps: Monthly Reports, Business Diagnostics, AI Chatbot Widget
+// ============================================================================
+
+model MonthlyReport {
+  id               String   @id @default(cuid())
+  title            String
+  month            String // "2026-01"
+  language         String   @default("en")
+  // Summary sections
+  executiveSummary String
+  achievements     String? // JSON array
+  challenges       String? // JSON array
+  metrics          String? // JSON: { leads, deals, revenue, campaigns, ... }
+  recommendations  String? // JSON array
+  nextMonthPlan    String? // JSON array
+  // AI-generated content
+  aiAnalysis       String? // JSON: { insights, trends, predictions }
+  // Export
+  pdfUrl           String?
+  status           String   @default("draft") // draft | generated | sent | archived
+  sentTo           String? // JSON array of email recipients
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([month])
+}
+
+model BusinessDiagnostic {
+  id                        String   @id @default(cuid())
+  businessName              String
+  website                   String?
+  industry                  String?
+  // Diagnostic areas
+  marketingScore            Int?
+  salesScore                Int?
+  digitalPresenceScore      Int?
+  customerSatisfactionScore Int?
+  operationalScore          Int?
+  overallScore              Int?
+  // SWOT
+  strengths                 String? // JSON array
+  weaknesses                String? // JSON array
+  opportunities             String? // JSON array
+  threats                   String? // JSON array
+  // Issues & opportunities
+  detectedIssues            String? // JSON: [{ area, severity, description, recommendation }]
+  detectedOpportunities     String? // JSON: [{ area, potential, description, action }]
+  // AI analysis
+  aiAnalysis                String? // JSON: { root_causes, priority_actions, timeline }
+  // Report
+  summary                   String?
+  actionPlan                String? // JSON: [{ phase, tasks, timeline, budget }]
+  status                    String   @default("in_progress") // in_progress | completed | archived
+  tenantId                  String
+  tenant                    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model ChatbotWidget {
+  id                 String   @id @default(cuid())
+  name               String
+  // Embed config
+  widgetKey          String   @unique
+  domain             String? // Allowed domain
+  // Appearance
+  primaryColor       String   @default("#10b981")
+  position           String   @default("bottom-right")
+  welcomeMessage     String   @default("Hello! How can I help you today?")
+  placeholder        String   @default("Type your message...")
+  // AI config
+  systemPrompt       String?
+  model              String   @default("gpt-4")
+  temperature        Float    @default(0.7)
+  // Lead capture
+  captureName        Boolean  @default(true)
+  captureEmail       Boolean  @default(true)
+  capturePhone       Boolean  @default(false)
+  // Analytics
+  totalConversations Int      @default(0)
+  totalMessages      Int      @default(0)
+  leadsCaptured      Int      @default(0)
+  // Status
+  isActive           Boolean  @default(true)
+  tenantId           String
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+// ============================================================================
+// Phase 10 Gap: Autonomous Agent execution log + cycle tracking
+// ============================================================================
+
+model AgentCycle {
+  id                       String    @id @default(cuid())
+  cycleType                String    @default("weekly") // weekly | monthly | daily
+  status                   String    @default("pending") // pending | running | completed | failed
+  startedAt                DateTime?
+  completedAt              DateTime?
+  // Phase results
+  phase1Result             String? // JSON: lead generation stats
+  phase2Result             String? // JSON: engagement stats
+  phase3Result             String? // JSON: content stats
+  phase4Result             String? // JSON: SEO stats
+  phase5Result             String? // JSON: ads stats
+  phase6Result             String? // JSON: social stats
+  phase7Result             String? // JSON: backlink stats
+  phase8Result             String? // JSON: analyzer stats
+  phase9Result             String? // JSON: AI advisor stats
+  // Summary
+  summary                  String?
+  tasksCreated             Int       @default(0)
+  recommendationsGenerated Int       @default(0)
+  error                    String?
+  tenantId                 String
+  tenant                   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt                DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+// ============================================================================
+// Billing & Subscription System (3-tier pricing)
+// ============================================================================
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  tenantId             String    @unique
+  plan                 String    @default("starter") // starter | growth | enterprise
+  status               String    @default("active") // active | past_due | canceled | trialing
+  billingCycle         String    @default("monthly") // monthly | yearly
+  amount               Float     @default(0)
+  currency             String    @default("USD")
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  stripePriceId        String?
+  trialStart           DateTime?
+  trialEnd             DateTime?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  canceledAt           DateTime?
+  maxLeads             Int       @default(100)
+  maxCampaigns         Int       @default(5)
+  maxUsers             Int       @default(3)
+  maxSeoProjects       Int       @default(1)
+  maxSocialAccounts    Int       @default(3)
+  maxWorkflows         Int       @default(2)
+  aiCredits            Int       @default(100)
+  leadsUsed            Int       @default(0)
+  campaignsUsed        Int       @default(0)
+  aiCreditsUsed        Int       @default(0)
+  features             String?
+  tenant               Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoices             Invoice[]
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([status])
+}
+
+model Invoice {
+  id                    String        @id @default(cuid())
+  tenantId              String
+  subscriptionId        String?
+  number                String        @unique
+  amount                Float
+  currency              String        @default("USD")
+  status                String        @default("pending") // pending | paid | void | refunded
+  lineItems             String
+  issueDate             DateTime      @default(now())
+  dueDate               DateTime?
+  paidAt                DateTime?
+  stripeInvoiceId       String?
+  stripePaymentIntentId String?
+  pdfUrl                String?
+  tenant                Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription          Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  createdAt             DateTime      @default(now())
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+// ============================================================================
+// Goal Setting & Tracking
+// ============================================================================
+
+model Goal {
+  id             String    @id @default(cuid())
+  title          String
+  type           String // revenue | leads | deals | traffic | engagement | conversions | custom
+  targetValue    Float
+  currentValue   Float     @default(0)
+  unit           String    @default("count")
+  startDate      DateTime  @default(now())
+  endDate        DateTime
+  status         String    @default("active") // active | achieved | missed | paused
+  priority       String    @default("medium")
+  linkedPhases   String?
+  projectedValue Float?
+  projectedDate  DateTime?
+  history        String?
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model OnboardingStep {
+  id          String    @id @default(cuid())
+  tenantId    String
+  step        String // welcome | profile | goals | budget | team | first_lead | first_campaign | done
+  status      String    @default("pending")
+  data        String?
+  completedAt DateTime?
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([tenantId, step])
+  @@index([tenantId])
+}
+
+// ============================================================================
+// Unified Marketing Calendar
+// ============================================================================
+
+model CalendarEvent {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime?
+  allDay      Boolean   @default(false)
+  sourceType  String // campaign | social_post | content | seo_crawl | ab_test | workflow | task | manual
+  sourceId    String?
+  channel     String?
+  status      String    @default("scheduled")
+  color       String    @default("#3b82f6")
+  metadata    String?
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([startDate])
+  @@index([sourceType])
+}
+
+// ============================================================================
+// Team Management
+// ============================================================================
+
+model TeamInvitation {
+  id        String   @id @default(cuid())
+  email     String
+  role      String   @default("member")
+  token     String   @unique
+  tenantId  String
+  invitedBy String
+  status    String   @default("pending")
+  expiresAt DateTime
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([email])
+}
+
+model ApprovalRequest {
+  id          String    @id @default(cuid())
+  type        String // campaign | content | social_post | ad | workflow | budget
+  itemId      String
+  itemData    String
+  requestedBy String
+  requestedAt DateTime  @default(now())
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  status      String    @default("pending") // pending | approved | rejected | changes_requested
+  comment     String?
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+// ============================================================================
+// Notification Center
+// ============================================================================
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String?
+  tenantId  String
+  type      String // info | success | warning | error | system
+  category  String // lead | campaign | seo | social | ads | ai | billing | system
+  title     String
+  message   String
+  actionUrl String?
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+  metadata  String?
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([isRead])
+}
+
+// ============================================================================
+// Social Listening
+// ============================================================================
+
+model BrandMention {
+  id             String   @id @default(cuid())
+  keyword        String
+  platform       String // twitter | reddit | news | blogs | forums | review_sites
+  url            String?
+  title          String?
+  snippet        String
+  author         String?
+  sentiment      String? // positive | neutral | negative
+  sentimentScore Float?
+  reach          Int?
+  engagement     Int?
+  status         String   @default("new")
+  isFlagged      Boolean  @default(false)
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  mentionedAt    DateTime
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([keyword])
+  @@index([sentiment])
+}
+
+model BrandKeyword {
+  id              String    @id @default(cuid())
+  keyword         String
+  isActive        Boolean   @default(true)
+  alertOnPositive Boolean   @default(false)
+  alertOnNegative Boolean   @default(true)
+  alertOnNeutral  Boolean   @default(false)
+  totalMentions   Int       @default(0)
+  lastChecked     DateTime?
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([keyword, tenantId])
+  @@index([tenantId])
+}
+
+// ============================================================================
+// Pricing Calculator
+// ============================================================================
+
+model PricingCalculation {
+  id                       String   @id @default(cuid())
+  monthlyBudget            Float
+  productPrice             Float
+  reviewCount              Int
+  reviewPlatforms          Int
+  funnelLeads              Int
+  funnelQualified          Float
+  funnelDeals              Float
+  recommendedPlan          String?
+  estimatedMonthlyCost     Float?
+  estimatedROI             Float?
+  estimatedLeadsPerMonth   Int?
+  estimatedRevenuePerMonth Float?
+  customerEmail            String?
+  customerName             String?
+  tenantId                 String?
+  tenant                   Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  createdAt                DateTime @default(now())
+
+  @@index([recommendedPlan])
+}
+
+// ============================================================================
+// Progressive Unlock System — phases unlock based on plan + budget + time
+// ============================================================================
+
+model ProgressiveUnlock {
+  id              String   @id @default(cuid())
+  tenantId        String   @unique
+  // Which phases are unlocked (JSON: { "P1": true, "P2": true, ... })
+  unlockedPhases  String   @default("[]") // JSON array: ["P1","P2",...]
+  // Current active phase
+  currentPhase    String   @default("P1")
+  // Progress within current phase (0-100)
+  phaseProgress   Int      @default(0)
+  // Overall platform progress (0-100)
+  overallProgress Int      @default(0)
+  // Plan-based unlock schedule
+  plan            String   @default("starter") // starter | growth | enterprise
+  // Budget-based acceleration
+  monthlyBudget   Float    @default(0)
+  // Signup date (for time-based unlocking)
+  signupDate      DateTime @default(now())
+  // Unlock history (JSON: [{ phase, unlockedAt, trigger }])
+  unlockHistory   String? // JSON array
+  // Roadmap milestones
+  milestones      String? // JSON: [{ phase, title, description, targetDate, completed }]
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ============================================================================
+// Blog / Content (Public SEO content)
+// ============================================================================
+
+model BlogPost {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  excerpt         String
+  content         String // Markdown content
+  htmlContent     String? // Pre-rendered HTML cache
+  // Metadata
+  category        String    @default("Marketing") // Marketing | SEO | Lead Gen | AI | Social | Ads | Strategy
+  tags            String? // JSON array
+  coverImage      String?
+  author          String    @default("Expload Team")
+  authorAvatar    String?
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  keywords        String? // JSON array
+  // Status
+  status          String    @default("published") // draft | published | archived
+  featured        Boolean   @default(false)
+  // Stats
+  viewCount       Int       @default(0)
+  likeCount       Int       @default(0)
+  readTime        Int       @default(5) // minutes
+  // Dates
+  publishedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  comments BlogComment[]
+
+  @@index([status])
+  @@index([category])
+  @@index([featured])
+  @@index([publishedAt])
+}
+
+model BlogComment {
+  id          String   @id @default(cuid())
+  postId      String
+  post        BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorName  String
+  authorEmail String?
+  content     String
+  status      String   @default("pending") // pending | approved | spam
+  createdAt   DateTime @default(now())
+
+  @@index([postId])
+  @@index([status])
+}
+
+// ============================================================================
+// Live Demo — tracks anonymous demo sessions
+// ============================================================================
+
+model DemoSession {
+  id           String    @id @default(cuid())
+  sessionToken String    @unique
+  // Which demo view the user is exploring
+  currentView  String    @default("dashboard") // dashboard | leads | generator | seo | analytics
+  // Interactions count for analytics
+  interactions Int       @default(0)
+  // Whether they converted to signup
+  converted    Boolean   @default(false)
+  convertedAt  DateTime?
+  // Metadata
+  userAgent    String?
+  referrer     String?
+  country      String?
+  createdAt    DateTime  @default(now())
+  lastActiveAt DateTime  @default(now())
+
+  @@index([converted])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// API Marketplace — sell API access to platform capabilities
+// ============================================================================
+
+model ApiProduct {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  description     String
+  // Pricing
+  pricePerCall    Float    @default(0.01) // USD per API call
+  pricePerMonth   Float    @default(0) // USD monthly subscription (0 = pay-per-call only)
+  // Limits
+  rateLimit       Int      @default(100) // calls per minute
+  dailyLimit      Int      @default(10000) // calls per day
+  // Metadata
+  category        String   @default("marketing") // marketing | seo | leads | ai | social | analytics
+  endpoint        String // e.g. "POST /api/v1/leads/search"
+  method          String   @default("POST") // GET | POST | PUT | DELETE
+  // Status
+  isActive        Boolean  @default(true)
+  isFeatured      Boolean  @default(false)
+  // Stats
+  totalCalls      Int      @default(0)
+  totalRevenue    Float    @default(0)
+  subscriberCount Int      @default(0)
+  // Documentation
+  docContent      String? // Markdown documentation
+  codeExamples    String? // JSON: [{ language, code }]
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  keys  ApiKey[]
+  usage ApiUsage[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model ApiKey {
+  id               String    @id @default(cuid())
+  key              String    @unique
+  name             String // user-given name
+  tenantId         String
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Linked products (empty = all products)
+  productIds       String? // JSON array of ApiProduct IDs
+  // Status
+  isActive         Boolean   @default(true)
+  revokedAt        DateTime?
+  // Limits (override product defaults)
+  customRateLimit  Int?
+  customDailyLimit Int?
+  // Usage stats
+  totalCalls       Int       @default(0)
+  totalCost        Float     @default(0)
+  lastUsedAt       DateTime?
+  // Billing
+  billingCycle     String    @default("monthly") // monthly | prepaid
+  balance          Float     @default(0) // prepaid balance in USD
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  expiresAt        DateTime?
+
+  products ApiProduct[]
+  usage    ApiUsage[]
+
+  @@index([tenantId])
+  @@index([isActive])
+}
+
+model ApiUsage {
+  id           String     @id @default(cuid())
+  apiKeyId     String
+  apiKey       ApiKey     @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  productId    String
+  product      ApiProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  // Request details
+  endpoint     String
+  method       String
+  statusCode   Int
+  responseTime Int? // milliseconds
+  // Billing
+  cost         Float      @default(0)
+  // Metadata
+  ipAddress    String?
+  userAgent    String?
+  // Timestamp
+  createdAt    DateTime   @default(now())
+
+  @@index([apiKeyId])
+  @@index([productId])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// Customer Club (باشگاه مشتریان) — loyalty tiers, points, benefits, free ads
+// ============================================================================
+
+model ClubTier {
+  id              String   @id @default(cuid())
+  name            String // Bronze | Silver | Gold | Platinum
+  level           Int      @default(1) // 1=Bronze, 2=Silver, 3=Gold, 4=Platinum
+  // Requirements
+  minSpend        Float    @default(0) // minimum total spend to qualify
+  minMonths       Int      @default(0) // minimum months as customer
+  // Benefits
+  discountPct     Float    @default(0) // percentage discount on all services
+  freeAdCredits   Int      @default(0) // free advertisement credits per month
+  apiCallBonus    Int      @default(0) // bonus API calls per month
+  prioritySupport Boolean  @default(false)
+  earlyAccess     Boolean  @default(false) // early access to new features
+  // Visual
+  color           String   @default("#B0BEC5")
+  icon            String   @default("🥉")
+  description     String?
+  // Status
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  memberships ClubMembership[]
+}
+
+model ClubMembership {
+  id               String    @id @default(cuid())
+  tenantId         String    @unique
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tierId           String
+  tier             ClubTier  @relation(fields: [tierId], references: [id])
+  // Points
+  totalPoints      Int       @default(0)
+  availablePoints  Int       @default(0)
+  lifetimePoints   Int       @default(0)
+  // Stats
+  totalSpend       Float     @default(0)
+  monthsActive     Int       @default(0)
+  joinedAt         DateTime  @default(now())
+  lastTierUp       DateTime?
+  // Ad credits
+  adCreditsBalance Int       @default(0)
+  adCreditsUsed    Int       @default(0)
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  pointsHistory  ClubPoint[]
+  rewards        ClubReward[]
+  advertisements ClubAdvertisement[]
+
+  @@index([tierId])
+}
+
+model ClubPoint {
+  id           String         @id @default(cuid())
+  membershipId String
+  membership   ClubMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  // Point details
+  points       Int // positive = earned, negative = spent
+  reason       String // purchase | referral | review | social_share | signup_bonus | reward_redemption
+  description  String
+  // Linked entity
+  entityType   String? // invoice | lead | campaign | referral
+  entityId     String?
+  // Timestamp
+  createdAt    DateTime       @default(now())
+
+  @@index([membershipId])
+  @@index([reason])
+}
+
+model ClubReward {
+  id            String   @id @default(cuid())
+  name          String
+  description   String
+  // Cost
+  pointsCost    Int // points required to redeem
+  // Reward type
+  type          String // discount | ad_credits | api_credits | free_month | custom
+  value         Float // discount percentage, ad credits count, etc.
+  // Availability
+  minTierLevel  Int      @default(1) // minimum tier level required
+  isActive      Boolean  @default(true)
+  stock         Int? // null = unlimited
+  // Stats
+  redeemedCount Int      @default(0)
+  // Visual
+  icon          String   @default("🎁")
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  memberships ClubMembership[] // many-to-many through a join (simplified)
+}
+
+model ClubAdvertisement {
+  id           String         @id @default(cuid())
+  membershipId String
+  membership   ClubMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  tenantId     String
+  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Ad content
+  title        String
+  description  String
+  imageUrl     String?
+  targetUrl    String // link to the business
+  // Placement
+  placement    String         @default("dashboard_sidebar") // dashboard_sidebar | landing_page | blog_sidebar | email_footer
+  // Scheduling
+  startDate    DateTime       @default(now())
+  endDate      DateTime?
+  // Status
+  status       String         @default("pending") // pending | approved | active | rejected | expired
+  reviewedAt   DateTime?
+  reviewedBy   String?
+  // Stats
+  impressions  Int            @default(0)
+  clicks       Int            @default(0)
+  // Cost
+  creditsUsed  Int            @default(1) // ad credits consumed
+  // Timestamps
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([placement])
+}
+
+// ============================================================================
+// Ecommerce Platform Analyzer (Amazon, AliExpress, Alibaba, eBay, etc.)
+// ============================================================================
+
+model EcommerceProduct {
+  id               String    @id @default(cuid())
+  // Product identification
+  asin             String? // Amazon ASIN
+  productId        String? // Platform product ID
+  platform         String // amazon | aliexpress | alibaba | ebay | shopify | etsy
+  title            String
+  imageUrl         String?
+  productUrl       String?
+  // Pricing
+  price            Float
+  currency         String    @default("USD")
+  originalPrice    Float? // before discount
+  costEstimate     Float? // estimated sourcing cost
+  // Metrics
+  rating           Float?
+  reviewCount      Int?
+  salesPerMonth    Int? // estimated monthly sales
+  revenuePerMonth  Float? // estimated monthly revenue
+  bsrRank          Int? // Best Sellers Rank (Amazon)
+  // FBA / Fees
+  fbaFee           Float?
+  referralFee      Float? // platform referral fee
+  totalFees        Float?
+  estimatedProfit  Float? // per unit
+  estimatedMargin  Float? // percentage
+  estimatedROI     Float? // percentage
+  // Competition
+  competitionLevel String? // low | medium | high | very_high
+  sellerCount      Int?
+  // Trends
+  trendDirection   String? // rising | stable | declining
+  trendScore       Int? // 0-100
+  // Metadata
+  category         String?
+  brand            String?
+  keywords         String? // JSON array
+  // Analysis
+  aiAnalysis       String? // JSON: { opportunity, risks, recommendations }
+  lastChecked      DateTime?
+  tenantId         String
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([platform])
+  @@index([tenantId])
+  @@index([competitionLevel])
+}
+
+model ResellerOpportunity {
+  id                String   @id @default(cuid())
+  title             String
+  description       String
+  // Type
+  type              String // amazon_fba | aliexpress_dropship | alibaba_wholesale | ebay_resell | affiliate | white_label | private_label
+  category          String // electronics | home | beauty | toys | fashion | sports | auto | general
+  platform          String // amazon | aliexpress | alibaba | ebay | shopify | etsy | walmart
+  // Investment
+  initialInvestment Float // USD required to start
+  monthlyCostMin    Float // minimum monthly operating cost
+  monthlyCostMax    Float // maximum monthly operating cost
+  // Revenue estimates
+  monthlyRevenueMin Float
+  monthlyRevenueMax Float
+  monthlyProfitMin  Float
+  monthlyProfitMax  Float
+  // Timeline
+  setupTimeDays     Int // days to set up
+  timeToProfitDays  Int // days until first profit
+  breakEvenMonths   Int // months to recover initial investment
+  // Risk
+  riskLevel         String // low | medium | high | very_high
+  riskScore         Int // 0-100 (higher = riskier)
+  riskFactors       String? // JSON array
+  // Requirements
+  requirements      String? // JSON array: ["Business license", "Bank account", ...]
+  skills            String? // JSON array: ["SEO", "Customer service", ...]
+  region            String? // global | us | eu | asia | middle_east
+  // Benefits
+  benefits          String? // JSON array
+  pros              String? // JSON array
+  cons              String? // JSON array
+  // Status
+  isActive          Boolean  @default(true)
+  isFeatured        Boolean  @default(false)
+  // Stats
+  viewCount         Int      @default(0)
+  applicationCount  Int      @default(0)
+  // Visual
+  icon              String   @default("📦")
+  color             String   @default("#0A2A3A")
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  applications ResellerApplication[]
+
+  @@index([type])
+  @@index([platform])
+  @@index([riskLevel])
+  @@index([isActive])
+}
+
+model ResellerApplication {
+  id                String              @id @default(cuid())
+  opportunityId     String
+  opportunity       ResellerOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  tenantId          String
+  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Application data
+  applicantName     String
+  applicantEmail    String
+  applicantPhone    String?
+  businessName      String?
+  // Investment plan
+  plannedInvestment Float?
+  plannedTimeline   String? // e.g. "3 months"
+  experience        String? // beginner | intermediate | experienced
+  // Status
+  status            String              @default("pending") // pending | approved | rejected | active | suspended
+  reviewedAt        DateTime?
+  reviewedBy        String?
+  reviewNotes       String?
+  // Contract
+  contractStart     DateTime?
+  contractEnd       DateTime?
+  agreedTerms       Boolean             @default(false)
+  // Revenue tracking (after approval)
+  totalRevenue      Float               @default(0)
+  totalCommission   Float               @default(0)
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([tenantId])
+  @@index([opportunityId])
+  @@index([status])
+}
+
+model ProfitEstimate {
+  id              String   @id @default(cuid())
+  // Inputs
+  productPrice    Float // selling price
+  productCost     Float // sourcing cost
+  platform        String // amazon | aliexpress | alibaba | ebay
+  monthlyVolume   Int // units per month
+  // Calculated
+  platformFee     Float // referral fee
+  fbaFee          Float // fulfillment fee
+  shippingCost    Float
+  advertisingCost Float // PPC / ads per month
+  otherCosts      Float
+  // Results
+  profitPerUnit   Float
+  monthlyProfit   Float
+  monthlyRevenue  Float
+  margin          Float // percentage
+  roi             Float // percentage
+  breakEvenUnits  Int // units to recover initial investment
+  breakEvenMonths Float
+  // Metadata
+  tenantId        String?
+  tenant          Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+// ============================================================================
+// Attribution Tracking (Metrix competitor — source tracking)
+// ============================================================================
+
+model AttributionEvent {
+  id               String    @id @default(cuid())
+  userId           String?
+  deviceId         String?
+  source           String // google_ads | facebook_ads | organic | referral | direct | email
+  medium           String?
+  campaign         String?
+  adGroup          String?
+  keyword          String?
+  clickId          String?
+  clickTimestamp   DateTime?
+  installTimestamp DateTime?
+  eventName        String    @default("install")
+  eventValue       Float?
+  isFraud          Boolean   @default(false)
+  fraudReason      String?
+  ipAddress        String?
+  userAgent        String?
+  country          String?
+  city             String?
+  revenue          Float?
+  tenantId         String
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt        DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([source])
+  @@index([isFraud])
+}
+
+model FraudRule {
+  id            String   @id @default(cuid())
+  name          String
+  type          String // click_injection | sdk_spoofing | click_spamming | ip_anomaly | device_farm
+  description   String
+  config        String // JSON
+  severity      String   @default("medium")
+  action        String   @default("flag")
+  isActive      Boolean  @default(true)
+  totalDetected Int      @default(0)
+  totalBlocked  Int      @default(0)
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model Cohort {
+  id            String   @id @default(cuid())
+  name          String
+  cohortDate    DateTime
+  cohortSize    Int      @default(0)
+  retentionData String?
+  revenueData   String?
+  segment       String?
+  segmentValue  String?
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model MarketingFunnel {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  stages      String // JSON
+  results     String? // JSON
+  startDate   DateTime
+  endDate     DateTime
+  segment     String?
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model CustomerJourney {
+  id             String   @id @unique @default(cuid())
+  name           String
+  description    String?
+  steps          String // JSON
+  trigger        String // signup | purchase | abandonment | custom_event | scheduled
+  triggerConfig  String?
+  isActive       Boolean  @default(true)
+  totalEnrolled  Int      @default(0)
+  totalCompleted Int      @default(0)
+  totalConverted Int      @default(0)
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model PushNotification {
+  id             String    @id @default(cuid())
+  title          String
+  body           String
+  iconUrl        String?
+  imageUrl       String?
+  actionUrl      String?
+  segment        String?
+  scheduledAt    DateTime?
+  sentAt         DateTime?
+  sentCount      Int       @default(0)
+  deliveredCount Int       @default(0)
+  clickedCount   Int       @default(0)
+  status         String    @default("draft")
+  platform       String    @default("both")
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+model SmsMessage {
+  id           String    @id @default(cuid())
+  to           String
+  body         String
+  provider     String    @default("kavenegar")
+  status       String    @default("pending")
+  cost         Float     @default(0)
+  sentAt       DateTime?
+  deliveredAt  DateTime?
+  errorMessage String?
+  campaignId   String?
+  leadId       String?
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+
+  @@index([tenantId])
+}
+
+model WebhookSubscription {
+  id                 String    @id @default(cuid())
+  url                String
+  events             String // JSON array
+  secretToken        String?
+  isActive           Boolean   @default(true)
+  totalSent          Int       @default(0)
+  totalFailed        Int       @default(0)
+  lastSentAt         DateTime?
+  lastResponseStatus Int?
+  tenantId           String
+  tenant             Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+// ============================================================================
+// RBAC: Roles, Permissions, Project Members, Super Admin
+// ============================================================================
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String // owner | admin | manager | editor | viewer | super_admin
+  displayName String
+  description String?
+  level       Int      @default(0) // 0=viewer, 1=editor, 2=manager, 3=admin, 4=owner, 5=super_admin
+  isSystem    Boolean  @default(false)
+  isDefault   Boolean  @default(false)
+  scope       String   @default("tenant") // tenant | project
+  color       String   @default("#0A2A3A")
+  icon        String   @default("👤")
+  tenantId    String?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions RolePermission[]
+  members     ProjectMember[]
+  users       User[]
+
+  @@unique([name, tenantId])
+  @@index([tenantId])
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String
+  description String?
+  category    String   @default("general")
+  createdAt   DateTime @default(now())
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model ProjectMember {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId         String
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  roleId            String?
+  role              Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  customPermissions String?
+  status            String    @default("active") // active | invited | suspended
+  invitedAt         DateTime  @default(now())
+  joinedAt          DateTime?
+  tenantId          String
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([userId, projectId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+model SuperAdmin {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level       Int      @default(1)
+  permissions String   @default("[]")
+  isActive    Boolean  @default(true)
+  assignedBy  String?
+  assignedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AuditLogEntry {
+  id          String   @id @default(cuid())
+  userId      String?
+  userName    String?
+  userRole    String?
+  action      String
+  entityType  String
+  entityId    String?
+  entityName  String?
+  ipAddress   String?
+  userAgent   String?
+  changes     String?
+  description String
+  severity    String   @default("info")
+  tenantId    String?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([action])
+  @@index([severity])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// White Label & Grey Label System
+// ============================================================================
+
+model WhiteLabelConfig {
+  id                  String    @id @default(cuid())
+  tenantId            String    @unique
+  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Label type
+  labelType           String    @default("grey") // white | grey | co_branded
+  // Branding
+  brandName           String
+  brandLogoUrl        String?
+  brandFaviconUrl     String?
+  brandColors         String? // JSON: { primary, accent, background }
+  // Domain
+  customDomain        String? // e.g. marketing.reseller.com
+  customSubdomain     String? // e.g. reseller.expload.io
+  // Email
+  supportEmail        String?
+  fromEmail           String?
+  // Features toggle
+  hideExploadBranding Boolean   @default(false)
+  hideBlogSection     Boolean   @default(false)
+  hidePricingCalc     Boolean   @default(false)
+  customFooterText    String?
+  // Reseller settings
+  isReseller          Boolean   @default(false)
+  resellerTier        String    @default("standard") // standard | premium | enterprise
+  commissionRate      Float     @default(20) // percentage
+  customPricing       String? // JSON: { starter: 39, growth: 149, enterprise: 399 }
+  // Limits
+  maxSubTenants       Int       @default(10)
+  maxStorage          Int       @default(1000) // MB
+  // Status
+  isActive            Boolean   @default(true)
+  approvedAt          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model ResellerCustomer {
+  id               String    @id @default(cuid())
+  // Parent reseller
+  resellerTenantId String
+  resellerTenant   Tenant    @relation("ResellerCustomers", fields: [resellerTenantId], references: [id], onDelete: Cascade)
+  // Customer's own tenant
+  customerTenantId String
+  customerTenant   Tenant    @relation("CustomerOfReseller", fields: [customerTenantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  // Pricing (reseller sets custom price)
+  monthlyFee       Float     @default(49)
+  currency         String    @default("USD")
+  // Commission
+  commissionRate   Float     @default(20)
+  commissionEarned Float     @default(0)
+  // Status
+  status           String    @default("active") // active | suspended | churned | trial
+  trialEndsAt      DateTime?
+  activatedAt      DateTime  @default(now())
+  suspendedAt      DateTime?
+  churnedAt        DateTime?
+  // Revenue tracking
+  totalRevenue     Float     @default(0)
+  totalPaid        Float     @default(0)
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([resellerTenantId, customerTenantId])
+  @@index([resellerTenantId])
+  @@index([customerTenantId])
+  @@index([status])
+}
+
+model Commission {
+  id               String    @id @default(cuid())
+  resellerTenantId String
+  resellerTenant   Tenant    @relation("CommissionsEarned", fields: [resellerTenantId], references: [id], onDelete: Cascade)
+  customerTenantId String?
+  // Commission details
+  amount           Float
+  currency         String    @default("USD")
+  type             String // new_customer | renewal | upgrade | referral
+  status           String    @default("pending") // pending | paid | void
+  // Payment period
+  periodStart      DateTime
+  periodEnd        DateTime
+  paidAt           DateTime?
+  // Metadata
+  description      String?
+  createdAt        DateTime  @default(now())
+
+  @@index([resellerTenantId])
+  @@index([status])
+}
+
+// ============================================================================
+// Payment System
+// ============================================================================
+
+model Payment {
+  id                    String    @id @default(cuid())
+  tenantId              String
+  tenant                Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Payment details
+  amount                Float
+  currency              String    @default("USD")
+  type                  String // subscription | one_time | topup | commission | refund
+  status                String    @default("pending") // pending | completed | failed | refunded | disputed
+  // Stripe
+  stripePaymentIntentId String?
+  stripeChargeId        String?
+  // Invoice
+  invoiceId             String?
+  invoiceNumber         String?
+  // Payment method
+  paymentMethod         String? // card | bank_transfer | paypal | crypto
+  paymentMethodId       String?
+  // Metadata
+  description           String?
+  failureReason         String?
+  // Fee tracking
+  processingFee         Float     @default(0)
+  netAmount             Float     @default(0)
+  // Reseller commission
+  commissionAmount      Float     @default(0)
+  resellerTenantId      String?
+  // Timestamps
+  initiatedAt           DateTime  @default(now())
+  completedAt           DateTime?
+  refundedAt            DateTime?
+  createdAt             DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model PaymentMethod {
+  id                    String   @id @default(cuid())
+  tenantId              String
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Method details
+  type                  String // card | bank_account | paypal
+  provider              String   @default("stripe") // stripe | paypal | manual
+  // Card info (masked)
+  brand                 String? // visa | mastercard | amex
+  last4                 String?
+  expiryMonth           Int?
+  expiryYear            Int?
+  holderName            String?
+  // Stripe
+  stripePaymentMethodId String?
+  stripeCustomerId      String?
+  // Status
+  isDefault             Boolean  @default(false)
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model FinancialAlert {
+  id              String    @id @default(cuid())
+  tenantId        String?
+  tenant          Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  // Alert details
+  type            String // low_balance | failed_payment | churn_risk | revenue_milestone | payment_overdue | subscription_expiring | high_usage | commission_due
+  severity        String    @default("warning") // info | warning | critical
+  title           String
+  message         String
+  // Thresholds
+  thresholdValue  Float?
+  currentValue    Float?
+  // Action
+  actionUrl       String?
+  actionLabel     String?
+  // Status
+  isRead          Boolean   @default(false)
+  isResolved      Boolean   @default(false)
+  resolvedAt      DateTime?
+  // Platform-level alert (null tenantId = platform-wide)
+  isPlatformAlert Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([type])
+  @@index([severity])
+  @@index([isRead])
+  @@index([isPlatformAlert])
+}
+
+// ============================================================================
+// Platform Self-Promotion Engine
+// ============================================================================
+
+model PlatformPromotion {
+  id             String    @id @default(cuid())
+  name           String
+  type           String // email_campaign | social_post | blog_post | ad_campaign | referral_program | affiliate | seo_content | pr_release
+  // Campaign details
+  title          String
+  description    String?
+  content        String? // JSON: { body, html, socialText, ... }
+  // Targeting
+  targetAudience String? // all | trial_users | churned | prospects | resellers | affiliates
+  targetSegments String? // JSON array
+  // Scheduling
+  scheduledAt    DateTime?
+  launchedAt     DateTime?
+  // Metrics
+  impressions    Int       @default(0)
+  clicks         Int       @default(0)
+  conversions    Int       @default(0)
+  revenue        Float     @default(0)
+  // Status
+  status         String    @default("draft") // draft | scheduled | active | completed | paused
+  // Auto-generated by AI
+  isAiGenerated  Boolean   @default(false)
+  aiPrompt       String?
+  // Timestamps
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([targetAudience])
+}
+
+model ReferralProgram {
+  id                    String   @id @default(cuid())
+  name                  String
+  // Referral config
+  referrerReward        Float    @default(50) // USD credit
+  refereeReward         Float    @default(50) // USD credit
+  rewardType            String   @default("credit") // credit | cash | months_free | percentage
+  // Rules
+  minSpend              Float    @default(0) // referee must spend this much before reward
+  maxReferrals          Int? // null = unlimited
+  expiresAfterDays      Int? // null = no expiry
+  // Status
+  isActive              Boolean  @default(true)
+  // Stats
+  totalReferrals        Int      @default(0)
+  totalRewardsPaid      Float    @default(0)
+  totalRevenueGenerated Float    @default(0)
+  // Timestamps
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  referrals Referral[]
+}
+
+model Referral {
+  id                 String          @id @default(cuid())
+  programId          String
+  program            ReferralProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  // Referrer (existing customer)
+  referrerTenantId   String
+  referrerTenant     Tenant          @relation("ReferrerTenant", fields: [referrerTenantId], references: [id], onDelete: Cascade)
+  // Referee (new customer)
+  refereeEmail       String
+  refereeTenantId    String?
+  refereeTenant      Tenant?         @relation("RefereeTenant", fields: [refereeTenantId], references: [id], onDelete: SetNull)
+  // Tracking
+  referralCode       String          @unique
+  status             String          @default("pending") // pending | signed_up | qualified | rewarded | expired
+  // Reward tracking
+  referrerRewardPaid Boolean         @default(false)
+  refereeRewardPaid  Boolean         @default(false)
+  // Revenue from this referral
+  totalRevenue       Float           @default(0)
+  // Timestamps
+  invitedAt          DateTime        @default(now())
+  signedUpAt         DateTime?
+  qualifiedAt        DateTime?
+  rewardedAt         DateTime?
+
+  @@index([programId])
+  @@index([referrerTenantId])
+  @@index([refereeEmail])
+  @@index([status])
+}
+
+// ============================================================================
+// Promo Link Generator — Online Marketing Link Builder
+// ============================================================================
+
+model PromoLink {
+  id           String    @id @default(cuid())
+  // Short link
+  shortCode    String    @unique
+  shortUrl     String // e.g. https://expload.io/p/abc123
+  // Destination
+  targetUrl    String // the actual URL to redirect to
+  // UTM parameters
+  utmSource    String? // e.g. newsletter, facebook, google
+  utmMedium    String? // e.g. email, cpc, social
+  utmCampaign  String? // e.g. summer_sale, launch_week
+  utmTerm      String?
+  utmContent   String? // e.g. banner_top, text_link
+  // Metadata
+  name         String // user-friendly name
+  description  String?
+  category     String    @default("general") // social | email | ads | blog | affiliate | qr | general
+  tags         String? // JSON array
+  // QR Code
+  qrCodeUrl    String? // generated QR code image URL
+  qrCodeColor  String    @default("#0A2A3A")
+  qrCodeSize   Int       @default(300)
+  // Tracking
+  totalClicks  Int       @default(0)
+  uniqueClicks Int       @default(0)
+  conversions  Int       @default(0)
+  // Click analytics (JSON: [{ date, count, country, device, source }])
+  clickData    String? // JSON array
+  // A/B testing
+  variantLabel String? // A | B | C
+  // Expiration
+  expiresAt    DateTime?
+  // Status
+  isActive     Boolean   @default(true)
+  // Ownership
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdById  String?
+  // Timestamps
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  clicks PromoLinkClick[]
+
+  @@index([tenantId])
+  @@index([category])
+  @@index([isActive])
+}
+
+model PromoLinkClick {
+  id              String    @id @default(cuid())
+  promoLinkId     String
+  promoLink       PromoLink @relation(fields: [promoLinkId], references: [id], onDelete: Cascade)
+  // Visitor info
+  ipAddress       String?
+  userAgent       String?
+  referer         String?
+  country         String?
+  city            String?
+  device          String? // desktop | mobile | tablet
+  browser         String?
+  os              String?
+  // Conversion tracking
+  converted       Boolean   @default(false)
+  conversionValue Float?
+  // Timestamp
+  clickedAt       DateTime  @default(now())
+
+  @@index([promoLinkId])
+  @@index([clickedAt])
+  @@index([country])
+}
+
+// ============================================================================
+// Competitor Deep Analysis (8+ factor analysis)
+// ============================================================================
+
+model CompetitorAnalysis {
+  id                       String            @id @default(cuid())
+  // Link to CompetitorProfile
+  competitorId             String
+  competitor               CompetitorProfile @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  // 1. Content & Topics
+  contentType              String? // educational | vlog | comedy | review | tutorial | news | entertainment
+  contentFormats           String? // JSON array: ["video","blog","podcast","infographic"]
+  topicDiversity           String? // focused | diverse | multi_niche
+  topTopics                String? // JSON array of top topics
+  titleKeywords            String? // JSON: most used words in titles
+  descriptionStyle         String? // detailed | minimal | keyword_stuffed | storytelling
+  // 2. Upload Frequency
+  postsPerWeek             Float?
+  postsPerMonth            Int?
+  uploadSchedule           String? // JSON: { days: ["Mon","Wed"], hours: [9, 15, 18] }
+  consistencyScore         Int? // 0-100
+  // 3. Engagement
+  avgLikes                 Int?
+  avgComments              Int?
+  avgShares                Int?
+  engagementRate           Float? // percentage (likes+comments+shares / views * 100)
+  commentResponseRate      Float? // percentage of comments they reply to
+  avgResponseTime          String? // e.g. "2 hours", "1 day"
+  // 4. Quantitative Metrics
+  avgViews                 Int?
+  peakViews                Int?
+  subscriberGrowth         Float? // percentage monthly growth
+  avgWatchTime             String? // e.g. "4:32"
+  ctr                      Float? // click-through rate percentage
+  totalSubscribers         Int?
+  // 5. SEO & Optimization
+  seoKeywords              String? // JSON array
+  tagStrategy              String? // optimized | basic | none
+  descriptionOptimized     Boolean?
+  usesEndCards             Boolean?
+  usesPlaylists            Boolean?
+  internalLinking          String? // JSON: strategy description
+  // 6. Thumbnails & Design
+  thumbnailStyle           String? // text_overlay | face_shot | product_shot | minimal | bold_colors
+  visualConsistency        Int? // 0-100
+  colorScheme              String? // JSON: dominant colors
+  usesBranding             Boolean?
+  // 7. Target Audience
+  audienceAgeRange         String? // e.g. "18-24", "25-34"
+  audienceGender           String? // male | female | mixed
+  audienceCountries        String? // JSON: top countries
+  toneOfVoice              String? // formal | casual | humorous | professional | inspirational
+  languageUsed             String?
+  // 8. Sponsorships & Monetization
+  hasSponsorships          Boolean           @default(false)
+  sponsorBrands            String? // JSON array
+  hasAffiliateLinks        Boolean           @default(false)
+  affiliatePrograms        String? // JSON: ["Amazon","ClickBank"]
+  monetizationMethods      String? // JSON: ["ads","sponsorship","merch","courses","membership"]
+  estimatedMonthlyEarnings Float?
+  // 9. Cross-Platform Presence
+  platforms                String? // JSON: { instagram: "url", twitter: "url", tiktok: "url" }
+  crossPlatformStrategy    String? // how they funnel audience
+  totalFollowersAll        Int? // combined followers across platforms
+  // 10. SWOT
+  strengths                String? // JSON array
+  weaknesses               String? // JSON array
+  uniqueSellingPoints      String? // JSON array
+  improvementOpportunities String? // JSON: what you can do better
+  // AI Analysis
+  aiAnalysis               String? // JSON: { summary, recommendations, threat_level, opportunity_score }
+  analysisDate             DateTime          @default(now())
+  tenantId                 String
+  tenant                   Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+
+  @@index([competitorId])
+  @@index([tenantId])
+}
+
+// ============================================================================
+// Investor & Co-founder Matching System
+// ============================================================================
+
+model InvestorProfile {
+  id                 String    @id @default(cuid())
+  // Investor info
+  name               String
+  email              String?
+  linkedin           String?
+  avatar             String?
+  bio                String?
+  // Investment profile
+  investorType       String // angel | seed | vc | pe | corporate | accelerator
+  firmName           String?
+  // Investment criteria
+  stages             String? // JSON: ["pre-seed","seed","series-a"]
+  sectors            String? // JSON: ["SaaS","AI","Fintech","E-commerce","Marketing"]
+  checkSize          String? // e.g. "$50K-$500K"
+  geography          String? // e.g. "Global", "Middle East", "US"
+  ticketSize         Float? // USD
+  // Portfolio
+  portfolioCompanies String? // JSON: [{ name, sector, stage }]
+  portfolioCount     Int       @default(0)
+  // Stats
+  totalInvested      Float     @default(0)
+  successRate        Float? // percentage
+  // Matching
+  matchScore         Int? // 0-100 match with current tenant
+  matchReasons       String? // JSON: why they match
+  // Status
+  isVerified         Boolean   @default(false)
+  isActive           Boolean   @default(true)
+  // Contact
+  contactStatus      String    @default("not_contacted") // not_contacted | contacted | responded | meeting_scheduled | deal
+  lastContactAt      DateTime?
+  // Ownership
+  tenantId           String?
+  tenant             Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([investorType])
+  @@index([contactStatus])
+  @@index([tenantId])
+}
+
+model CofounderProfile {
+  id             String    @id @default(cuid())
+  // Person info
+  name           String
+  email          String?
+  linkedin       String?
+  avatar         String?
+  bio            String?
+  // Professional
+  currentRole    String?
+  currentCompany String?
+  experience     Int? // years
+  skills         String? // JSON: ["Engineering","Sales","Marketing","Product","Design"]
+  industries     String? // JSON: ["SaaS","AI","Fintech"]
+  // Co-founder preferences
+  lookingFor     String? // JSON: what role they want as co-founder
+  commitment     String    @default("full-time") // full-time | part-time | advisor
+  equityExpected Float? // percentage
+  availableFrom  DateTime?
+  relocationOk   Boolean   @default(false)
+  remoteOk       Boolean   @default(true)
+  // Matching
+  matchScore     Int?
+  matchReasons   String?
+  // Status
+  isVerified     Boolean   @default(false)
+  isActive       Boolean   @default(true)
+  contactStatus  String    @default("not_contacted")
+  lastContactAt  DateTime?
+  // Ownership
+  tenantId       String?
+  tenant         Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([contactStatus])
+  @@index([tenantId])
+}
+
+model PartnershipOpportunity {
+  id               String   @id @default(cuid())
+  title            String
+  description      String
+  // Partnership type
+  type             String // strategic | technical | marketing | distribution | co_development | joint_venture | reseller | affiliate
+  // Partner info
+  partnerName      String
+  partnerType      String // startup | enterprise | agency | influencer | media | nonprofit
+  partnerWebsite   String?
+  partnerContact   String?
+  // Details
+  valueProposition String?
+  expectedBenefit  String?
+  estimatedValue   Float?
+  timeline         String? // e.g. "3-6 months"
+  requirements     String? // JSON array
+  // Status
+  status           String   @default("discovered") // discovered | evaluating | contacted | negotiating | active | rejected
+  priority         String   @default("medium") // low | medium | high | critical
+  matchScore       Int?
+  // Timestamps
+  tenantId         String?
+  tenant           Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([tenantId])
+}
+
+// ============================================================================
+// Wholesale Distribution System (Master Distributor Model)
+// ============================================================================
+
+model Distributor {
+  id                     String    @id @default(cuid())
+  // Linked tenant (distributor's own tenant on platform)
+  tenantId               String    @unique
+  tenant                 Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Business info
+  companyName            String
+  legalName              String?
+  taxId                  String?
+  registrationNumber     String?
+  country                String
+  region                 String?
+  city                   String?
+  address                String?
+  postalCode             String?
+  // Contact
+  contactName            String
+  contactEmail           String
+  contactPhone           String?
+  // Banking
+  bankName               String?
+  bankAccount            String?
+  iban                   String?
+  swiftCode              String?
+  // Distributor tier
+  tier                   String    @default("standard") // standard | silver | gold | platinum | master
+  // Contract reference
+  contractId             String?   @unique
+  // Sales performance
+  totalLicensesPurchased Int       @default(0)
+  totalLicensesAllocated Int       @default(0)
+  totalLicensesUsed      Int       @default(0)
+  totalRevenue           Float     @default(0)
+  totalPaidToPlatform    Float     @default(0)
+  totalCommissionEarned  Float     @default(0)
+  // Status
+  status                 String    @default("pending") // pending | active | suspended | terminated
+  approvedAt             DateTime?
+  approvedBy             String?
+  suspendedAt            DateTime?
+  terminatedAt           DateTime?
+  // Metadata
+  notes                  String?
+  internalOwnerId        String? // assigned InternalEmployee ID (partner manager)
+  // Timestamps
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  contracts       DistributorContract[]
+  licensePackages LicensePackage[]
+  allocations     LicenseAllocation[]
+  territories     TerritoryExclusivity[]
+  payouts         DistributorPayout[]
+  supportTickets  DistributorSupportTicket[]
+  auditAccess     DistributorAuditLog[]
+
+  @@index([status])
+  @@index([tier])
+  @@index([country])
+}
+
+model DistributorContract {
+  id                       String      @id @default(cuid())
+  distributorId            String
+  distributor              Distributor @relation(fields: [distributorId], references: [id], onDelete: Cascade)
+  // Contract details
+  contractNumber           String      @unique
+  type                     String // master_distributor | regional | exclusive | non_exclusive
+  startDate                DateTime
+  endDate                  DateTime?
+  // Financial commitments
+  minimumGuarantee         Float       @default(0) // annual minimum sales commitment
+  minimumGuaranteePeriod   String      @default("annual") // quarterly | semi_annual | annual
+  wholesaleDiscountPercent Float       @default(40) // discount off retail for distributor
+  revSharePercent          Float       @default(0) // optional revenue share on top
+  // Payment terms
+  paymentTerms             String      @default("prepaid") // prepaid | net_15 | net_30 | net_60
+  currency                 String      @default("USD")
+  // Territory
+  territoryScope           String? // JSON: { countries: [], regions: [] }
+  isExclusive              Boolean     @default(false)
+  // Legal
+  signedByDistributor      String?
+  signedByPlatform         String?
+  signedAtDistributor      DateTime?
+  signedAtPlatform         DateTime?
+  documentUrl              String?
+  // Status
+  status                   String      @default("draft") // draft | pending_signature | active | expired | terminated
+  // Auto-renewal
+  autoRenew                Boolean     @default(false)
+  renewalTermMonths        Int         @default(12)
+  // Timestamps
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @updatedAt
+
+  @@index([distributorId])
+  @@index([status])
+}
+
+model LicensePackage {
+  id                    String       @id @default(cuid())
+  // SKU definition (wholesale bundle)
+  sku                   String       @unique
+  name                  String
+  description           String?
+  // Bundle size
+  licenseCount          Int // e.g. 100, 500, 1000
+  // Pricing
+  wholesalePrice        Float // what distributor pays
+  retailPriceSuggestion Float // suggested end-user price
+  currency              String       @default("USD")
+  // Package features
+  planTier              String       @default("pro") // free | pro | enterprise
+  validityMonths        Int          @default(12) // license validity per seat
+  features              String? // JSON: included features
+  // Targeting
+  tierRestriction       String? // standard | silver | gold | platinum | master (null = any)
+  // Status
+  isActive              Boolean      @default(true)
+  // Stats
+  totalSold             Int          @default(0)
+  totalRevenue          Float        @default(0)
+  // Ownership
+  distributorId         String? // null = platform-defined package; non-null = distributor-custom
+  distributor           Distributor? @relation(fields: [distributorId], references: [id], onDelete: Cascade)
+  // Timestamps
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  allocations LicenseAllocation[]
+
+  @@index([distributorId])
+  @@index([isActive])
+  @@index([tierRestriction])
+}
+
+model LicenseAllocation {
+  id               String         @id @default(cuid())
+  // License pool source
+  distributorId    String
+  distributor      Distributor    @relation(fields: [distributorId], references: [id], onDelete: Cascade)
+  packageId        String
+  package          LicensePackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  // Allocated seat
+  licenseKey       String         @unique
+  // End-customer (allocated by distributor)
+  customerEmail    String?
+  customerName     String?
+  customerTenantId String? // if customer activated on platform
+  // Status
+  status           String         @default("in_pool") // in_pool | allocated | activated | suspended | expired | revoked
+  // Validity
+  issuedAt         DateTime?
+  activatedAt      DateTime?
+  expiresAt        DateTime?
+  revokedAt        DateTime?
+  revokeReason     String?
+  // Pricing (locked at allocation)
+  salePrice        Float? // what distributor sold it for
+  saleCurrency     String         @default("USD")
+  // Metadata
+  notes            String?
+  // Timestamps
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([distributorId])
+  @@index([packageId])
+  @@index([status])
+  @@index([customerEmail])
+}
+
+model TerritoryExclusivity {
+  id                     String      @id @default(cuid())
+  distributorId          String
+  distributor            Distributor @relation(fields: [distributorId], references: [id], onDelete: Cascade)
+  // Territory scope
+  country                String // ISO 3166-1 alpha-2
+  region                 String? // state/province
+  city                   String?
+  // Exclusivity
+  isExclusive            Boolean     @default(true)
+  exclusivityLevel       String      @default("country") // city | region | country
+  // Conditions
+  minimumSalesCommitment Float       @default(0)
+  commitmentPeriod       String      @default("annual")
+  // Performance tracking
+  achievedSales          Float       @default(0)
+  lastReviewedAt         DateTime?
+  // Status
+  status                 String      @default("active") // active | under_review | revoked | expired
+  startDate              DateTime    @default(now())
+  endDate                DateTime?
+  // Timestamps
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+
+  @@unique([distributorId, country, region, city])
+  @@index([distributorId])
+  @@index([country])
+  @@index([status])
+}
+
+model DistributorPayout {
+  id               String      @id @default(cuid())
+  distributorId    String
+  distributor      Distributor @relation(fields: [distributorId], references: [id], onDelete: Cascade)
+  // Payout period
+  periodStart      DateTime
+  periodEnd        DateTime
+  // Financials
+  grossSales       Float
+  platformShare    Float // platform's cut
+  distributorShare Float // distributor's payout
+  currency         String      @default("USD")
+  // Settlement
+  method           String // bank_transfer | paypal | crypto | wire | credit_balance
+  reference        String?
+  paidAt           DateTime?
+  // Status
+  status           String      @default("pending") // pending | approved | paid | disputed | void
+  approvedBy       String?
+  approvedAt       DateTime?
+  // Metadata
+  notes            String?
+  lineItems        String? // JSON: breakdown of commissions
+  // Timestamps
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([distributorId])
+  @@index([status])
+}
+
+model DistributorSupportTicket {
+  id                     String      @id @default(cuid())
+  distributorId          String
+  distributor            Distributor @relation(fields: [distributorId], references: [id], onDelete: Cascade)
+  // Ticket
+  ticketNumber           String      @unique
+  subject                String
+  description            String
+  category               String // technical_bug | billing | license_issue | account_access | feature_request | other
+  priority               String      @default("normal") // low | normal | high | urgent | critical
+  // Tier routing — distributors handle Tier 1 & 2; platform only handles Tier 3 (real bugs)
+  tier                   String      @default("tier3") // tier1 | tier2 | tier3
+  escalatedByDistributor Boolean     @default(false)
+  // Resolution
+  status                 String      @default("open") // open | in_progress | escalated | resolved | closed | reopened
+  resolution             String?
+  resolvedAt             DateTime?
+  resolvedBy             String?
+  // Internal assignment
+  assignedToId           String? // InternalEmployee ID
+  // Metadata
+  attachments            String? // JSON array
+  // Timestamps
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+
+  @@index([distributorId])
+  @@index([status])
+  @@index([tier])
+  @@index([priority])
+}
+
+model DistributorAuditLog {
+  id            String      @id @default(cuid())
+  distributorId String
+  distributor   Distributor @relation(fields: [distributorId], references: [id], onDelete: Cascade)
+  // Action
+  action        String // license_issued | license_revoked | customer_added | payout_requested | contract_signed | ...
+  entityType    String
+  entityId      String?
+  description   String
+  changes       String? // JSON diff
+  // Actor
+  actorType     String // distributor_user | platform_admin | internal_employee | system
+  actorId       String?
+  actorName     String?
+  ipAddress     String?
+  userAgent     String?
+  // Timestamp
+  createdAt     DateTime    @default(now())
+
+  @@index([distributorId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// Crypto Payments (Multi-chain: BTC, ETH, USDT, USDC, TRX)
+// ============================================================================
+
+model CryptoPayment {
+  id                    String    @id @default(cuid())
+  tenantId              String?
+  tenant                Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  distributorId         String? // optional: distributor-level crypto payment
+  // Payment details
+  amount                Float // fiat amount
+  fiatCurrency          String    @default("USD")
+  cryptoAmount          Float? // calculated crypto amount
+  cryptoCurrency        String // BTC | ETH | USDT | USDC | TRX | BNB | SOL
+  chain                 String // bitcoin | ethereum | tron | bsc | solana | polygon
+  // Gateway
+  gateway               String    @default("nowpayments") // nowpayments | coinpayments | coinbase_commerce | bitpay | manual
+  gatewayPaymentId      String?   @unique
+  gatewayInvoiceUrl     String?
+  // Wallet
+  payToAddress          String? // generated deposit address
+  refundAddress         String?
+  // Status
+  status                String    @default("pending") // pending | confirming | confirmed | completed | failed | expired | refunded
+  confirmations         Int       @default(0)
+  requiredConfirmations Int       @default(3)
+  // Linked invoice/payment
+  invoiceId             String?
+  paymentId             String? // links to Payment record when completed
+  // Timestamps
+  initiatedAt           DateTime  @default(now())
+  detectedAt            DateTime? // when first confirmation seen
+  completedAt           DateTime?
+  expiredAt             DateTime?
+  // Metadata
+  exchangeRate          Float?
+  feeAmount             Float?
+  netAmount             Float?
+  rawPayload            String? // raw webhook payload
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([distributorId])
+  @@index([status])
+  @@index([cryptoCurrency])
+  @@index([createdAt])
+}
+
+model CryptoWallet {
+  id               String    @id @default(cuid())
+  // Owner
+  tenantId         String?
+  tenant           Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  // Wallet info
+  label            String // user-friendly label
+  currency         String // BTC | ETH | USDT | USDC | TRX
+  chain            String
+  address          String    @unique
+  // Gateway-managed (we don't store private keys)
+  isPlatformWallet Boolean   @default(false) // platform treasury wallet
+  // Status
+  isActive         Boolean   @default(true)
+  // Verification
+  verifiedAt       DateTime?
+  // Metadata
+  balance          Float     @default(0)
+  lastSyncedAt     DateTime?
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([currency])
+  @@index([isPlatformWallet])
+}
+
+// ============================================================================
+// International Payment Gateways (beyond Stripe)
+// ============================================================================
+
+model PaymentGatewayConfig {
+  id                  String   @id @default(cuid())
+  provider            String   @unique // stripe | paypal | razorpay | moyasar | paystack | flutterwave | nowpayments | coinpayments | coinbase_commerce | bitpay | mollie | midtrans | iyzico | tap | hyperpay
+  displayName         String
+  // Credentials (encrypted at rest via app layer)
+  apiKey              String? // encrypted
+  secretKey           String? // encrypted
+  webhookSecret       String? // encrypted
+  merchantId          String?
+  // Supported features
+  supportedCurrencies String? // JSON: ["USD","EUR","SAR","AED",...]
+  supportedMethods    String? // JSON: ["card","bank_transfer","crypto","apple_pay","google_pay"]
+  supportedCountries  String? // JSON: ["US","SA","AE","IN","NG",...]
+  // Status
+  isActive            Boolean  @default(false)
+  isSandbox           Boolean  @default(true)
+  priority            Int      @default(100) // lower = preferred
+  // Routing
+  routeBy             String   @default("currency") // currency | country | amount | method
+  routeRules          String? // JSON
+  // Metadata
+  fees                String? // JSON: { percentage, fixed, currency }
+  settlementTime      String? // "T+2", "instant", etc.
+  // Timestamps
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([priority])
+}
+
+// ============================================================================
+// Internal Employees & Departments (Platform-side staff)
+// ============================================================================
+
+model InternalDepartment {
+  id             String               @id @default(cuid())
+  name           String               @unique
+  displayName    String
+  description    String?
+  // Parent (for sub-departments)
+  parentId       String?
+  parent         InternalDepartment?  @relation("DeptHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children       InternalDepartment[] @relation("DeptHierarchy")
+  // Department head
+  headEmployeeId String?
+  // Permissions scope
+  accessScope    String               @default("limited") // limited | full_platform | distributors_only | finance_only | support_only | engineering_only
+  // Status
+  isActive       Boolean              @default(true)
+  // Metadata
+  budget         Float?
+  costCenter     String?
+  // Timestamps
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  employees InternalEmployee[]
+
+  @@index([parentId])
+  @@index([isActive])
+}
+
+model InternalEmployee {
+  id                         String                     @id @default(cuid())
+  // Link to User account
+  userId                     String                     @unique
+  user                       User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Department
+  departmentId               String?
+  department                 InternalDepartment?        @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  // Role & permissions
+  employeeRole               String                     @default("staff") // staff | senior | lead | manager | director | vp | c_level
+  platformRole               String                     @default("employee") // employee | admin | super_admin
+  permissions                String                     @default("[]") // JSON array of permission strings
+  // Job info
+  jobTitle                   String?
+  employeeId                 String?                    @unique // HR ID
+  employmentType             String                     @default("full_time") // full_time | part_time | contractor | intern
+  startDate                  DateTime                   @default(now())
+  endDate                    DateTime?
+  // Manager
+  managerId                  String?
+  manager                    InternalEmployee?          @relation("EmployeeManager", fields: [managerId], references: [id], onDelete: SetNull)
+  directReports              InternalEmployee[]         @relation("EmployeeManager")
+  // Responsibility area
+  assignedDistributorIds     String? // JSON: [distributorId, ...] — for partner managers
+  assignedRegion             String? // for regional managers
+  // Status
+  status                     String                     @default("active") // active | on_leave | suspended | terminated
+  // Compensation (HR-private, restricted)
+  salary                     Float?
+  salaryCurrency             String                     @default("USD")
+  bonusEligible              Boolean                    @default(false)
+  // Contact
+  workPhone                  String?
+  workEmail                  String?
+  location                   String?
+  avatar                     String?
+  // Audit
+  lastLoginAt                DateTime?
+  lastActiveAt               DateTime?
+  // Timestamps
+  createdAt                  DateTime                   @default(now())
+  updatedAt                  DateTime                   @updatedAt
+  internalEmployeeActivities InternalEmployeeActivity[]
+  virtualAssistant           VirtualAssistant?
+
+  @@index([departmentId])
+  @@index([employeeRole])
+  @@index([platformRole])
+  @@index([status])
+}
+
+model InternalEmployeeActivity {
+  id          String           @id @default(cuid())
+  employeeId  String
+  employee    InternalEmployee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  action      String // login | distributor_assigned | ticket_resolved | payout_approved | contract_signed | ...
+  entityType  String
+  entityId    String?
+  description String
+  metadata    String? // JSON
+  ipAddress   String?
+  userAgent   String?
+  // Timestamp
+  createdAt   DateTime         @default(now())
+
+  @@index([employeeId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// Financial Reports (Platform-level & Distributor-level)
+// ============================================================================
+
+model FinancialReport {
+  id                    String   @id @default(cuid())
+  // Scope
+  scope                 String // platform | distributor | tenant | department
+  scopeId               String? // distributorId / tenantId / departmentId (null for platform)
+  // Report period
+  periodType            String // daily | weekly | monthly | quarterly | annual | custom
+  periodStart           DateTime
+  periodEnd             DateTime
+  // Report type
+  type                  String // revenue_summary | commission_summary | payout_summary | license_usage | territory_performance | gateway_breakdown | crypto_settlement | tax_summary | churn_analysis
+  // Aggregated metrics (JSON)
+  metrics               String // JSON: { totalRevenue, netRevenue, refunds, fees, ... }
+  breakdown             String? // JSON: per-gateway / per-currency / per-territory
+  // Generated by
+  generatedById         String? // InternalEmployee ID or system
+  generatedByName       String?
+  generationMethod      String   @default("auto") // auto | manual | scheduled
+  // Distribution
+  sharedWithDistributor Boolean  @default(false)
+  // Status
+  status                String   @default("generated") // generated | reviewed | approved | published | archived
+  // File
+  fileUrl               String?
+  fileFormat            String   @default("pdf") // pdf | xlsx | csv | json
+  // Timestamps
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  tenant                Tenant?  @relation(fields: [tenantId], references: [id])
+  tenantId              String?
+
+  @@index([scope, scopeId])
+  @@index([periodType])
+  @@index([type])
+  @@index([status])
+}
+
+// ============================================================================
+// Multi-LLM Aggregator & Negotiation System
+// ============================================================================
+
+model LlmProviderConfig {
+  id                String    @id @default(cuid())
+  provider          String    @unique // openrouter | groq | cerebras | mistral | huggingface | zai
+  displayName       String
+  // Credentials (encrypted at app layer)
+  apiKey            String? // encrypted
+  apiBaseUrl        String
+  // Models
+  models            String? // JSON: [{ id, name, contextWindow, isFree }]
+  // Free-tier management
+  isFreeTier        Boolean   @default(true)
+  dailyTokenLimit   Int       @default(1000000)
+  monthlyTokenLimit Int       @default(10000000)
+  // Rate limit handling
+  requestsPerMinute Int       @default(60)
+  // Status
+  isActive          Boolean   @default(true)
+  priority          Int       @default(100) // lower = preferred
+  // Fallback config
+  cooldownMinutes   Int       @default(5) // how long to skip after rate-limit
+  lastFailedAt      DateTime?
+  failureCount      Int       @default(0)
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  usageRecords LlmUsageRecord[]
+  auditEvents  LlmAuditEvent[]
+
+  @@index([isActive])
+  @@index([priority])
+}
+
+model LlmUsageRecord {
+  id                  String             @id @default(cuid())
+  providerConfigId    String
+  provider            String
+  // Usage details
+  model               String
+  inputTokens         Int                @default(0)
+  outputTokens        Int                @default(0)
+  totalTokens         Int                @default(0)
+  // Cost (0 for free tier)
+  costUsd             Float              @default(0)
+  // Context
+  requestType         String // chat | completion | embedding | negotiation | extraction | onboarding
+  tenantId            String?
+  sessionType         String? // negotiation | onboarding
+  sessionId           String?
+  // Status
+  status              String             @default("success") // success | rate_limited | error | timeout
+  errorMessage        String?
+  latencyMs           Int?
+  // Timestamp
+  createdAt           DateTime           @default(now())
+  tenant              Tenant?            @relation(fields: [tenantId], references: [id])
+  llmProviderConfig   LlmProviderConfig? @relation(fields: [llmProviderConfigId], references: [id])
+  llmProviderConfigId String?
+
+  @@index([providerConfigId])
+  @@index([provider])
+  @@index([createdAt])
+  @@index([tenantId])
+}
+
+model LlmAuditEvent {
+  id                  String             @id @default(cuid())
+  providerConfigId    String
+  provider            String
+  eventType           String // provider_switched | rate_limited | quota_warning | quota_exceeded | recovered | fallback_triggered
+  message             String
+  fromProvider        String?
+  toProvider          String?
+  metadata            String? // JSON
+  createdAt           DateTime           @default(now())
+  llmProviderConfig   LlmProviderConfig? @relation(fields: [llmProviderConfigId], references: [id])
+  llmProviderConfigId String?
+
+  @@index([providerConfigId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// Onboarding & Data Ingestion
+// ============================================================================
+
+model OnboardingSession {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Customer info
+  customerName       String?
+  customerEmail      String?
+  customerPhone      String?
+  businessName       String?
+  businessWebsite    String?
+  industry           String?
+  // Wizard state
+  currentStep        Int      @default(1)
+  totalSteps         Int      @default(6)
+  status             String   @default("in_progress") // in_progress | completed | abandoned | escalated_to_negotiation
+  // Structured answers (JSON: [{ step, question, answer }])
+  answers            String? // JSON
+  // Custom system prompt
+  customSystemPrompt String?
+  // Extracted context (combined: answers + crawled site + uploaded docs)
+  extractedContext   String? // long text
+  // Crawl status
+  crawlStatus        String   @default("pending") // pending | in_progress | completed | failed
+  crawlError         String?
+  // Document processing
+  docsProcessed      Int      @default(0)
+  // AI-generated summary
+  aiSummary          String?
+  aiNeedsAnalysis    String? // JSON: { budget, timeline, scope, priorities }
+  // Negotiation link
+  negotiationId      String?  @unique
+  // Timestamps
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  documents OnboardingDocument[]
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model OnboardingDocument {
+  id            String            @id @default(cuid())
+  sessionId     String
+  session       OnboardingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  // File info
+  filename      String
+  fileType      String // pdf | docx | txt | md | html
+  fileSize      Int
+  // Storage
+  storageUrl    String // local path or S3 URL
+  // Processing
+  status        String            @default("pending") // pending | processing | completed | failed
+  extractedText String?
+  textLength    Int               @default(0)
+  errorMessage  String?
+  // Metadata
+  uploadedAt    DateTime          @default(now())
+  processedAt   DateTime?
+
+  @@index([sessionId])
+  @@index([status])
+}
+
+// ============================================================================
+// Negotiation Engine (State Pattern)
+// ============================================================================
+
+model NegotiationSession {
+  id                     String   @id @default(cuid())
+  tenantId               String
+  tenant                 Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  onboardingId           String?
+  // Customer
+  customerName           String
+  customerEmail          String?
+  // Project
+  projectName            String
+  projectDescription     String
+  // State machine
+  currentState           String   @default("initial") // initial | mvp | economic | phased | rejected_all | accepted | closed
+  proposalRound          Int      @default(0) // 0 = initial, 1 = MVP, 2 = Economic, 3 = Phased
+  // Context (used by LLM)
+  contextSummary         String // combined from onboarding
+  systemPrompt           String?
+  // Customer constraints
+  customerBudget         Float?
+  customerBudgetCurrency String   @default("USD")
+  customerTimeline       String?
+  customerPriorities     String? // JSON
+  // Final outcome
+  acceptedProposalId     String?
+  rejectionReasons       String? // JSON: [{ round, reason }]
+  // Status
+  status                 String   @default("active") // active | accepted | rejected_all | abandoned
+  // Timestamps
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  proposals   NegotiationProposal[]
+  auditEvents NegotiationAuditEvent[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([currentState])
+}
+
+model NegotiationProposal {
+  id                       String             @id @default(cuid())
+  sessionId                String
+  session                  NegotiationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  // Round info
+  round                    Int // 0 = initial, 1 = MVP, 2 = Economic, 3 = Phased
+  type                     String // initial | mvp | economic | phased
+  // Proposal content
+  title                    String
+  description              String // long-form
+  features                 String? // JSON: included features list
+  excludedFeatures         String? // JSON: what was cut from initial
+  // Timeline & scope
+  deliveryWeeks            Int
+  deliveryMilestone        String? // for phased
+  // Pricing
+  price                    Float
+  currency                 String             @default("USD")
+  paymentSchedule          String? // e.g. "50% upfront, 50% on delivery" or "3 phase payments"
+  // Comparison
+  savingsPercent           Float              @default(0) // vs initial
+  deliveryReductionPercent Float              @default(0)
+  scopeReductionPercent    Float              @default(0)
+  // AI generation metadata
+  llmProvider              String?
+  inputTokens              Int                @default(0)
+  outputTokens             Int                @default(0)
+  // Customer response
+  customerResponse         String? // accepted | rejected | pending
+  customerFeedback         String?
+  respondedAt              DateTime?
+  // Timestamps
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+
+  @@index([sessionId])
+  @@index([type])
+  @@index([customerResponse])
+}
+
+model NegotiationAuditEvent {
+  id        String             @id @default(cuid())
+  sessionId String
+  session   NegotiationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  eventType String // proposal_generated | proposal_accepted | proposal_rejected | state_changed | llm_provider_switched | error
+  fromState String?
+  toState   String?
+  round     Int?
+  message   String
+  metadata  String? // JSON
+  createdAt DateTime           @default(now())
+
+  @@index([sessionId])
+  @@index([eventType])
+}
+
+// ============================================================================
+// Virtual Assistant Service (paid staff who do customer projects)
+// ============================================================================
+
+model VirtualAssistant {
+  id                    String            @id @default(cuid())
+  // Link to InternalEmployee if assistant is in-house
+  employeeId            String?           @unique
+  employee              InternalEmployee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  // Identity
+  name                  String
+  email                 String            @unique
+  phone                 String?
+  avatar                String?
+  bio                   String?
+  // Skills & specialization
+  skills                String // JSON: ["SEO","Content","Ads","Design","Development","Social"]
+  primarySkill          String // main specialization
+  languages             String? // JSON: ["en","fa","ar"]
+  // Work mode
+  workMode              String            @default("remote") // remote | in_office | hybrid
+  location              String?
+  timezone              String            @default("UTC")
+  // Pricing
+  hourlyRate            Float             @default(25) // USD per hour
+  monthlyRate           Float? // USD per month (for retainer)
+  currency              String            @default("USD")
+  // Performance
+  rating                Float             @default(5.0) // 0-5
+  totalProjects         Int               @default(0)
+  totalHours            Float             @default(0)
+  totalEarnings         Float             @default(0)
+  completionRate        Float             @default(100) // % of projects completed on time
+  // Availability
+  isAvailable           Boolean           @default(true)
+  maxConcurrentProjects Int               @default(3)
+  // Verification
+  isVerified            Boolean           @default(false)
+  verifiedAt            DateTime?
+  // Status
+  status                String            @default("active") // active | suspended | terminated
+  // Timestamps
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  assignments  AssistantAssignment[]
+  timesheets   AssistantTimesheet[]
+  performances AssistantPerformance[]
+
+  @@index([primarySkill])
+  @@index([status])
+  @@index([isAvailable])
+}
+
+model AssistantService {
+  id             String   @id @default(cuid())
+  // Service catalog
+  name           String
+  description    String
+  category       String // seo | content | ads | social | design | development | email | full_marketing | other
+  // Deliverables
+  deliverables   String? // JSON: ["10 blog posts","5 social graphics",...]
+  // Pricing
+  pricingType    String // hourly | fixed | monthly_retainer
+  fixedPrice     Float?
+  hourlyEstimate Float? // estimated hours
+  monthlyHours   Int? // for retainer
+  currency       String   @default("USD")
+  // Timeline
+  estimatedDays  Int // delivery time
+  // Requirements
+  requiredSkills String? // JSON: skill IDs
+  // Status
+  isActive       Boolean  @default(true)
+  // Stats
+  totalAssigned  Int      @default(0)
+  totalRevenue   Float    @default(0)
+  // Timestamps
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  assignments AssistantAssignment[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model AssistantAssignment {
+  id                 String            @id @default(cuid())
+  // Relations
+  assistantId        String
+  assistant          VirtualAssistant  @relation(fields: [assistantId], references: [id], onDelete: Cascade)
+  serviceId          String?
+  service            AssistantService? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  // Customer
+  tenantId           String
+  tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Project details
+  projectName        String
+  projectDescription String
+  // Pricing
+  pricingType        String // hourly | fixed | monthly_retainer
+  agreedRate         Float // rate at assignment time
+  currency           String            @default("USD")
+  totalBudget        Float? // for fixed-price
+  // Timeline
+  startDate          DateTime          @default(now())
+  expectedEndDate    DateTime?
+  actualEndDate      DateTime?
+  // Work tracking
+  hoursLogged        Float             @default(0)
+  hoursBudget        Float? // max hours (for hourly)
+  tasksTotal         Int               @default(0)
+  tasksCompleted     Int               @default(0)
+  // Deliverables
+  deliverables       String? // JSON: [{ name, status, submittedAt, approvedAt }]
+  // Status
+  status             String            @default("active") // active | paused | completed | cancelled | disputed
+  // Customer feedback
+  customerRating     Int? // 1-5
+  customerFeedback   String?
+  // Payout
+  totalPaid          Float             @default(0)
+  lastPayoutAt       DateTime?
+  // Timestamps
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  timesheets   AssistantTimesheet[]
+  performances AssistantPerformance[]
+
+  @@index([assistantId])
+  @@index([tenantId])
+  @@index([status])
+}
+
+model AssistantTimesheet {
+  id                String               @id @default(cuid())
+  assistantId       String
+  assistant         VirtualAssistant     @relation(fields: [assistantId], references: [id], onDelete: Cascade)
+  assignmentId      String?
+  assignment        AssistantAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  // Time entry
+  date              DateTime
+  hoursWorked       Float
+  taskDescription   String
+  // Activity detection
+  activityType      String // manual | automatic | idle | active | deep_work
+  keystrokesCount   Int                  @default(0) // automatic activity detection
+  mouseMovements    Int                  @default(0)
+  appsUsed          String? // JSON: ["VS Code","Figma","Chrome"]
+  screenshots       String? // JSON: [{ url, timestamp }]
+  // Productivity
+  productivityScore Int                  @default(0) // 0-100, AI-scored
+  // Status
+  status            String               @default("pending") // pending | approved | rejected
+  approvedBy        String?
+  approvedAt        DateTime?
+  // Payment
+  isPaid            Boolean              @default(false)
+  paidAt            DateTime?
+  // Timestamp
+  createdAt         DateTime             @default(now())
+
+  @@index([assistantId])
+  @@index([assignmentId])
+  @@index([date])
+  @@index([status])
+}
+
+model AssistantPerformance {
+  id                String               @id @default(cuid())
+  assistantId       String
+  assistant         VirtualAssistant     @relation(fields: [assistantId], references: [id], onDelete: Cascade)
+  assignmentId      String?
+  assignment        AssistantAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  // Period
+  periodStart       DateTime
+  periodEnd         DateTime
+  // Metrics
+  totalHours        Float
+  totalTasks        Int
+  completedTasks    Int
+  onTimeRate        Float // %
+  customerRating    Float? // avg
+  qualityScore      Float // 0-100, AI-scored
+  productivityScore Float // 0-100
+  // Calculated earnings
+  grossEarnings     Float
+  platformFee       Float // platform commission
+  netEarnings       Float // what assistant receives
+  // Metadata
+  notes             String?
+  createdAt         DateTime             @default(now())
+
+  @@index([assistantId])
+  @@index([periodStart])
+}
+
+// ============================================================================
+// Payroll & Salary System (50% owner / 50% staff pool)
+// ============================================================================
+
+model PayrollConfig {
+  id                  String   @id @default(cuid())
+  // Revenue split
+  ownerSharePercent   Float    @default(50) // 50% to owner
+  staffPoolPercent    Float    @default(40) // 40% to staff pool
+  reinvestmentPercent Float    @default(10) // 10% reinvest
+  // Staff pool distribution weights by role
+  roleWeights         String   @default("{}") // JSON: { c_level: 3, vp: 2.5, director: 2, manager: 1.5, lead: 1.2, senior: 1, staff: 0.7 }
+  // Bonus pool
+  bonusPoolPercent    Float    @default(5) // % of staff pool reserved for bonuses
+  // Payout schedule
+  payoutFrequency     String   @default("monthly") // weekly | biweekly | monthly
+  payoutDay           Int      @default(1) // day of month (1-28)
+  // Status
+  isActive            Boolean  @default(true)
+  updatedAt           DateTime @updatedAt
+}
+
+model PayrollPeriod {
+  id                 String    @id @default(cuid())
+  // Period
+  periodStart        DateTime
+  periodEnd          DateTime
+  periodLabel        String // "January 2026", "Week 4 2026", etc.
+  // Revenue (input)
+  totalRevenue       Float     @default(0)
+  ownerShare         Float     @default(0)
+  staffPool          Float     @default(0)
+  reinvestmentAmount Float     @default(0)
+  bonusPool          Float     @default(0)
+  // Distribution
+  distributions      String? // JSON: [{ employeeId, name, share, hours, performance, bonus, total }]
+  // Status
+  status             String    @default("draft") // draft | calculated | approved | paid | closed
+  calculatedAt       DateTime?
+  approvedBy         String?
+  approvedAt         DateTime?
+  paidAt             DateTime?
+  // Metadata
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  payments SalaryPayment[]
+
+  @@index([status])
+  @@index([periodStart])
+}
+
+model SalaryPayment {
+  id               String        @id @default(cuid())
+  periodId         String
+  period           PayrollPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  employeeId       String // InternalEmployee ID
+  employeeName     String
+  // Salary components
+  baseShare        Float         @default(0) // from staff pool (based on role weight × hours)
+  bonusAmount      Float         @default(0)
+  overtimeAmount   Float         @default(0)
+  deductions       Float         @default(0)
+  // Total
+  grossAmount      Float
+  taxAmount        Float         @default(0)
+  netAmount        Float
+  currency         String        @default("USD")
+  // Payment method
+  paymentMethod    String // bank_transfer | paypal | crypto | wise | manual
+  paymentReference String?
+  paidAt           DateTime?
+  // Status
+  status           String        @default("pending") // pending | paid | failed | reversed
+  // Metadata
+  payslipUrl       String?
+  createdAt        DateTime      @default(now())
+
+  @@index([periodId])
+  @@index([employeeId])
+  @@index([status])
+}
+
+// ============================================================================
+// Support Plans (customer-purchased support packages)
+// ============================================================================
+
+model SupportPlan {
+  id                  String   @id @default(cuid())
+  name                String // Basic | Premium | Enterprise
+  description         String
+  // Pricing
+  monthlyPrice        Float
+  annualPrice         Float?
+  currency            String   @default("USD")
+  // Features (JSON)
+  features            String // JSON: ["Email support","48h response time",...]
+  // SLA
+  responseTimeHours   Int // guaranteed first response time
+  resolutionTimeHours Int?
+  // Channels
+  channels            String // JSON: ["email","chat","phone","slack"]
+  // Limits
+  monthlyTicketsLimit Int?
+  monthlyHoursLimit   Int?
+  // Status
+  isActive            Boolean  @default(true)
+  isFeatured          Boolean  @default(false)
+  // Stats
+  totalSubscribers    Int      @default(0)
+  monthlyRevenue      Float    @default(0)
+  // Display
+  displayOrder        Int      @default(100)
+  color               String   @default("#1B3A4B")
+  // Timestamps
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  subscriptions SupportSubscription[]
+
+  @@index([isActive])
+}
+
+model SupportSubscription {
+  id                   String      @id @default(cuid())
+  planId               String
+  plan                 SupportPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  tenantId             String
+  tenant               Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Billing
+  billingCycle         String // monthly | annual
+  startDate            DateTime    @default(now())
+  endDate              DateTime?
+  nextBillingAt        DateTime
+  amount               Float
+  currency             String      @default("USD")
+  // Auto-renew
+  autoRenew            Boolean     @default(true)
+  // Payment
+  paymentMethod        String? // stripe | paypal | crypto | manual
+  stripeSubscriptionId String?
+  // Status
+  status               String      @default("active") // active | past_due | cancelled | expired
+  cancelledAt          DateTime?
+  // Usage this cycle
+  ticketsUsedThisCycle Int         @default(0)
+  hoursUsedThisCycle   Float       @default(0)
+  // Timestamps
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  tickets SupportTicketItem[]
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model SupportTicketItem {
+  id               String               @id @default(cuid())
+  ticketNumber     String               @unique
+  subscriptionId   String?
+  subscription     SupportSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  tenantId         String
+  tenant           Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Ticket
+  subject          String
+  description      String
+  category         String // technical | billing | how_to | bug | feature_request | account | other
+  priority         String               @default("normal") // low | normal | high | urgent | critical
+  // SLA tracking
+  slaResponseDue   DateTime?
+  slaResolutionDue DateTime?
+  firstRespondedAt DateTime?
+  resolvedAt       DateTime?
+  // Assignment
+  assignedToId     String? // InternalEmployee ID
+  // Communication
+  messages         String? // JSON: [{ from, message, timestamp }]
+  attachments      String? // JSON
+  // Status
+  status           String               @default("open") // open | in_progress | waiting_customer | resolved | closed | escalated
+  resolution       String?
+  customerRating   Int? // 1-5
+  // Timestamps
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([priority])
+  @@index([subscriptionId])
+}
+
+// ============================================================================
+// Vector Search Index (Qdrant-style semantic search)
+// ============================================================================
+
+model VectorIndex {
+  id             String   @id @default(cuid())
+  // Source
+  sourceType     String // lead | document | content | knowledge_base | customer
+  sourceId       String
+  tenantId       String?
+  tenant         Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Embedding metadata
+  embeddingModel String   @default("text-embedding-3-small")
+  embeddingDim   Int      @default(1536)
+  // Vector stored as JSON array (for SQLite dev; in production use Qdrant/Pgvector)
+  vector         String // JSON: [0.1, 0.2, ...]
+  // Text chunk
+  textChunk      String // the text that was embedded
+  chunkIndex     Int      @default(0)
+  // Metadata
+  metadata       String? // JSON
+  // Timestamp
+  createdAt      DateTime @default(now())
+
+  @@index([sourceType, sourceId])
+  @@index([tenantId])
+  @@index([embeddingModel])
+}
+
+// ============================================================================
+// Project Brief Intake → Roadmap → 3-Tier Pricing → Payment
+// ============================================================================
+
+model ProjectBrief {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Customer info
+  businessName    String
+  industry        String?
+  website         String?
+  description     String
+  targetMarket    String?
+  budget          Float?
+  currency        String   @default("USD")
+  timeline        String? // "ASAP" | "1-3 months" | "3-6 months" | "6+ months"
+  goals           String? // JSON: ["increase sales","brand awareness",...]
+  // AI-generated
+  roadmap         String? // JSON: phases + milestones
+  analysisSummary String?
+  aiInsights      String? // JSON
+  // 3-tier pricing
+  pricingTiers    String? // JSON: [{ name, price, features, deliveryWeeks }]
+  recommendedTier String? // "essential" | "growth" | "premium"
+  // Payment
+  paymentStatus   String   @default("pending") // pending | partial | paid
+  paymentOption   String? // "full" | "phased"
+  amountPaid      Float    @default(0)
+  // Link to negotiation if user wants to negotiate
+  negotiationId   String?
+  // Status
+  status          String   @default("draft") // draft | analyzed | priced | payment_pending | active | completed
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+// ============================================================================
+// Global Events Calendar (world holidays + trending events)
+// ============================================================================
+
+model GlobalEvent {
+  id                     String    @id @default(cuid())
+  name                   String
+  description            String?
+  // Date info
+  startDate              DateTime
+  endDate                DateTime?
+  isRecurring            Boolean   @default(false)
+  recurrencePattern      String? // "annual" | "monthly" | "weekly"
+  // Categorization
+  category               String // holiday | cultural | sports | tech | business | religious | seasonal | trending
+  subcategory            String? // e.g. "christmas", "ramadan", "black_friday", "world_cup"
+  // Geography
+  countries              String? // JSON: ["US","GB","DE"] — empty = global
+  regions                String? // JSON: ["mena","eu","asia","latam","africa"]
+  // Marketing relevance
+  marketingRelevance     String? // "high" | "medium" | "low"
+  recommendedIndustries  String? // JSON: ["retail","food","travel"]
+  suggestedCampaignTypes String? // JSON: ["discount","content","social","email"]
+  // Visual
+  icon                   String?
+  color                  String    @default("#1B3A4B")
+  // Status
+  isActive               Boolean   @default(true)
+  // Timestamps
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  @@index([startDate])
+  @@index([category])
+  @@index([isActive])
+}
+
+// ============================================================================
+// Smart Campaign Scheduler (date suggestions based on deposit + events)
+// ============================================================================
+
+model CampaignScheduleSuggestion {
+  id                  String    @id @default(cuid())
+  tenantId            String
+  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Project context
+  briefId             String?
+  campaignName        String
+  campaignType        String // email | social | ads | content | multi_channel
+  // Budget
+  totalBudget         Float
+  depositReceived     Float     @default(0)
+  currency            String    @default("USD")
+  // AI suggestions
+  suggestedStartDates String? // JSON: [{ date, reason, confidence, eventRef }]
+  suggestedEndDates   String?
+  recommendedDuration Int? // days
+  // Linked events
+  linkedEventIds      String? // JSON: [eventId, ...]
+  // Status
+  status              String    @default("suggested") // suggested | approved | scheduled | active | completed
+  approvedStartDate   DateTime?
+  approvedEndDate     DateTime?
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+// ============================================================================
+// Demo / Simulation Sandbox
+// ============================================================================
+
+model SandboxSession {
+  id               String   @id @default(cuid())
+  // Visitor info (no auth required)
+  visitorEmail     String?
+  visitorName      String?
+  visitorIp        String?
+  visitorUserAgent String?
+  // Demo config
+  demoType         String // "marketing_platform" | "negotiation" | "graph_agent" | "full"
+  industry         String? // selected industry scenario
+  // Limits
+  maxActions       Int      @default(20)
+  actionsUsed      Int      @default(0)
+  expiresAt        DateTime
+  // Mock data
+  mockTenantId     String?
+  // Conversion
+  convertedToUser  Boolean  @default(false)
+  convertedUserId  String?
+  // Status
+  status           String   @default("active") // active | expired | converted
+  // Timestamps
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  actions  SandboxAction[]
+  tenant   Tenant?         @relation(fields: [tenantId], references: [id])
+  tenantId String?
+
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model SandboxAction {
+  id         String         @id @default(cuid())
+  sessionId  String
+  session    SandboxSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  // Action
+  actionType String // "view_dashboard" | "click_lead" | "run_simulated_campaign" | ...
+  module     String // "leads" | "campaigns" | "negotiation" | etc.
+  metadata   String? // JSON
+  // Timestamp
+  createdAt  DateTime       @default(now())
+
+  @@index([sessionId])
+}
