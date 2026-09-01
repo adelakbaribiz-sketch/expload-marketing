@@ -1,8 +1,8 @@
-# CPPflow Marketing SaaS — Deployment Guide
+# Expload Marketing — Deployment Guide
 
 ## 📦 What's in this ZIP
 
-This package contains the complete source code for the CPPflow Marketing SaaS platform.
+This package contains the complete source code for the Expload Marketing platform.
 
 ### Excluded (you'll need to install/regenerate these on the server):
 - `node_modules/` — install via `bun install` or `npm install`
@@ -23,8 +23,8 @@ This package contains the complete source code for the CPPflow Marketing SaaS pl
 
 ```bash
 # 1. Extract the ZIP
-unzip cppflow-marketing-saas.zip -d cppflow
-cd cppflow
+unzip expload-marketing.zip -d expload-marketing
+cd expload-marketing
 
 # 2. Create .env from template
 cp .env.example .env
@@ -55,7 +55,7 @@ bun dev
 Open **http://localhost:3000** in your browser.
 
 ### Default Login
-- **Email**: `admin@cppflow.io`
+- **Email**: `admin@expload.io`
 - **Password**: `admin123`
 
 ---
@@ -66,8 +66,8 @@ Open **http://localhost:3000** in your browser.
 
 ```bash
 # 1. Extract ZIP on your server
-unzip cppflow-marketing-saas.zip -d /opt/cppflow
-cd /opt/cppflow
+unzip expload-marketing.zip -d /opt/expload-marketing
+cd /opt/expload-marketing
 
 # 2. Create production env
 cp .env.example .env.production
@@ -208,7 +208,7 @@ bun run build
 ## 📁 Project Structure
 
 ```
-cppflow-marketing-saas/
+expload-marketing/
 ├── src/
 │   ├── app/                    # Next.js App Router
 │   │   ├── api/                # 236+ API routes

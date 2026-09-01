@@ -94,7 +94,7 @@ async function main() {
   console.log('Seeding sample virtual assistants...')
   const sampleAssistants = [
     {
-      name: 'Sarah Chen', email: 'sarah.chen@cppflow.io',
+      name: 'Sarah Chen', email: 'sarah.chen@expload.io',
       phone: '+1-555-0101', bio: 'Senior SEO specialist with 8 years of experience. Worked with Fortune 500 brands.',
       skills: ['SEO', 'Content', 'Analytics'], primarySkill: 'seo',
       languages: ['en', 'zh'], workMode: 'remote', location: 'San Francisco', timezone: 'America/Los_Angeles',
@@ -102,7 +102,7 @@ async function main() {
       isAvailable: true, isVerified: true,
     },
     {
-      name: 'Ahmed Hassan', email: 'ahmed.hassan@cppflow.io',
+      name: 'Ahmed Hassan', email: 'ahmed.hassan@expload.io',
       phone: '+971-50-123-4567', bio: 'Full-stack developer specializing in Next.js, Node, and React Native. MENA region.',
       skills: ['Development', 'Design'], primarySkill: 'development',
       languages: ['en', 'ar'], workMode: 'remote', location: 'Dubai', timezone: 'Asia/Dubai',
@@ -110,7 +110,7 @@ async function main() {
       isAvailable: true, isVerified: true,
     },
     {
-      name: 'Maria Rodriguez', email: 'maria.rodriguez@cppflow.io',
+      name: 'Maria Rodriguez', email: 'maria.rodriguez@expload.io',
       phone: '+34-612-345-678', bio: 'Social media strategist and content creator. 5M+ followers managed across platforms.',
       skills: ['Social', 'Content', 'Ads'], primarySkill: 'social',
       languages: ['en', 'es'], workMode: 'hybrid', location: 'Madrid', timezone: 'Europe/Madrid',
@@ -118,7 +118,7 @@ async function main() {
       isAvailable: true, isVerified: true,
     },
     {
-      name: 'David Kim', email: 'david.kim@cppflow.io',
+      name: 'David Kim', email: 'david.kim@expload.io',
       phone: '+82-10-1234-5678', bio: 'Performance marketing expert. $50M+ ad spend managed. Google + Meta certified.',
       skills: ['Ads', 'Analytics', 'SEO'], primarySkill: 'ads',
       languages: ['en', 'ko'], workMode: 'remote', location: 'Seoul', timezone: 'Asia/Seoul',
@@ -126,7 +126,7 @@ async function main() {
       isAvailable: false, isVerified: true,
     },
     {
-      name: 'Fatima Al-Zahra', email: 'fatima.zahra@cppflow.io',
+      name: 'Fatima Al-Zahra', email: 'fatima.zahra@expload.io',
       phone: '+966-50-123-4567', bio: 'Email marketing + CRM automation specialist. HubSpot + Mailchimp certified.',
       skills: ['Email', 'Content', 'Analytics'], primarySkill: 'email',
       languages: ['en', 'ar'], workMode: 'remote', location: 'Riyadh', timezone: 'Asia/Riyadh',
