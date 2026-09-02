@@ -14,8 +14,10 @@
 import 'server-only'
 import { db } from '@/lib/db'
 import { llmAggregator } from '@/lib/llm/aggregator'
+import { parseJsonResponse } from '@/lib/llm/parse-json'
 import { findBestEventForCampaign, getEventsInRange } from '@/lib/events-calendar'
 import { emitNotificationEvent } from '@/lib/notifications/emitter'
+import { recordDecision } from '@/lib/decision-engine'
 
 const SCHEDULER_PROMPT = `You are a **Marketing Campaign Scheduler** specializing in timing optimization.
 
@@ -130,17 +132,13 @@ Generate 3 optimal start-date suggestions based on the deposit received and upco
   })
 
   let suggestions: any
+  let usedFallback = false
   try {
-    let text = response.text.trim()
-    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
-    if (jsonMatch) text = jsonMatch[1].trim()
-    const start = text.indexOf('{')
-    const end = text.lastIndexOf('}')
-    if (start >= 0 && end > start) text = text.slice(start, end + 1)
-    suggestions = JSON.parse(text)
+    suggestions = parseJsonResponse(response.text)
   } catch (err) {
     // Fallback: rule-based suggestions
     suggestions = generateRuleBasedSuggestions(req, upcomingEvents, bestEvent)
+    usedFallback = true
   }
 
   // 4. Persist suggestion
@@ -160,6 +158,49 @@ Generate 3 optimal start-date suggestions based on the deposit received and upco
       status: 'suggested',
     },
   })
+
+  // 4b. Decision-engine memory: why this timing, vs. the other options considered
+  const optionList: any[] = Array.isArray(suggestions.suggestions) ? suggestions.suggestions : []
+  const recommendedIdx = Number.isInteger(suggestions.recommended_option) ? suggestions.recommended_option : 0
+  const recommended = optionList[recommendedIdx]
+  const confidenceMap: Record<string, number> = { high: 85, medium: 55, low: 25 }
+  if (recommended) {
+    const evidence: string[] = [
+      `Deposit received: ${currency} ${req.depositReceived} of ${currency} ${req.totalBudget} total budget.`,
+      `Preparation window needed: ${recommended.preparation_days_needed ?? suggestions.minimum_preparation_days ?? 'unknown'} days.`,
+    ]
+    if (bestEvent) {
+      evidence.push(`Best aligned event: ${bestEvent.name} (${bestEvent.marketingRelevance} relevance) on ${new Date(bestEvent.startDate).toISOString().slice(0, 10)}.`)
+    }
+    const alternatives = optionList
+      .filter((_, i) => i !== recommendedIdx)
+      .map((opt) => ({
+        option: `Start ${opt.start_date} (${opt.duration_days} days${opt.aligned_event ? `, aligned with ${opt.aligned_event}` : ''})`,
+        whyNotChosen: Array.isArray(opt.risks) && opt.risks.length > 0 ? opt.risks[0] : 'Lower expected impact than the recommended option.',
+      }))
+
+    await recordDecision({
+      tenantId: req.tenantId,
+      domain: 'campaign_scheduling',
+      goal: `When should "${req.campaignName}" (${req.campaignType}) launch?`,
+      parsed: {
+        recommendation: `Start ${recommended.start_date}, run ${recommended.duration_days} days`,
+        reasoning: recommended.reasoning ?? '',
+        confidence: typeof recommended.confidence === 'string' ? confidenceMap[recommended.confidence] ?? 50 : recommended.confidence,
+        evidence,
+        alternatives,
+        expectedOutcome: recommended.expected_impact_multiplier
+          ? `Expected impact multiplier ${recommended.expected_impact_multiplier}x vs. an unaligned launch.`
+          : '',
+        risks: recommended.risks ?? [],
+      },
+      context: { campaignType: req.campaignType, industry: req.industry, totalBudget: req.totalBudget, depositReceived: req.depositReceived, usedFallback },
+      llmProvider: usedFallback ? undefined : response.provider,
+      llmModel: usedFallback ? undefined : response.model,
+      linkedEntityType: 'CampaignScheduleSuggestion',
+      linkedEntityId: record.id,
+    })
+  }
 
   // 5. Notify
   await emitNotificationEvent({

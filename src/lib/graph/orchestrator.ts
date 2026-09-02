@@ -15,10 +15,13 @@
  */
 
 import 'server-only'
+import { randomUUID } from 'node:crypto'
 import { db } from '@/lib/db'
 import { llmAggregator } from '@/lib/llm/aggregator'
+import { parseJsonResponse } from '@/lib/llm/parse-json'
 import { getPrompt } from '@/lib/prompts/system-prompts'
 import { emitNotificationEvent } from '@/lib/notifications/emitter'
+import { decisionFieldsBlock, recordDecision } from '@/lib/decision-engine'
 
 // ============================================================================
 // Types
@@ -41,6 +44,7 @@ export interface GraphNode {
 }
 
 export interface ExecutionPlan {
+  plan_id?: string
   plan_name: string
   goal: string
   estimated_duration_minutes: number
@@ -74,7 +78,9 @@ export interface ExecutionState {
 // ============================================================================
 
 export async function generatePlan(goal: string, tenantId: string, userId: string): Promise<ExecutionPlan> {
-  const systemPrompt = getPrompt('graphAgentPlanner')
+  const systemPrompt = `${getPrompt('graphAgentPlanner')}
+
+${decisionFieldsBlock()}`
 
   const userPrompt = `# User Goal
 ${goal}
@@ -85,7 +91,9 @@ ${goal}
 - The platform has 10 marketing phases, payment gateways, virtual assistants, negotiation engine, LLM aggregator.
 
 ## Task
-Generate a node-based execution plan to achieve this goal. Maximum 15 nodes. Be specific with inputs.`
+Generate a node-based execution plan to achieve this goal. Maximum 15 nodes. Be specific with inputs.
+Before committing to this plan, briefly consider at least one alternative approach (e.g. a narrower/cheaper
+plan, or a different sequencing) and explain in "alternatives" why the plan you chose is better.`
 
   const response = await llmAggregator.complete({
     messages: [
@@ -98,20 +106,29 @@ Generate a node-based execution plan to achieve this goal. Maximum 15 nodes. Be 
     maxTokens: 2000,
   })
 
-  // Parse JSON
-  let text = response.text.trim()
-  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
-  if (jsonMatch) text = jsonMatch[1].trim()
-  const start = text.indexOf('{')
-  const end = text.lastIndexOf('}')
-  if (start >= 0 && end > start) text = text.slice(start, end + 1)
-
-  const plan = JSON.parse(text) as ExecutionPlan
+  const parsed = parseJsonResponse<ExecutionPlan & Record<string, any>>(response.text)
+  const plan: ExecutionPlan = { ...parsed, plan_id: randomUUID() }
 
   // Validate
   if (!plan.nodes || !Array.isArray(plan.nodes) || plan.nodes.length === 0) {
     throw new Error('Invalid plan: no nodes')
   }
+
+  // Decision-engine memory: why this plan (vs. the alternative the LLM was asked to weigh)
+  await recordDecision({
+    tenantId,
+    domain: 'graph_planning',
+    goal,
+    parsed: {
+      ...parsed,
+      recommendation: parsed.recommendation ?? plan.plan_name,
+    },
+    context: { userId, nodeCount: plan.nodes.length, estimatedMinutes: plan.estimated_duration_minutes },
+    llmProvider: response.provider,
+    llmModel: response.model,
+    linkedEntityType: 'GraphPlan',
+    linkedEntityId: plan.plan_id,
+  })
 
   return plan
 }

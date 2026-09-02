@@ -11,6 +11,7 @@
 import 'server-only'
 import { db } from '@/lib/db'
 import { llmAggregator } from '@/lib/llm/aggregator'
+import { parseJsonResponse } from '@/lib/llm/parse-json'
 import { emitNotificationEvent } from '@/lib/notifications/emitter'
 
 export type ReportPeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annual'
@@ -174,14 +175,7 @@ Analyze these metrics and generate insights per the system prompt.`
       maxTokens: 1500,
     })
 
-    let text = response.text.trim()
-    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
-    if (jsonMatch) text = jsonMatch[1].trim()
-    const start = text.indexOf('{')
-    const end = text.lastIndexOf('}')
-    if (start >= 0 && end > start) text = text.slice(start, end + 1)
-
-    return JSON.parse(text)
+    return parseJsonResponse(response.text)
   } catch (err) {
     console.error('AI insights generation failed:', err)
     return { error: 'AI insights unavailable', raw_metrics: metrics }

@@ -179,6 +179,18 @@ See `.env.example` for the full list. **Minimum required**:
 npx prisma generate
 ```
 
+### "Failed to load external module '@prisma/client-<hash>'" (Turbopack only)
+This is a Turbopack dev-server bug, not an app or dependency issue — `prisma generate`,
+clearing `.next`, and even a full `node_modules` reinstall do not fix it (the hashed
+module name stays identical across all of those). It does not affect `next build` /
+`next start`, only `next dev` with Turbopack. Workaround: use the classic webpack dev
+server instead —
+```bash
+bun run dev:webpack
+```
+which resolves `@prisma/client` correctly. Revisit `bun run dev` (Turbopack) on a newer
+Next.js release once this is fixed upstream.
+
 ### "Database connection failed"
 - Check `DATABASE_URL` in `.env`
 - For SQLite: ensure the `db/` directory exists

@@ -63,6 +63,7 @@ import {
   Rocket as RocketIcon,
   Calendar as CalendarIcon2,
   PlayCircle as PlayCircleIcon,
+  BrainCircuit as BrainCircuitIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -71,7 +72,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useI18n } from '@/i18n/provider'
 
-type View = 'dashboard' | 'unified' | 'roadmap' | 'quick-setup' | 'marketplace' | 'club' | 'ecommerce' | 'reseller' | 'attribution' | 'team' | 'super-admin' | 'white-label' | 'finance' | 'platform' | 'promo-links' | 'competitor-analysis' | 'investor-hub' | 'tenants' | 'projects' | 'leads' | 'generator' | 'campaigns' | 'crm' | 'engagement' | 'seo' | 'content' | 'growth' | 'ads' | 'social' | 'listening' | 'analytics' | 'ai' | 'advisor' | 'workflow' | 'autonomous' | 'backlinks' | 'social-analyzer' | 'export-analyzer' | 'calendar' | 'goals' | 'pricing' | 'activity' | 'settings' | 'distributors' | 'internal-portal' | 'payment-gateways' | 'llm-settings' | 'onboarding-wizard' | 'negotiation' | 'notification-center' | 'agent-hub' | 'virtual-assistants' | 'payroll' | 'support-plans' | 'graph-agent' | 'financial-reports' | 'project-intake' | 'events-calendar' | 'sandbox-demo'
+type View = 'dashboard' | 'unified' | 'roadmap' | 'quick-setup' | 'marketplace' | 'club' | 'ecommerce' | 'reseller' | 'attribution' | 'team' | 'super-admin' | 'white-label' | 'finance' | 'platform' | 'promo-links' | 'competitor-analysis' | 'investor-hub' | 'tenants' | 'projects' | 'leads' | 'generator' | 'campaigns' | 'crm' | 'engagement' | 'seo' | 'content' | 'growth' | 'ads' | 'social' | 'listening' | 'analytics' | 'ai' | 'advisor' | 'workflow' | 'autonomous' | 'backlinks' | 'social-analyzer' | 'export-analyzer' | 'calendar' | 'goals' | 'pricing' | 'activity' | 'settings' | 'distributors' | 'internal-portal' | 'payment-gateways' | 'llm-settings' | 'onboarding-wizard' | 'negotiation' | 'notification-center' | 'agent-hub' | 'virtual-assistants' | 'payroll' | 'support-plans' | 'graph-agent' | 'financial-reports' | 'project-intake' | 'events-calendar' | 'sandbox-demo' | 'ai-decisions'
 
 interface SidebarProps {
   view: View
@@ -154,6 +155,7 @@ export function Sidebar({ view, onViewChange }: SidebarProps) {
         { id: 'distributors', label: t('nav.distributors'), icon: HandshakeIcon, hint: 'B2B' },
         { id: 'payment-gateways', label: t('nav.paymentGateways'), icon: BitcoinIcon, hint: 'GW' },
         { id: 'llm-settings', label: t('nav.llmSettings'), icon: BrainIcon, hint: 'AI' },
+        { id: 'ai-decisions', label: 'AI Decisions', icon: BrainCircuitIcon, hint: 'WHY' },
         { id: 'onboarding-wizard', label: t('nav.onboardingWizard'), icon: Wand2Icon, hint: 'WISE' },
         { id: 'negotiation', label: t('nav.negotiation'), icon: HandshakeIcon, hint: 'NEG' },
         { id: 'virtual-assistants', label: 'Virtual Assistants', icon: HeadsetIcon, hint: 'VA' },

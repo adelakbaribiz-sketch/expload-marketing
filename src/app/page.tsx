@@ -54,6 +54,7 @@ import { LlmSettingsView } from '@/components/dashboard/llm-settings-view'
 import { OnboardingWizardView } from '@/components/dashboard/onboarding-wizard-view'
 import { NegotiationView } from '@/components/dashboard/negotiation-view'
 import { NotificationCenterView } from '@/components/dashboard/notification-center-view'
+import { AiDecisionsView } from '@/components/dashboard/ai-decisions-view'
 import { AgentHubView } from '@/components/dashboard/agent-hub-view'
 import { VirtualAssistantView } from '@/components/dashboard/virtual-assistant-view'
 import { PayrollView } from '@/components/dashboard/payroll-view'
@@ -195,6 +196,7 @@ export default function Home() {
     'llm-settings': { title: 'Multi-LLM Aggregator', subtitle: 'Free-tier LLM providers (OpenRouter, Groq, Cerebras, Mistral, HuggingFace) with auto-fallback & token tracking' },
     'onboarding-wizard': { title: 'Onboarding Wizard', subtitle: 'Collect customer info, crawl website, upload documents, generate AI negotiation proposals' },
     'negotiation': { title: 'Negotiation Engine', subtitle: '3-step fallback: Initial → MVP (−20% scope/−30% time/−15% price) → Economic → Phased delivery' },
+    'ai-decisions': { title: 'AI Decisions', subtitle: 'Every AI recommendation across the platform — reasoning, confidence, alternatives weighed, and outcomes' },
     'notification-center': { title: 'Notification Center', subtitle: 'Real-time events: LLM provider switches, quota warnings, onboarding completion, negotiation updates' },
     'agent-hub': { title: 'Agent Hub', subtitle: 'One-click command center — find leads, launch campaigns, generate content, start negotiations, and more' },
     'virtual-assistants': { title: 'Virtual Assistant Service', subtitle: 'Hire trained assistants for customer projects — in-office or remote. Includes work-tracking & automatic salary.' },
@@ -340,6 +342,8 @@ function RenderView({ view, onNavigate }: { view: View; onNavigate?: (v: string)
       return <OnboardingWizardView />
     case 'negotiation':
       return <NegotiationView />
+    case 'ai-decisions':
+      return <AiDecisionsView />
     case 'notification-center':
       return <NotificationCenterView />
     case 'virtual-assistants':

@@ -26,6 +26,9 @@ import { db } from '@/lib/db'
 import { llmAggregator } from '@/lib/llm/aggregator'
 import { emitNotificationEvent } from '@/lib/notifications/emitter'
 import { LlmMessage } from '@/lib/llm/types'
+import { parseJsonResponse } from '@/lib/llm/parse-json'
+import { decisionFieldsBlock, recordDecision, recordDecisionOutcome } from '@/lib/decision-engine'
+import type { DecisionAlternative } from '@/lib/decision-engine/types'
 
 // ============================================================================
 // States
@@ -69,6 +72,16 @@ interface GeneratedProposal {
   savingsPercent: number
   deliveryReductionPercent: number
   scopeReductionPercent: number
+  // Decision-engine metadata (why this offer, at this round)
+  rationale: string
+  confidence: number
+  evidence: string[]
+  alternatives: DecisionAlternative[]
+  expectedOutcome: string
+  risks: string[]
+  llmProvider: string
+  llmModel: string
+  rawParsed: Record<string, any>
 }
 
 // ============================================================================
@@ -407,8 +420,30 @@ export async function generateProposalForSession(sessionId: string): Promise<{ p
       savingsPercent: generated.savingsPercent,
       deliveryReductionPercent: generated.deliveryReductionPercent,
       scopeReductionPercent: generated.scopeReductionPercent,
+      rationale: generated.rationale || null,
       customerResponse: 'pending',
     },
+  })
+
+  // Decision-engine memory: why this offer, at this round
+  await recordDecision({
+    tenantId: session.tenantId,
+    domain: 'negotiation',
+    goal: `Round ${handler.round} (${handler.type}) proposal for "${session.projectName}"`,
+    parsed: generated.rawParsed,
+    context: {
+      customerName: session.customerName,
+      customerBudget: session.customerBudget,
+      customerTimeline: session.customerTimeline,
+      round: handler.round,
+      type: handler.type,
+      formula: handler.formulaDescription(),
+    },
+    llmProvider: generated.llmProvider,
+    llmModel: generated.llmModel,
+    sessionId: session.id,
+    linkedEntityType: 'NegotiationProposal',
+    linkedEntityId: proposal.id,
   })
 
   // Audit
@@ -458,6 +493,22 @@ export async function respondToProposal(
       respondedAt: new Date(),
     },
   })
+
+  // Close the self-improvement loop on the decision that produced this
+  // proposal: did the AI's confidence match what the customer actually did?
+  const linkedDecision = await db.aiDecision.findFirst({
+    where: { linkedEntityType: 'NegotiationProposal', linkedEntityId: proposalId },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (linkedDecision) {
+    const wasAccurate =
+      response === 'accepted' ? linkedDecision.confidence >= 60 : linkedDecision.confidence < 60
+    await recordDecisionOutcome({
+      decisionId: linkedDecision.id,
+      actualOutcome: response,
+      wasAccurate,
+    })
+  }
 
   const session = proposal.session
   const currentState = session.currentState as NegotiationState
@@ -592,7 +643,9 @@ Return STRICT JSON only (no markdown, no prose outside JSON):
   "currency": "USD",
   "paymentSchedule": "50% upfront, 50% on delivery",
   "rationale": "1-2 sentence explanation of why this offer makes sense at this round"
-}`
+}
+
+${decisionFieldsBlock()}`
 
   return [
     { role: 'system', content: sys },
@@ -621,18 +674,9 @@ async function callLlmAndParse(
     maxTokens: 2048,
   })
 
-  // Parse JSON — extract from markdown code blocks if present
-  let text = response.text.trim()
-  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
-  if (jsonMatch) text = jsonMatch[1].trim()
-  // Find first { and last }
-  const start = text.indexOf('{')
-  const end = text.lastIndexOf('}')
-  if (start >= 0 && end > start) text = text.slice(start, end + 1)
-
   let parsed: any
   try {
-    parsed = JSON.parse(text)
+    parsed = parseJsonResponse(response.text)
   } catch {
     throw new Error(`LLM returned invalid JSON: ${response.text.slice(0, 200)}`)
   }
@@ -649,5 +693,14 @@ async function callLlmAndParse(
     savingsPercent: defaults.savingsPercent,
     deliveryReductionPercent: defaults.deliveryReductionPercent,
     scopeReductionPercent: defaults.scopeReductionPercent,
+    rationale: typeof parsed.rationale === 'string' ? parsed.rationale : '',
+    confidence: Number.isFinite(Number(parsed.confidence)) ? Number(parsed.confidence) : 50,
+    evidence: Array.isArray(parsed.evidence) ? parsed.evidence.filter((e: any) => typeof e === 'string') : [],
+    alternatives: Array.isArray(parsed.alternatives) ? parsed.alternatives : [],
+    expectedOutcome: typeof parsed.expectedOutcome === 'string' ? parsed.expectedOutcome : '',
+    risks: Array.isArray(parsed.risks) ? parsed.risks.filter((r: any) => typeof r === 'string') : [],
+    llmProvider: response.provider,
+    llmModel: response.model,
+    rawParsed: parsed,
   }
 }

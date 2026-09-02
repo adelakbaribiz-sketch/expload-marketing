@@ -41,6 +41,7 @@ model Tenant {
   analyticsEvents             AnalyticsEvent[]
   analyticsReports            AnalyticsReport[]
   aiAgents                    AiAgent[]
+  aiDecisions                 AiDecision[]
   workflows                   Workflow[]
   backlinkOpportunities       BacklinkOpportunity[]
   authorityTrackers           AuthorityTracker[]
@@ -3722,6 +3723,7 @@ model NegotiationProposal {
   llmProvider              String?
   inputTokens              Int                @default(0)
   outputTokens             Int                @default(0)
+  rationale                String? // 1-2 sentence LLM explanation of why this offer makes sense at this round
   // Customer response
   customerResponse         String? // accepted | rejected | pending
   customerFeedback         String?
@@ -4334,4 +4336,47 @@ model SandboxAction {
   createdAt  DateTime       @default(now())
 
   @@index([sessionId])
+}
+
+// ============================================================================
+// AI Decision Engine — explainable-decision memory shared by every module
+// that asks the LLM aggregator to choose between options (negotiation,
+// campaign scheduling, graph planning, ...). Every row is one decision the
+// AI made, with its reasoning, confidence, evidence, alternatives it
+// considered, and — once known — whether it was actually right.
+// ============================================================================
+
+model AiDecision {
+  id               String    @id @default(cuid())
+  tenantId         String
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // What was being decided
+  domain           String // 'negotiation' | 'campaign_scheduling' | 'graph_planning'
+  goal             String // plain-language description of the decision being made
+  // The decision
+  recommendation   String
+  reasoning        String
+  confidence       Float     @default(0) // 0-100
+  evidence         String? // JSON string[]
+  alternatives     String? // JSON [{option, whyNotChosen}]
+  expectedOutcome  String?
+  risks            String? // JSON string[]
+  // Full context for audit/replay
+  rawContext       String? // JSON — facts given to the LLM
+  rawOutput        String? // JSON — full parsed LLM response
+  llmProvider      String?
+  llmModel         String?
+  sessionId        String?
+  // What this decision produced (for linking back to the domain record)
+  linkedEntityType String? // 'NegotiationProposal' | 'CampaignScheduleSuggestion' | 'GraphPlan'
+  linkedEntityId   String?
+  // Self-improvement loop
+  outcomeRecorded  Boolean   @default(false)
+  actualOutcome    String?
+  wasAccurate      Boolean?
+  outcomeAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  @@index([tenantId, domain])
+  @@index([tenantId, createdAt])
 }
