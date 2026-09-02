@@ -31,8 +31,13 @@ const nextConfig: NextConfig = {
     "@prisma/client",
   ],
 
-  // Headers for static assets
+  // Headers for static assets. Production-only: in `next dev`, chunk
+  // filenames don't change between recompiles (no content hash), so an
+  // immutable 1-year cache here makes the browser permanently serve a
+  // stale chunk after any code change until the cache is manually cleared.
+  // Safe in production because `next build` content-hashes every filename.
   async headers() {
+    if (process.env.NODE_ENV !== "production") return [];
     return [
       {
         source: "/_next/static/(.*)",

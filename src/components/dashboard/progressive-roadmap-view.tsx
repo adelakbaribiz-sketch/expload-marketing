@@ -20,9 +20,9 @@ const PHASE_ICONS: Record<string, any> = {
 }
 
 const PHASE_COLORS: Record<string, string> = {
-  P1: '#0A2A3A', P2: '#FF5722', P3: '#80DEEA', P4: '#4FC3F7',
-  P5: '#FF7043', P6: '#26C6DA', P7: '#42A5F5', P8: '#FFAB91',
-  P9: '#7C4DFF', P10: '#0A2A3A',
+  P1: '#0A0A0B', P2: '#FF6A00', P3: '#C9CDD3', P4: '#4FC3F7',
+  P5: '#FF8A3D', P6: '#26C6DA', P7: '#42A5F5', P8: '#FFAB91',
+  P9: '#7C4DFF', P10: '#0A0A0B',
 }
 
 export function ProgressiveRoadmapView() {
@@ -54,14 +54,14 @@ export function ProgressiveRoadmapView() {
   return (
     <div className="space-y-6 p-4 md:p-6 animate-fade-in-up">
       {/* Header with overall progress */}
-      <Card className="border-brand-primary/20 bg-gradient-to-br from-[#0A2A3A] to-[#0D47A1] text-white overflow-hidden relative">
-        <div className="absolute top-0 right-0 h-40 w-40 rounded-full bg-[#FF5722]/20 blur-3xl" />
-        <div className="absolute bottom-0 left-0 h-32 w-32 rounded-full bg-[#80DEEA]/20 blur-3xl" />
+      <Card className="border-brand-primary/20 bg-gradient-to-br from-[#0A0A0B] to-[#1F1F23] text-white overflow-hidden relative">
+        <div className="absolute top-0 right-0 h-40 w-40 rounded-full bg-[#FF6A00]/20 blur-3xl" />
+        <div className="absolute bottom-0 left-0 h-32 w-32 rounded-full bg-[#C9CDD3]/20 blur-3xl" />
         <CardContent className="relative p-6">
           <div className="flex items-start justify-between flex-wrap gap-4 mb-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Rocket className="h-6 w-6 text-[#FF5722]" />
+                <Rocket className="h-6 w-6 text-[#FF6A00]" />
                 <h2 className="text-xl font-bold">Your Marketing Roadmap</h2>
               </div>
               <p className="text-sm text-white/70">
@@ -78,7 +78,7 @@ export function ProgressiveRoadmapView() {
           <div className="mb-4">
             <div className="h-3 rounded-full bg-white/10 overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[#FF5722] to-[#FFAB91] transition-all duration-500"
+                className="h-full rounded-full bg-gradient-to-r from-[#FF6A00] to-[#FFAB91] transition-all duration-500"
                 style={{ width: `${stats.overallProgress}%` }}
               />
             </div>
@@ -91,22 +91,22 @@ export function ProgressiveRoadmapView() {
           {/* Quick stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-lg bg-white/10 p-3">
-              <Zap className="h-4 w-4 text-[#FF5722] mb-1" />
+              <Zap className="h-4 w-4 text-[#FF6A00] mb-1" />
               <p className="text-lg font-bold capitalize">{stats.plan}</p>
               <p className="text-[10px] text-white/60">Current Plan</p>
             </div>
             <div className="rounded-lg bg-white/10 p-3">
-              <TrendingUp className="h-4 w-4 text-[#80DEEA] mb-1" />
+              <TrendingUp className="h-4 w-4 text-[#C9CDD3] mb-1" />
               <p className="text-lg font-bold">{stats.acceleration}</p>
               <p className="text-[10px] text-white/60">Budget Boost</p>
             </div>
             <div className="rounded-lg bg-white/10 p-3">
-              <Calendar className="h-4 w-4 text-[#FF5722] mb-1" />
+              <Calendar className="h-4 w-4 text-[#FF6A00] mb-1" />
               <p className="text-lg font-bold">{stats.daysSinceSignup}</p>
               <p className="text-[10px] text-white/60">Days Active</p>
             </div>
             <div className="rounded-lg bg-white/10 p-3">
-              <Clock className="h-4 w-4 text-[#80DEEA] mb-1" />
+              <Clock className="h-4 w-4 text-[#C9CDD3] mb-1" />
               <p className="text-lg font-bold">{stats.nextPhaseUnlock || '—'}</p>
               <p className="text-[10px] text-white/60">Next Unlock</p>
             </div>
@@ -118,7 +118,7 @@ export function ProgressiveRoadmapView() {
       <div className="space-y-3">
         {roadmap.map((phase: any, index: number) => {
           const Icon = PHASE_ICONS[phase.icon] ?? Rocket
-          const phaseColor = PHASE_COLORS[phase.id] ?? '#0A2A3A'
+          const phaseColor = PHASE_COLORS[phase.id] ?? '#0A0A0B'
           const isLast = index === roadmap.length - 1
 
           return (
@@ -136,7 +136,7 @@ export function ProgressiveRoadmapView() {
               )}
 
               <Card
-                className={`relative z-10 transition-all ${phase.locked ? 'phase-locked' : ''} ${phase.isCurrent ? 'ring-2 ring-[#FF5722] animate-brand-pulse' : ''}`}
+                className={`relative z-10 transition-all ${phase.locked ? 'phase-locked' : ''} ${phase.isCurrent ? 'ring-2 ring-[#FF6A00] animate-brand-pulse' : ''}`}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
@@ -161,7 +161,7 @@ export function ProgressiveRoadmapView() {
                           <div className="flex items-center gap-2 mb-0.5">
                             <span className="text-[10px] font-mono text-muted-foreground">{phase.id}</span>
                             {phase.isCurrent && (
-                              <Badge className="text-[9px] gap-1 bg-[#FF5722]">
+                              <Badge className="text-[9px] gap-1 bg-[#FF6A00]">
                                 <Sparkles className="h-2.5 w-2.5" /> Active
                               </Badge>
                             )}
@@ -229,7 +229,7 @@ export function ProgressiveRoadmapView() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-[#FF5722]" />
+              <CheckCircle2 className="h-4 w-4 text-[#FF6A00]" />
               Milestones Achieved
             </CardTitle>
           </CardHeader>
@@ -240,7 +240,7 @@ export function ProgressiveRoadmapView() {
                   key={i}
                   variant={m.completed ? 'default' : 'secondary'}
                   className="gap-1.5 py-1.5 px-3"
-                  style={m.completed ? { background: '#0A2A3A' } : {}}
+                  style={m.completed ? { background: '#0A0A0B' } : {}}
                 >
                   {m.completed && <CheckCircle2 className="h-3 w-3" />}
                   {m.phase}: {m.title}
@@ -253,15 +253,15 @@ export function ProgressiveRoadmapView() {
 
       {/* Upgrade CTA for locked phases */}
       {stats.unlockedCount < stats.maxPhasesForPlan && (
-        <Card className="border-[#FF5722]/20 bg-gradient-to-br from-[#FF5722]/5 to-[#FF7043]/5">
+        <Card className="border-[#FF6A00]/20 bg-gradient-to-br from-[#FF6A00]/5 to-[#FF8A3D]/5">
           <CardContent className="p-6 text-center">
-            <Rocket className="h-10 w-10 mx-auto text-[#FF5722] mb-3" />
+            <Rocket className="h-10 w-10 mx-auto text-[#FF6A00] mb-3" />
             <h3 className="font-semibold mb-1">Unlock More Phases Faster</h3>
             <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
               Upgrade your plan or increase your budget to accelerate phase unlocking and get access to more marketing automation features.
             </p>
             <Button
-              className="gap-2 bg-[#FF5722] hover:bg-[#FF7043]"
+              className="gap-2 bg-[#FF6A00] hover:bg-[#FF8A3D]"
               onClick={() => openAuthModal('signup')}
             >
               <Zap className="h-4 w-4" />

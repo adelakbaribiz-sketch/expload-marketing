@@ -16,18 +16,18 @@ import {
 import { useState } from 'react'
 
 const INVESTOR_TYPES: Record<string, { label: string; color: string }> = {
-  angel: { label: 'Angel Investor', color: '#FF5722' },
-  seed: { label: 'Seed Fund', color: '#0A2A3A' },
+  angel: { label: 'Angel Investor', color: '#FF6A00' },
+  seed: { label: 'Seed Fund', color: '#0A0A0B' },
   vc: { label: 'Venture Capital', color: '#7C4DFF' },
   pe: { label: 'Private Equity', color: '#22c55e' },
   corporate: { label: 'Corporate VC', color: '#f59e0b' },
-  accelerator: { label: 'Accelerator', color: '#80DEEA' },
+  accelerator: { label: 'Accelerator', color: '#C9CDD3' },
 }
 
 const PARTNERSHIP_TYPES: Record<string, string> = {
-  strategic: '#0A2A3A', technical: '#7C4DFF', marketing: '#FF5722',
+  strategic: '#0A0A0B', technical: '#7C4DFF', marketing: '#FF6A00',
   distribution: '#22c55e', co_development: '#f59e0b', joint_venture: '#EC4899',
-  reseller: '#80DEEA', affiliate: '#6366f1',
+  reseller: '#C9CDD3', affiliate: '#6366f1',
 }
 
 export function InvestorHubView() {
@@ -82,7 +82,7 @@ export function InvestorHubView() {
     <div className="space-y-4 p-4 md:p-6 animate-fade-in-up">
       <div>
         <h2 className="text-base font-semibold flex items-center gap-2">
-          <DollarSign className="h-5 w-5 text-[#FF5722]" />
+          <DollarSign className="h-5 w-5 text-[#FF6A00]" />
           Investor & Partnership Hub
         </h2>
         <p className="text-xs text-muted-foreground">Find investors, co-founders, and strategic partnerships for your business</p>
@@ -90,8 +90,8 @@ export function InvestorHubView() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
-        <Card><CardContent className="p-4"><DollarSign className="h-4 w-4 text-[#FF5722] mb-1" /><p className="text-2xl font-bold">{investors.length}</p><p className="text-xs text-muted-foreground">Investors</p></CardContent></Card>
-        <Card><CardContent className="p-4"><Users className="h-4 w-4 text-[#0A2A3A] mb-1" /><p className="text-2xl font-bold">{cofounders.length}</p><p className="text-xs text-muted-foreground">Co-founders</p></CardContent></Card>
+        <Card><CardContent className="p-4"><DollarSign className="h-4 w-4 text-[#FF6A00] mb-1" /><p className="text-2xl font-bold">{investors.length}</p><p className="text-xs text-muted-foreground">Investors</p></CardContent></Card>
+        <Card><CardContent className="p-4"><Users className="h-4 w-4 text-[#0A0A0B] mb-1" /><p className="text-2xl font-bold">{cofounders.length}</p><p className="text-xs text-muted-foreground">Co-founders</p></CardContent></Card>
         <Card><CardContent className="p-4"><Handshake className="h-4 w-4 text-violet-600 mb-1" /><p className="text-2xl font-bold">{partnerships.length}</p><p className="text-xs text-muted-foreground">Partnerships</p></CardContent></Card>
       </div>
 
@@ -105,7 +105,7 @@ export function InvestorHubView() {
         {/* Investors Tab */}
         <TabsContent value="investors" className="space-y-3">
           <div className="flex justify-end">
-            <Button className="gap-2 bg-[#FF5722] hover:bg-[#FF7043]" onClick={() => { matchMutation.mutate(); }} disabled={matchMutation.isPending}>
+            <Button className="gap-2 bg-[#FF6A00] hover:bg-[#FF8A3D]" onClick={() => { matchMutation.mutate(); }} disabled={matchMutation.isPending}>
               {matchMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Matching...</> : <><Sparkles className="h-4 w-4" /> Find Best Matches</>}
             </Button>
           </div>
@@ -174,7 +174,7 @@ export function InvestorHubView() {
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="grid place-items-center h-10 w-10 rounded-full bg-[#0A2A3A] text-white shrink-0">
+                          <div className="grid place-items-center h-10 w-10 rounded-full bg-[#0A0A0B] text-white shrink-0">
                             <Users className="h-5 w-5" />
                           </div>
                           <div className="min-w-0">
@@ -224,7 +224,7 @@ export function InvestorHubView() {
                           {p.timeline && <span>⏱ {p.timeline}</span>}
                         </div>
                       </div>
-                      <Badge variant="outline" className="capitalize shrink-0" style={{ background: p.priority === 'critical' ? '#ef444420' : p.priority === 'high' ? '#f59e0b20' : '#0A2A3A20', color: p.priority === 'critical' ? '#ef4444' : p.priority === 'high' ? '#f59e0b' : '#0A2A3A' }}>{p.priority}</Badge>
+                      <Badge variant="outline" className="capitalize shrink-0" style={{ background: p.priority === 'critical' ? '#ef444420' : p.priority === 'high' ? '#f59e0b20' : '#0A0A0B20', color: p.priority === 'critical' ? '#ef4444' : p.priority === 'high' ? '#f59e0b' : '#0A0A0B' }}>{p.priority}</Badge>
                     </div>
                   </CardContent>
                 </Card>

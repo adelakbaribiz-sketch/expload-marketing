@@ -57,7 +57,7 @@ export function PaymentGatewaysView() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Wallet className="h-8 w-8" style={{ color: '#0A2A3A' }} />
+          <Wallet className="h-8 w-8" style={{ color: '#0A0A0B' }} />
           Payment Gateways & Crypto
         </h1>
         <p className="text-muted-foreground mt-1">

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
-const SEVERITY_COLORS: Record<string, string> = { info: '#0A2A3A', warning: '#f59e0b', critical: '#ef4444' }
+const SEVERITY_COLORS: Record<string, string> = { info: '#0A0A0B', warning: '#f59e0b', critical: '#ef4444' }
 const TYPE_ICONS: Record<string, any> = {
   low_balance: AlertTriangle, failed_payment: X, churn_risk: AlertTriangle,
   revenue_milestone: Target, payment_overdue: Bell, subscription_expiring: Clock,
@@ -100,9 +100,9 @@ export function FinanceView() {
       {reports && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card><CardContent className="p-4"><DollarSign className="h-4 w-4 text-emerald-600 mb-1" /><p className="text-2xl font-bold text-emerald-600">${reports.mrr?.toLocaleString()}</p><p className="text-xs text-muted-foreground">MRR</p></CardContent></Card>
-          <Card><CardContent className="p-4"><TrendingUp className="h-4 w-4 text-[#FF5722] mb-1" /><p className="text-2xl font-bold text-[#FF5722]">${reports.arr?.toLocaleString()}</p><p className="text-xs text-muted-foreground">ARR</p></CardContent></Card>
+          <Card><CardContent className="p-4"><TrendingUp className="h-4 w-4 text-[#FF6A00] mb-1" /><p className="text-2xl font-bold text-[#FF6A00]">${reports.arr?.toLocaleString()}</p><p className="text-xs text-muted-foreground">ARR</p></CardContent></Card>
           <Card><CardContent className="p-4"><TrendingUp className="h-4 w-4 text-violet-600 mb-1" /><p className="text-2xl font-bold">{reports.growth > 0 ? '+' : ''}{reports.growth}%</p><p className="text-xs text-muted-foreground">MoM Growth</p></CardContent></Card>
-          <Card><CardContent className="p-4"><Receipt className="h-4 w-4 text-[#0A2A3A] mb-1" /><p className="text-2xl font-bold">${reports.totalRevenue?.toLocaleString()}</p><p className="text-xs text-muted-foreground">Total Revenue</p></CardContent></Card>
+          <Card><CardContent className="p-4"><Receipt className="h-4 w-4 text-[#0A0A0B] mb-1" /><p className="text-2xl font-bold">${reports.totalRevenue?.toLocaleString()}</p><p className="text-xs text-muted-foreground">Total Revenue</p></CardContent></Card>
         </div>
       )}
 
@@ -168,7 +168,7 @@ export function FinanceView() {
         {/* Alerts Tab */}
         <TabsContent value="alerts" className="space-y-3">
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Bell className="h-4 w-4 text-[#FF5722]" /> Financial Alerts</CardTitle></CardHeader>
+            <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Bell className="h-4 w-4 text-[#FF6A00]" /> Financial Alerts</CardTitle></CardHeader>
             <CardContent>
               {alerts.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">No financial alerts. All good! ✅</p>
@@ -177,14 +177,14 @@ export function FinanceView() {
                   {alerts.map((alert: any) => {
                     const Icon = TYPE_ICONS[alert.type] ?? Bell
                     return (
-                      <div key={alert.id} className={`flex items-start gap-3 p-3 rounded-lg border ${alert.isResolved ? 'opacity-50' : ''}`} style={{ borderColor: (SEVERITY_COLORS[alert.severity] ?? '#0A2A3A') + '30' }}>
-                        <div className="grid place-items-center h-8 w-8 rounded-md shrink-0" style={{ background: (SEVERITY_COLORS[alert.severity] ?? '#0A2A3A') + '20' }}>
-                          <Icon className="h-4 w-4" style={{ color: SEVERITY_COLORS[alert.severity] ?? '#0A2A3A' }} />
+                      <div key={alert.id} className={`flex items-start gap-3 p-3 rounded-lg border ${alert.isResolved ? 'opacity-50' : ''}`} style={{ borderColor: (SEVERITY_COLORS[alert.severity] ?? '#0A0A0B') + '30' }}>
+                        <div className="grid place-items-center h-8 w-8 rounded-md shrink-0" style={{ background: (SEVERITY_COLORS[alert.severity] ?? '#0A0A0B') + '20' }}>
+                          <Icon className="h-4 w-4" style={{ color: SEVERITY_COLORS[alert.severity] ?? '#0A0A0B' }} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="text-sm font-medium">{alert.title}</p>
-                            <Badge variant="outline" className="text-[9px] capitalize" style={{ background: (SEVERITY_COLORS[alert.severity] ?? '#0A2A3A') + '20', color: SEVERITY_COLORS[alert.severity] ?? '#0A2A3A' }}>{alert.severity}</Badge>
+                            <Badge variant="outline" className="text-[9px] capitalize" style={{ background: (SEVERITY_COLORS[alert.severity] ?? '#0A0A0B') + '20', color: SEVERITY_COLORS[alert.severity] ?? '#0A0A0B' }}>{alert.severity}</Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">{alert.message}</p>
                         </div>
@@ -205,7 +205,7 @@ export function FinanceView() {
         {/* Methods Tab */}
         <TabsContent value="methods" className="space-y-3">
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><CreditCard className="h-4 w-4 text-[#0A2A3A]" /> Payment Methods</CardTitle></CardHeader>
+            <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><CreditCard className="h-4 w-4 text-[#0A0A0B]" /> Payment Methods</CardTitle></CardHeader>
             <CardContent>
               {methods.length === 0 ? (
                 <div className="text-center py-8">
@@ -217,7 +217,7 @@ export function FinanceView() {
                 <div className="space-y-2">
                   {methods.map((m: any) => (
                     <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg border">
-                      <div className="grid place-items-center h-8 w-12 rounded-md bg-[#0A2A3A] text-white text-xs font-bold shrink-0">
+                      <div className="grid place-items-center h-8 w-12 rounded-md bg-[#0A0A0B] text-white text-xs font-bold shrink-0">
                         {m.brand?.toUpperCase() || 'CARD'}
                       </div>
                       <div className="flex-1">

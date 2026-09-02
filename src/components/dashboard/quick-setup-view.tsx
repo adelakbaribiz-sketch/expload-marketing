@@ -38,17 +38,17 @@ export function QuickSetupView() {
     <div className="space-y-4 p-4 md:p-6 animate-fade-in-up">
       <div>
         <h2 className="text-base font-semibold flex items-center gap-2">
-          <Zap className="h-5 w-5 text-[#FF5722]" />
+          <Zap className="h-5 w-5 text-[#FF6A00]" />
           1-Click Quick Setup
         </h2>
         <p className="text-xs text-muted-foreground">Auto-configure your entire marketing platform in one click — minimal complexity, maximum results</p>
       </div>
 
       {!results ? (
-        <Card className="border-[#FF5722]/20 bg-gradient-to-br from-[#FF5722]/5 to-[#FF7043]/5 max-w-2xl mx-auto">
+        <Card className="border-[#FF6A00]/20 bg-gradient-to-br from-[#FF6A00]/5 to-[#FF8A3D]/5 max-w-2xl mx-auto">
           <CardContent className="p-6 space-y-4">
             <div className="text-center mb-4">
-              <div className="grid place-items-center h-16 w-16 rounded-2xl bg-gradient-to-br from-[#FF5722] to-[#FF7043] text-white mx-auto mb-3 shadow-lg">
+              <div className="grid place-items-center h-16 w-16 rounded-2xl bg-gradient-to-br from-[#FF6A00] to-[#FF8A3D] text-white mx-auto mb-3 shadow-lg">
                 <Rocket className="h-8 w-8" />
               </div>
               <h3 className="font-semibold text-lg">Launch Your Marketing in 1 Click</h3>
@@ -83,7 +83,7 @@ export function QuickSetupView() {
               </div>
             </div>
 
-            <Button className="w-full gap-2 bg-[#FF5722] hover:bg-[#FF7043]" size="lg" onClick={() => setupMutation.mutate(form)} disabled={!form.businessName || setupMutation.isPending}>
+            <Button className="w-full gap-2 bg-[#FF6A00] hover:bg-[#FF8A3D]" size="lg" onClick={() => setupMutation.mutate(form)} disabled={!form.businessName || setupMutation.isPending}>
               {setupMutation.isPending ? <><Loader2 className="h-5 w-5 animate-spin" /> Setting up…</> : <><Zap className="h-5 w-5" /> Launch in 1 Click</>}
             </Button>
 

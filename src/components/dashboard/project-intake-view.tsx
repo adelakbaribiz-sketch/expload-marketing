@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 
 const TIER_COLORS: Record<string, string> = {
-  essential: '#8CD4D8', growth: '#F26522', premium: '#1B3A4B',
+  essential: '#C9CDD3', growth: '#FF6A00', premium: '#0A0A0B',
 }
 
 export function ProjectIntakeView() {
@@ -95,7 +95,7 @@ export function ProjectIntakeView() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Rocket className="h-8 w-8 animate-float-3d" style={{ color: '#F26522' }} />
+          <Rocket className="h-8 w-8 animate-float-3d" style={{ color: '#FF6A00' }} />
           Project Brief & Pricing
           <GuideTooltip sectionId="onboarding-wizard" />
         </h1>
@@ -173,7 +173,7 @@ export function ProjectIntakeView() {
 
       {/* Analysis loading */}
       {isAnalyzing && (
-        <Card className="card-3d border-2" style={{ borderColor: '#F26522' }}>
+        <Card className="card-3d border-2" style={{ borderColor: '#FF6A00' }}>
           <CardContent className="p-8 text-center">
             <Loader2 className="h-12 w-12 mx-auto animate-spin text-brand-accent mb-3" />
             <h3 className="font-semibold text-lg">AI is analyzing your business...</h3>
@@ -219,7 +219,7 @@ export function ProjectIntakeView() {
                 <div className="text-sm font-semibold mb-2">Project Phases</div>
                 <div className="space-y-2">
                   {(roadmap.roadmap ?? []).map((phase: any, i: number) => (
-                    <div key={i} className="border-l-2 pl-3 py-1" style={{ borderColor: '#F26522' }}>
+                    <div key={i} className="border-l-2 pl-3 py-1" style={{ borderColor: '#FF6A00' }}>
                       <div className="font-medium text-sm">Phase {phase.phase}: {phase.name} ({phase.duration_weeks}w)</div>
                       <div className="text-xs text-muted-foreground">
                         Milestones: {(phase.milestones ?? []).join(', ')}
@@ -257,10 +257,10 @@ export function ProjectIntakeView() {
                     <Card
                       key={i}
                       className={`card-3d relative ${isRecommended ? 'border-2 scale-105' : ''}`}
-                      style={isRecommended ? { borderColor: '#F26522' } : undefined}
+                      style={isRecommended ? { borderColor: '#FF6A00' } : undefined}
                     >
                       {isRecommended && (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-semibold text-white" style={{ background: '#F26522' }}>
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-semibold text-white" style={{ background: '#FF6A00' }}>
                           RECOMMENDED
                         </div>
                       )}

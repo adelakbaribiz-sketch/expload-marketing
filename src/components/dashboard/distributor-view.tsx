@@ -16,7 +16,7 @@ import {
 
 const TIER_COLORS: Record<string, string> = {
   standard: '#6b7280', silver: '#9ca3af', gold: '#f59e0b',
-  platinum: '#a78bfa', master: '#0A2A3A',
+  platinum: '#a78bfa', master: '#0A0A0B',
 }
 const STATUS_COLORS: Record<string, string> = {
   pending: '#6b7280', active: '#10b981', suspended: '#f59e0b', terminated: '#ef4444',
@@ -119,7 +119,7 @@ export function DistributorView() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Building2 className="h-8 w-8" style={{ color: '#0A2A3A' }} />
+            <Building2 className="h-8 w-8" style={{ color: '#0A0A0B' }} />
             Wholesale Distributors
           </h1>
           <p className="text-muted-foreground mt-1">

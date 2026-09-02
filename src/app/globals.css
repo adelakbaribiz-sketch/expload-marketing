@@ -42,104 +42,105 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* Brand colors — from CPP flow logo */
-  --color-brand-primary: #1B3A4B;    /* dark navy (CPP) */
-  --color-brand-accent: #F26522;     /* bright orange (P) */
-  --color-brand-light: #8CD4D8;      /* light teal (flow) */
-  --color-brand-bg: #FAF9F6;         /* cream background */
-  --color-brand-muted: #999999;      /* gray text */
-  --color-brand-dark: #0F2530;       /* deeper navy for hover */
+  /* Brand identity — Pure Black / Dark Gray neutrals, Neon Orange +
+     Metallic Silver accents. Kept as named tokens so utility classes
+     below (.text-brand-*, .bg-brand-*) don't hardcode hex directly. */
+  --color-brand-primary: #0A0A0B;    /* pure black */
+  --color-brand-accent: #FF6A00;     /* neon orange — CTA / active / highlights */
+  --color-brand-light: #C9CDD3;      /* metallic silver — secondary highlights, borders */
+  --color-brand-bg: #FAFAFA;         /* premium off-white background */
+  --color-brand-muted: #6B6B70;      /* neutral gray text */
+  --color-brand-dark: #1F1F23;       /* dark gray surface */
 }
 
 :root {
   --radius: 0.75rem;
 
-  /* Brand color scheme — CPP flow logo */
-  --background: #FAF9F6;            /* cream */
-  --foreground: #1B3A4B;            /* dark navy */
+  --background: #FAFAFA;
+  --foreground: #0A0A0B;
   --card: #FFFFFF;
-  --card-foreground: #1B3A4B;
+  --card-foreground: #0A0A0B;
   --popover: #FFFFFF;
-  --popover-foreground: #1B3A4B;
+  --popover-foreground: #0A0A0B;
 
-  /* Primary = Dark Navy from logo */
-  --primary: #1B3A4B;
-  --primary-foreground: #FFFFFF;
+  /* Primary = Neon Orange — every CTA/button reads as brand-forward */
+  --primary: #FF6A00;
+  --primary-foreground: #0A0A0B;
 
-  /* Secondary = Light Teal from logo */
-  --secondary: #8CD4D8;
-  --secondary-foreground: #1B3A4B;
+  /* Secondary = Dark Gray surface */
+  --secondary: #F0F0F2;
+  --secondary-foreground: #0A0A0B;
 
-  /* Muted = Soft gray */
-  --muted: #F0EFEB;
-  --muted-foreground: #999999;
+  --muted: #F0F0F2;
+  --muted-foreground: #6B6B70;
 
-  /* Accent = Bright Orange from logo */
-  --accent: #FFF1E8;
-  --accent-foreground: #F26522;
+  /* Accent = soft orange highlight background */
+  --accent: #FFEDE0;
+  --accent-foreground: #C2410C;
 
-  --destructive: #EF4444;
-  --border: #E5E2DC;
-  --input: #E5E2DC;
-  --ring: #F26522;
+  --destructive: #DC2626;
+  --border: #E4E4E7;
+  --input: #E4E4E7;
+  --ring: #FF6A00;
 
-  /* Chart colors — brand palette */
-  --chart-1: #1B3A4B;
-  --chart-2: #F26522;
-  --chart-3: #8CD4D8;
-  --chart-4: #5BAFC4;
-  --chart-5: #C4B8A8;
+  /* Chart colors — black / orange / silver / dark gray / light orange */
+  --chart-1: #0A0A0B;
+  --chart-2: #FF6A00;
+  --chart-3: #9AA0A8;
+  --chart-4: #52525B;
+  --chart-5: #FFAD66;
 
-  /* Sidebar — dark navy primary */
+  /* Sidebar — black chrome, orange active state (matches brand accent) */
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #1B3A4B;
-  --sidebar-primary: #1B3A4B;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #FAF9F6;
-  --sidebar-accent-foreground: #1B3A4B;
-  --sidebar-border: #E5E2DC;
-  --sidebar-ring: #F26522;
+  --sidebar-foreground: #0A0A0B;
+  --sidebar-primary: #FF6A00;
+  --sidebar-primary-foreground: #0A0A0B;
+  --sidebar-accent: #F5F5F5;
+  --sidebar-accent-foreground: #0A0A0B;
+  --sidebar-border: #E4E4E7;
+  --sidebar-ring: #FF6A00;
 }
 
 .dark {
-  --background: #0F2530;
-  --foreground: #FAF9F6;
-  --card: #1B3A4B;
-  --card-foreground: #FAF9F6;
-  --popover: #1B3A4B;
-  --popover-foreground: #FAF9F6;
+  --background: #0A0A0B;
+  --foreground: #F2F2F3;
+  --card: #141416;
+  --card-foreground: #F2F2F3;
+  --popover: #17171A;
+  --popover-foreground: #F2F2F3;
 
-  --primary: #8CD4D8;
-  --primary-foreground: #0F2530;
+  --primary: #FF6A00;
+  --primary-foreground: #0A0A0B;
 
-  --secondary: #2A4F5E;
-  --secondary-foreground: #8CD4D8;
+  --secondary: #1F1F23;
+  --secondary-foreground: #F2F2F3;
 
-  --muted: #2A4F5E;
-  --muted-foreground: #8FA5AE;
+  --muted: #1F1F23;
+  --muted-foreground: #9A9AA2;
 
-  --accent: #3D2317;
-  --accent-foreground: #F26522;
+  --accent: #2B1B0F;
+  --accent-foreground: #FF8A3D;
 
-  --destructive: #F44336;
-  --border: rgba(255,255,255,0.1);
-  --input: rgba(255,255,255,0.15);
-  --ring: #F26522;
+  --destructive: #F87171;
+  --border: #232326;
+  --input: #232326;
+  --ring: #FF6A00;
 
-  --chart-1: #8CD4D8;
-  --chart-2: #F26522;
-  --chart-3: #5BAFC4;
-  --chart-4: #FFB088;
-  --chart-5: #8FA5AE;
+  --chart-1: #F2F2F3;
+  --chart-2: #FF6A00;
+  --chart-3: #C9CDD3;
+  --chart-4: #6B6B70;
+  --chart-5: #FFAD66;
 
-  --sidebar: #0F2530;
-  --sidebar-foreground: #FAF9F6;
-  --sidebar-primary: #8CD4D8;
-  --sidebar-primary-foreground: #0F2530;
-  --sidebar-accent: #1B3A4B;
-  --sidebar-accent-foreground: #FAF9F6;
-  --sidebar-border: rgba(255,255,255,0.1);
-  --sidebar-ring: #F26522;
+  /* Sidebar sits one shade below the page background for depth */
+  --sidebar: #09090A;
+  --sidebar-foreground: #F2F2F3;
+  --sidebar-primary: #FF6A00;
+  --sidebar-primary-foreground: #0A0A0B;
+  --sidebar-accent: #19191C;
+  --sidebar-accent-foreground: #F2F2F3;
+  --sidebar-border: #232326;
+  --sidebar-ring: #FF6A00;
 }
 
 @layer base {
@@ -165,14 +166,14 @@ html[dir='rtl'] body {
   background: transparent;
 }
 .scroll-thin::-webkit-scrollbar-thumb {
-  background: #B0BEC5;
+  background: #C9CDD3;
   border-radius: 4px;
 }
 .dark .scroll-thin::-webkit-scrollbar-thumb {
-  background: #37474F;
+  background: #3A3A3F;
 }
 .scroll-thin::-webkit-scrollbar-thumb:hover {
-  background: #FF5722;
+  background: #FF6A00;
 }
 
 /* Animated fade-in for view transitions */
@@ -184,28 +185,36 @@ html[dir='rtl'] body {
   animation: fade-in-up 0.25s ease-out both;
 }
 
-/* Brand gradient utilities */
+/* Brand gradient utilities — black/graphite base, neon orange + metallic silver accents */
 .bg-brand-gradient {
-  background: linear-gradient(135deg, #1B3A4B 0%, #0F2530 50%, #1B3A4B 100%);
+  background: linear-gradient(135deg, #0A0A0B 0%, #1F1F23 50%, #0A0A0B 100%);
 }
 .bg-brand-accent-gradient {
-  background: linear-gradient(135deg, #F26522 0%, #FF8B5A 100%);
+  background: linear-gradient(135deg, #FF6A00 0%, #FF8A3D 100%);
 }
 .bg-brand-light-gradient {
-  background: linear-gradient(135deg, #8CD4D8 0%, #5BAFC4 100%);
+  background: linear-gradient(135deg, #C9CDD3 0%, #9AA0A8 100%);
 }
 .bg-brand-mesh {
-  background-color: #FAF9F6;
+  background-color: #FAFAFA;
   background-image:
-    radial-gradient(at 20% 20%, rgba(242, 101, 34, 0.08) 0px, transparent 50%),
-    radial-gradient(at 80% 30%, rgba(140, 212, 216, 0.12) 0px, transparent 50%),
-    radial-gradient(at 50% 80%, rgba(27, 58, 75, 0.06) 0px, transparent 50%);
+    radial-gradient(at 20% 20%, rgba(255, 106, 0, 0.08) 0px, transparent 50%),
+    radial-gradient(at 80% 30%, rgba(201, 205, 211, 0.16) 0px, transparent 50%),
+    radial-gradient(at 50% 80%, rgba(10, 10, 11, 0.05) 0px, transparent 50%);
 }
-.text-brand-primary { color: #1B3A4B; }
-.text-brand-accent { color: #F26522; }
-.text-brand-light { color: #8CD4D8; }
-.text-brand-muted { color: #999999; }
-.text-brand-dark { color: #0F2530; }
+.dark .bg-brand-mesh {
+  background-color: #0A0A0B;
+  background-image:
+    radial-gradient(at 20% 20%, rgba(255, 106, 0, 0.1) 0px, transparent 50%),
+    radial-gradient(at 80% 30%, rgba(201, 205, 211, 0.06) 0px, transparent 50%),
+    radial-gradient(at 50% 80%, rgba(255, 106, 0, 0.05) 0px, transparent 50%);
+}
+.text-brand-primary { color: #0A0A0B; }
+.dark .text-brand-primary { color: #F2F2F3; }
+.text-brand-accent { color: #FF6A00; }
+.text-brand-light { color: #C9CDD3; }
+.text-brand-muted { color: #6B6B70; }
+.text-brand-dark { color: #1F1F23; }
 
 /* ============================================================
    3D Card Effects — Framer Motion-style depth on hover
@@ -218,8 +227,8 @@ html[dir='rtl'] body {
 .card-3d:hover {
   transform: perspective(1000px) rotateX(2deg) rotateY(-2deg) translateY(-4px);
   box-shadow:
-    0 20px 40px -10px rgba(27, 58, 75, 0.25),
-    0 10px 20px -5px rgba(242, 101, 34, 0.12);
+    0 20px 40px -10px rgba(10, 10, 11, 0.25),
+    0 10px 20px -5px rgba(255, 106, 0, 0.12);
 }
 .card-3d-flat {
   transform-style: preserve-3d;
@@ -235,11 +244,11 @@ html[dir='rtl'] body {
   backdrop-filter: blur(16px) saturate(160%);
   -webkit-backdrop-filter: blur(16px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 8px 32px rgba(27, 58, 75, 0.12);
+  box-shadow: 0 8px 32px rgba(10, 10, 11, 0.12);
 }
 .dark .glass-card {
-  background: rgba(15, 37, 48, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(20, 20, 22, 0.65);
+  border: 1px solid rgba(201, 205, 211, 0.1);
 }
 
 /* 3D Floating animation for hero icons */
@@ -306,15 +315,15 @@ html[dir='rtl'] body {
   100% { background-position: 200% 0; }
 }
 .animate-shimmer {
-  background: linear-gradient(90deg, transparent, rgba(242, 101, 34, 0.1), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 106, 0, 0.1), transparent);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
 
 /* Pulse glow for active/CTA buttons */
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(242, 101, 34, 0.4); }
-  50% { box-shadow: 0 0 0 12px rgba(242, 101, 34, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 106, 0, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(255, 106, 0, 0); }
 }
 .animate-pulse-glow {
   animation: pulse-glow 2s infinite;
@@ -323,11 +332,11 @@ html[dir='rtl'] body {
 /* 3D button press effect */
 .btn-3d {
   transition: all 0.15s ease;
-  box-shadow: 0 4px 0 0 #C04E1A, 0 6px 12px rgba(242, 101, 34, 0.25);
+  box-shadow: 0 4px 0 0 #C24E00, 0 6px 12px rgba(255, 106, 0, 0.25);
 }
 .btn-3d:active {
   transform: translateY(2px);
-  box-shadow: 0 2px 0 0 #C04E1A, 0 3px 6px rgba(242, 101, 34, 0.2);
+  box-shadow: 0 2px 0 0 #C24E00, 0 3px 6px rgba(255, 106, 0, 0.2);
 }
 
 /* Tooltip animation */
@@ -348,8 +357,8 @@ html[dir='rtl'] body {
 
 /* Progress pulse animation for active phases */
 @keyframes brand-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(242, 101, 34, 0.3); }
-  50% { box-shadow: 0 0 0 8px rgba(242, 101, 34, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 106, 0, 0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 106, 0, 0); }
 }
 .animate-brand-pulse {
   animation: brand-pulse 2s infinite;

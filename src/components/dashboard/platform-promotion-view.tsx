@@ -24,16 +24,16 @@ import { useState } from 'react'
 import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 
 const PROMO_TYPES: Record<string, { label: string; icon: any; color: string }> = {
-  email_campaign: { label: 'Email Campaign', icon: Mail, color: '#0A2A3A' },
-  social_post: { label: 'Social Post', icon: Share2, color: '#FF5722' },
-  blog_post: { label: 'Blog Post', icon: Globe, color: '#80DEEA' },
+  email_campaign: { label: 'Email Campaign', icon: Mail, color: '#0A0A0B' },
+  social_post: { label: 'Social Post', icon: Share2, color: '#FF6A00' },
+  blog_post: { label: 'Blog Post', icon: Globe, color: '#C9CDD3' },
   ad_campaign: { label: 'Ad Campaign', icon: Target, color: '#7C4DFF' },
   referral_program: { label: 'Referral', icon: Gift, color: '#22c55e' },
   seo_content: { label: 'SEO Content', icon: TrendingUp, color: '#f59e0b' },
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: '#64748b', scheduled: '#3b82f6', active: '#22c55e', completed: '#0A2A3A', paused: '#f59e0b',
+  draft: '#64748b', scheduled: '#3b82f6', active: '#22c55e', completed: '#0A0A0B', paused: '#f59e0b',
 }
 
 export function PlatformPromotionView() {
@@ -129,7 +129,7 @@ export function PlatformPromotionView() {
     <div className="space-y-4 p-4 md:p-6 animate-fade-in-up">
       <div>
         <h2 className="text-base font-semibold flex items-center gap-2">
-          <Megaphone className="h-5 w-5 text-[#FF5722]" />
+          <Megaphone className="h-5 w-5 text-[#FF6A00]" />
           Platform Self-Promotion
         </h2>
         <p className="text-xs text-muted-foreground">The marketing platform that markets itself — campaigns, referrals, and financial dashboard</p>
@@ -139,8 +139,8 @@ export function PlatformPromotionView() {
       {finance && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Card><CardContent className="p-3"><DollarSign className="h-4 w-4 text-emerald-600 mb-1" /><p className="text-xl font-bold text-emerald-600">${finance.mrr?.toLocaleString()}</p><p className="text-[10px] text-muted-foreground">MRR</p></CardContent></Card>
-          <Card><CardContent className="p-3"><TrendingUp className="h-4 w-4 text-[#FF5722] mb-1" /><p className="text-xl font-bold text-[#FF5722]">${finance.arr?.toLocaleString()}</p><p className="text-[10px] text-muted-foreground">ARR</p></CardContent></Card>
-          <Card><CardContent className="p-3"><Users className="h-4 w-4 text-[#0A2A3A] mb-1" /><p className="text-xl font-bold">{finance.activeTenants}</p><p className="text-[10px] text-muted-foreground">Active Tenants</p></CardContent></Card>
+          <Card><CardContent className="p-3"><TrendingUp className="h-4 w-4 text-[#FF6A00] mb-1" /><p className="text-xl font-bold text-[#FF6A00]">${finance.arr?.toLocaleString()}</p><p className="text-[10px] text-muted-foreground">ARR</p></CardContent></Card>
+          <Card><CardContent className="p-3"><Users className="h-4 w-4 text-[#0A0A0B] mb-1" /><p className="text-xl font-bold">{finance.activeTenants}</p><p className="text-[10px] text-muted-foreground">Active Tenants</p></CardContent></Card>
           <Card><CardContent className="p-3"><Target className="h-4 w-4 text-violet-600 mb-1" /><p className="text-xl font-bold">${finance.cacEstimate}</p><p className="text-[10px] text-muted-foreground">CAC Estimate</p></CardContent></Card>
           <Card><CardContent className="p-3"><DollarSign className="h-4 w-4 text-amber-600 mb-1" /><p className="text-xl font-bold text-amber-600">${finance.ltvEstimate?.toLocaleString()}</p><p className="text-[10px] text-muted-foreground">LTV Estimate</p></CardContent></Card>
         </div>
@@ -202,7 +202,7 @@ export function PlatformPromotionView() {
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
               {promotions.map((p: any) => {
-                const typeInfo = PROMO_TYPES[p.type] ?? { label: p.type, icon: Megaphone, color: '#0A2A3A' }
+                const typeInfo = PROMO_TYPES[p.type] ?? { label: p.type, icon: Megaphone, color: '#0A0A0B' }
                 const Icon = typeInfo.icon
                 return (
                   <Card key={p.id} className="hover:shadow-md transition-shadow">
@@ -225,7 +225,7 @@ export function PlatformPromotionView() {
                         <span>💰 ${p.revenue}</span>
                       </div>
                       {p.status === 'draft' && (
-                        <Button size="sm" className="w-full mt-2 gap-1.5 bg-[#FF5722] hover:bg-[#FF7043]" onClick={() => launchPromoMutation.mutate(p.id)}>
+                        <Button size="sm" className="w-full mt-2 gap-1.5 bg-[#FF6A00] hover:bg-[#FF8A3D]" onClick={() => launchPromoMutation.mutate(p.id)}>
                           <Zap className="h-3.5 w-3.5" /> Launch Campaign
                         </Button>
                       )}
@@ -241,10 +241,10 @@ export function PlatformPromotionView() {
         <TabsContent value="referrals" className="space-y-3">
           {/* Referral Programs */}
           {programs.length > 0 && (
-            <Card className="border-[#FF5722]/20 bg-gradient-to-br from-[#FF5722]/5 to-[#FF7043]/5">
+            <Card className="border-[#FF6A00]/20 bg-gradient-to-br from-[#FF6A00]/5 to-[#FF8A3D]/5">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3 mb-3">
-                  <Gift className="h-8 w-8 text-[#FF5722]" />
+                  <Gift className="h-8 w-8 text-[#FF6A00]" />
                   <div>
                     <p className="font-semibold">{programs[0].name}</p>
                     <p className="text-xs text-muted-foreground">Refer a friend: You get ${programs[0].referrerReward} credit, they get ${programs[0].refereeReward} credit</p>
@@ -252,7 +252,7 @@ export function PlatformPromotionView() {
                 </div>
                 <div className="flex gap-2">
                   <Input placeholder="friend@email.com" value={referralEmail} onChange={(e) => setReferralEmail(e.target.value)} dir="ltr" />
-                  <Button className="gap-2 bg-[#FF5722] hover:bg-[#FF7043]" onClick={() => createReferralMutation.mutate(referralEmail)} disabled={!referralEmail}>
+                  <Button className="gap-2 bg-[#FF6A00] hover:bg-[#FF8A3D]" onClick={() => createReferralMutation.mutate(referralEmail)} disabled={!referralEmail}>
                     <Sparkles className="h-4 w-4" /> Invite
                   </Button>
                 </div>
@@ -262,7 +262,7 @@ export function PlatformPromotionView() {
 
           {/* My Referrals */}
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Users className="h-4 w-4 text-[#0A2A3A]" /> My Referrals ({referrals.length})</CardTitle></CardHeader>
+            <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Users className="h-4 w-4 text-[#0A0A0B]" /> My Referrals ({referrals.length})</CardTitle></CardHeader>
             <CardContent>
               {referrals.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">No referrals yet. Invite friends to earn ${programs[0]?.referrerReward || 50} credit each!</p>
@@ -290,7 +290,7 @@ export function PlatformPromotionView() {
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <Card><CardContent className="p-3"><DollarSign className="h-4 w-4 text-emerald-600 mb-1" /><p className="text-lg font-bold text-emerald-600">${finance.totalRevenue?.toLocaleString()}</p><p className="text-[10px] text-muted-foreground">Total Revenue</p></CardContent></Card>
-                <Card><CardContent className="p-3"><Users className="h-4 w-4 text-[#0A2A3A] mb-1" /><p className="text-lg font-bold">{finance.newThisMonth}</p><p className="text-[10px] text-muted-foreground">New This Month</p></CardContent></Card>
+                <Card><CardContent className="p-3"><Users className="h-4 w-4 text-[#0A0A0B] mb-1" /><p className="text-lg font-bold">{finance.newThisMonth}</p><p className="text-[10px] text-muted-foreground">New This Month</p></CardContent></Card>
                 <Card><CardContent className="p-3"><TrendingUp className="h-4 w-4 text-red-600 mb-1" /><p className="text-lg font-bold text-red-600">{finance.churnedThisMonth}</p><p className="text-[10px] text-muted-foreground">Churned</p></CardContent></Card>
                 <Card><CardContent className="p-3"><Target className="h-4 w-4 text-amber-600 mb-1" /><p className="text-lg font-bold text-amber-600">{finance.churnRate}%</p><p className="text-[10px] text-muted-foreground">Churn Rate</p></CardContent></Card>
               </div>
@@ -306,7 +306,7 @@ export function PlatformPromotionView() {
                         <XAxis dataKey="month" tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" />
                         <YAxis tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" />
                         <Tooltip contentStyle={{ background: 'var(--background)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} />
-                        <Bar dataKey="revenue" fill="#0A2A3A" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="revenue" fill="#0A0A0B" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>

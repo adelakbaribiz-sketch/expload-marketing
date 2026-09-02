@@ -21,9 +21,9 @@ import { Key, Plus, Trash2, DollarSign, Zap, Code, Copy, Eye, TrendingUp, Lock }
 import { useState } from 'react'
 
 const CATEGORY_COLORS: Record<string, string> = {
-  marketing: '#0A2A3A',
-  seo: '#FF5722',
-  leads: '#80DEEA',
+  marketing: '#0A0A0B',
+  seo: '#FF6A00',
+  leads: '#C9CDD3',
   ai: '#7C4DFF',
   social: '#EC4899',
   analytics: '#10B981',
@@ -103,7 +103,7 @@ export function MarketplaceView() {
     <div className="space-y-4 p-4 md:p-6 animate-fade-in-up">
       <div>
         <h2 className="text-base font-semibold flex items-center gap-2">
-          <Code className="h-5 w-5 text-[#0A2A3A]" />
+          <Code className="h-5 w-5 text-[#0A0A0B]" />
           API Marketplace
         </h2>
         <p className="text-xs text-muted-foreground">Sell API access to your platform's capabilities and earn revenue</p>
@@ -113,21 +113,21 @@ export function MarketplaceView() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card>
           <CardContent className="p-4">
-            <Code className="h-4 w-4 text-[#0A2A3A] mb-1" />
+            <Code className="h-4 w-4 text-[#0A0A0B] mb-1" />
             <p className="text-2xl font-bold">{products.length}</p>
             <p className="text-xs text-muted-foreground">API Products</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <Key className="h-4 w-4 text-[#FF5722] mb-1" />
+            <Key className="h-4 w-4 text-[#FF6A00] mb-1" />
             <p className="text-2xl font-bold">{keys.filter((k: any) => k.isActive).length}</p>
             <p className="text-xs text-muted-foreground">Active Keys</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <Zap className="h-4 w-4 text-[#80DEEA] mb-1" />
+            <Zap className="h-4 w-4 text-[#C9CDD3] mb-1" />
             <p className="text-2xl font-bold">{usage?.totalCalls?.toLocaleString() ?? 0}</p>
             <p className="text-xs text-muted-foreground">Total Calls</p>
           </CardContent>
@@ -142,10 +142,10 @@ export function MarketplaceView() {
       </div>
 
       {newKey && (
-        <Card className="border-[#FF5722]/30 bg-[#FF5722]/5">
+        <Card className="border-[#FF6A00]/30 bg-[#FF6A00]/5">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Key className="h-4 w-4 text-[#FF5722]" />
+              <Key className="h-4 w-4 text-[#FF6A00]" />
               <p className="text-sm font-medium">Your new API key (copy now — shown only once)</p>
             </div>
             <div className="flex items-center gap-2">
@@ -175,8 +175,8 @@ export function MarketplaceView() {
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className="text-[10px]" style={{ borderColor: CATEGORY_COLORS[p.category] ?? '#0A2A3A', color: CATEGORY_COLORS[p.category] ?? '#0A2A3A' }}>{p.category}</Badge>
-                        {p.isFeatured && <Badge className="text-[9px] bg-[#FF5722]">Featured</Badge>}
+                        <Badge variant="outline" className="text-[10px]" style={{ borderColor: CATEGORY_COLORS[p.category] ?? '#0A0A0B', color: CATEGORY_COLORS[p.category] ?? '#0A0A0B' }}>{p.category}</Badge>
+                        {p.isFeatured && <Badge className="text-[9px] bg-[#FF6A00]">Featured</Badge>}
                       </div>
                       <p className="font-medium text-sm">{p.name}</p>
                     </div>
@@ -184,7 +184,7 @@ export function MarketplaceView() {
                   <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{p.description}</p>
                   <div className="flex items-center justify-between text-xs">
                     <div>
-                      <span className="font-medium text-[#0A2A3A]">${p.pricePerCall}</span>
+                      <span className="font-medium text-[#0A0A0B]">${p.pricePerCall}</span>
                       <span className="text-muted-foreground">/call</span>
                       {p.pricePerMonth > 0 && <span className="text-muted-foreground ml-2">or ${p.pricePerMonth}/mo</span>}
                     </div>
@@ -232,7 +232,7 @@ export function MarketplaceView() {
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className={`grid place-items-center h-8 w-8 rounded-md ${k.isActive ? 'bg-[#0A2A3A] text-white' : 'bg-muted text-muted-foreground'}`}>
+                        <div className={`grid place-items-center h-8 w-8 rounded-md ${k.isActive ? 'bg-[#0A0A0B] text-white' : 'bg-muted text-muted-foreground'}`}>
                           <Key className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
@@ -276,8 +276,8 @@ export function MarketplaceView() {
                 <CardHeader className="pb-3"><CardTitle className="text-sm">Revenue Overview</CardTitle></CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-3 gap-3 text-center">
-                    <div><p className="text-2xl font-bold text-[#0A2A3A]">{usage.totalCalls.toLocaleString()}</p><p className="text-xs text-muted-foreground">Total API Calls</p></div>
-                    <div><p className="text-2xl font-bold text-[#FF5722]">${usage.totalCost.toFixed(2)}</p><p className="text-xs text-muted-foreground">Total Revenue</p></div>
+                    <div><p className="text-2xl font-bold text-[#0A0A0B]">{usage.totalCalls.toLocaleString()}</p><p className="text-xs text-muted-foreground">Total API Calls</p></div>
+                    <div><p className="text-2xl font-bold text-[#FF6A00]">${usage.totalCost.toFixed(2)}</p><p className="text-xs text-muted-foreground">Total Revenue</p></div>
                     <div><p className="text-2xl font-bold text-emerald-600">{usage.activeKeys}</p><p className="text-xs text-muted-foreground">Active Keys</p></div>
                   </div>
                 </CardContent>

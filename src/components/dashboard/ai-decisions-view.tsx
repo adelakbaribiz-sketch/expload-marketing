@@ -164,7 +164,7 @@ export function AiDecisionsView() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <BrainCircuit className="h-8 w-8" style={{ color: '#0A2A3A' }} />
+          <BrainCircuit className="h-8 w-8" style={{ color: '#0A0A0B' }} />
           AI Decisions
         </h1>
         <p className="text-muted-foreground mt-1">

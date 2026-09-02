@@ -97,7 +97,7 @@ export function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="grid place-items-center h-9 w-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md">
+              <div className="grid place-items-center h-9 w-9 rounded-xl bg-brand-accent-gradient text-primary-foreground shadow-md">
                 <Rocket className="h-5 w-5" />
               </div>
               <span className="font-bold text-lg">Expload Marketing</span>
@@ -119,11 +119,11 @@ export function LandingPage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         {/* Animated gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950" />
+        <div className="absolute inset-0 bg-gradient-to-br from-neutral-50 via-orange-50/40 to-neutral-100 dark:from-black dark:via-neutral-950 dark:to-black" />
         <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl animate-pulse" />
-          <div className="absolute top-20 right-1/4 h-96 w-96 rounded-full bg-violet-500/20 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-blue-500/20 blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+          <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-primary/20 blur-3xl animate-pulse" />
+          <div className="absolute top-20 right-1/4 h-96 w-96 rounded-full bg-neutral-400/20 dark:bg-neutral-500/10 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-primary/10 blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
         </div>
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 md:py-32">
@@ -134,7 +134,7 @@ export function LandingPage() {
             </Badge>
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
               Your Entire Marketing
-              <span className="block bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
+              <span className="block bg-gradient-to-r from-[#FF6A00] via-[#FF8A3D] to-[#FFAD66] bg-clip-text text-transparent">
                 on Autopilot
               </span>
             </h1>
@@ -143,7 +143,7 @@ export function LandingPage() {
               marketing lifecycle across 10 phases with AI-powered automation, in 20 languages.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button size="lg" className="gap-2 text-base h-12 px-8 bg-[#FF5722] hover:bg-[#FF7043]" onClick={() => openAuthModal('signup')}>
+              <Button size="lg" className="gap-2 text-base h-12 px-8" onClick={() => openAuthModal('signup')}>
                 <Zap className="h-5 w-5" />
                 Sign Up & Auto-Setup in 1 Click
               </Button>
@@ -158,7 +158,7 @@ export function LandingPage() {
             {/* 1-click badge */}
             <div className="flex items-center justify-center gap-2 mt-4">
               <Badge variant="secondary" className="gap-1.5 py-1 px-3">
-                <Zap className="h-3 w-3 text-[#FF5722]" />
+                <Zap className="h-3 w-3 text-primary" />
                 10 items auto-configured on signup — zero manual setup
               </Badge>
             </div>

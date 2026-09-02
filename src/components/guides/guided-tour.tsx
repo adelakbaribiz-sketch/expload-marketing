@@ -80,7 +80,7 @@ export function GuidedTour({ sectionId, open, onClose }: GuidedTourProps) {
             onClick={(e: any) => e.stopPropagation()}
             className="w-full max-w-lg"
           >
-            <Card className="card-3d shadow-2xl border-2" style={{ borderColor: '#F26522' }}>
+            <Card className="card-3d shadow-2xl border-2" style={{ borderColor: '#FF6A00' }}>
               <CardContent className="p-6">
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">

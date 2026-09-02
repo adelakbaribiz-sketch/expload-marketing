@@ -27,7 +27,7 @@ const DEMO_NAV: { id: DemoView; label: string; icon: any }[] = [
 ]
 
 const STATUS_COLORS: Record<string, string> = {
-  new: '#0A2A3A', contacted: '#FF5722', qualified: '#80DEEA', won: '#22c55e', lost: '#ef4444',
+  new: '#0A0A0B', contacted: '#FF6A00', qualified: '#C9CDD3', won: '#22c55e', lost: '#ef4444',
 }
 
 export function LiveDemoSection() {
@@ -67,15 +67,15 @@ export function LiveDemoSection() {
   const demoData = demoMutation.data?.data
 
   return (
-    <section className="py-20 md:py-28 bg-gradient-to-br from-[#0A2A3A] to-[#0D47A1] text-white relative overflow-hidden">
+    <section className="py-20 md:py-28 bg-gradient-to-br from-[#0A0A0B] to-[#1F1F23] text-white relative overflow-hidden">
       {/* Background decorations */}
-      <div className="absolute top-0 right-0 h-64 w-64 rounded-full bg-[#FF5722]/10 blur-3xl" />
-      <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-[#80DEEA]/10 blur-3xl" />
+      <div className="absolute top-0 right-0 h-64 w-64 rounded-full bg-[#FF6A00]/10 blur-3xl" />
+      <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-[#C9CDD3]/10 blur-3xl" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <Badge variant="secondary" className="mb-4 gap-1.5 bg-white/10 text-white border-white/20">
-            <Play className="h-3.5 w-3.5 text-[#FF5722]" />
+            <Play className="h-3.5 w-3.5 text-[#FF6A00]" />
             Live Interactive Demo
           </Badge>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -94,10 +94,10 @@ export function LiveDemoSection() {
               {/* Mock dashboard preview */}
               <div className="grid grid-cols-4 gap-3 mb-6">
                 {[
-                  { icon: Users, label: 'Leads', value: '247', color: 'text-[#80DEEA]' },
-                  { icon: DollarSign, label: 'Revenue', value: '$67K', color: 'text-[#FF5722]' },
-                  { icon: Mail, label: 'Emails', value: '1.2K', color: 'text-[#80DEEA]' },
-                  { icon: TrendingUp, label: 'ROI', value: '+340%', color: 'text-[#FF5722]' },
+                  { icon: Users, label: 'Leads', value: '247', color: 'text-[#C9CDD3]' },
+                  { icon: DollarSign, label: 'Revenue', value: '$67K', color: 'text-[#FF6A00]' },
+                  { icon: Mail, label: 'Emails', value: '1.2K', color: 'text-[#C9CDD3]' },
+                  { icon: TrendingUp, label: 'ROI', value: '+340%', color: 'text-[#FF6A00]' },
                 ].map((stat) => {
                   const Icon = stat.icon
                   return (
@@ -119,7 +119,7 @@ export function LiveDemoSection() {
                       className="flex-1 rounded-t"
                       style={{
                         height: `${h}%`,
-                        background: i % 2 === 0 ? '#FF5722' : '#80DEEA',
+                        background: i % 2 === 0 ? '#FF6A00' : '#C9CDD3',
                         opacity: 0.7,
                       }}
                     />
@@ -141,11 +141,11 @@ export function LiveDemoSection() {
           </Card>
         ) : (
           /* Interactive Demo */
-          <Card className="max-w-6xl mx-auto bg-white text-[#0A2A3A] shadow-2xl">
+          <Card className="max-w-6xl mx-auto bg-white text-[#0A0A0B] shadow-2xl">
             {/* Demo Header */}
-            <div className="flex items-center justify-between p-4 border-b bg-[#0A2A3A] text-white rounded-t-xl">
+            <div className="flex items-center justify-between p-4 border-b bg-[#0A0A0B] text-white rounded-t-xl">
               <div className="flex items-center gap-2">
-                <div className="grid place-items-center h-8 w-8 rounded-lg bg-[#FF5722]">
+                <div className="grid place-items-center h-8 w-8 rounded-lg bg-[#FF6A00]">
                   <Bot className="h-4 w-4" />
                 </div>
                 <div>
@@ -155,7 +155,7 @@ export function LiveDemoSection() {
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-[10px] text-white border-white/30">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#FF5722] mr-1.5 animate-pulse" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#FF6A00] mr-1.5 animate-pulse" />
                   DEMO MODE
                 </Badge>
                 <Button size="sm" variant="secondary" className="gap-1.5" onClick={() => { setDemoOpen(false); openAuthModal('signup') }}>
@@ -177,7 +177,7 @@ export function LiveDemoSection() {
                       key={item.id}
                       onClick={() => handleNavigate(item.id)}
                       className={`flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm transition-colors ${
-                        active ? 'bg-[#0A2A3A] text-white' : 'text-[#0A2A3A] hover:bg-[#E0E0E0]'
+                        active ? 'bg-[#0A0A0B] text-white' : 'text-[#0A0A0B] hover:bg-[#E0E0E0]'
                       }`}
                     >
                       <Icon className="h-4 w-4" />
@@ -214,7 +214,7 @@ export function LiveDemoSection() {
               <p className="text-xs text-muted-foreground">
                 This is sample data. Your real dashboard will have your own marketing data.
               </p>
-              <Button size="sm" className="gap-1.5 bg-[#FF5722] hover:bg-[#FF7043]" onClick={() => { setDemoOpen(false); openAuthModal('signup') }}>
+              <Button size="sm" className="gap-1.5 bg-[#FF6A00] hover:bg-[#FF8A3D]" onClick={() => { setDemoOpen(false); openAuthModal('signup') }}>
                 Get Full Access <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </div>
@@ -245,10 +245,10 @@ function DemoContent({ view, data }: { view: DemoView; data: any }) {
 function DemoDashboard({ data }: { data: any }) {
   const { stats, recentLeads, recentActivity, statuses, scoreBuckets } = data
   const cards = [
-    { label: 'Total Leads', value: stats.totalLeads, icon: Users, color: 'text-[#0A2A3A]' },
-    { label: 'Pipeline', value: `$${(stats.pipelineValue / 1000).toFixed(0)}K`, icon: DollarSign, color: 'text-[#FF5722]' },
+    { label: 'Total Leads', value: stats.totalLeads, icon: Users, color: 'text-[#0A0A0B]' },
+    { label: 'Pipeline', value: `$${(stats.pipelineValue / 1000).toFixed(0)}K`, icon: DollarSign, color: 'text-[#FF6A00]' },
     { label: 'Won Revenue', value: `$${(stats.wonRevenue / 1000).toFixed(0)}K`, icon: TrendingUp, color: 'text-emerald-600' },
-    { label: 'Emails Sent', value: stats.emailsSent, icon: Mail, color: 'text-[#80DEEA]' },
+    { label: 'Emails Sent', value: stats.emailsSent, icon: Mail, color: 'text-[#C9CDD3]' },
   ]
 
   return (
@@ -281,7 +281,7 @@ function DemoDashboard({ data }: { data: any }) {
                   <XAxis dataKey="label" tick={{ fontSize: 9 }} />
                   <YAxis tick={{ fontSize: 9 }} />
                   <Tooltip contentStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="count" fill="#0A2A3A" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="count" fill="#0A0A0B" radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -294,7 +294,7 @@ function DemoDashboard({ data }: { data: any }) {
             <div className="space-y-1.5 max-h-32 overflow-y-auto scroll-thin">
               {recentActivity.slice(0, 5).map((a: any) => (
                 <div key={a.id} className="flex items-center gap-2 text-xs">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#FF5722]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#FF6A00]" />
                   <span className="truncate">{a.message}</span>
                 </div>
               ))}
@@ -359,7 +359,7 @@ function DemoGenerator({ data }: { data: any }) {
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold">AI Lead Generator — Sample Results</h3>
-      <div className="rounded-lg bg-[#0A2A3A]/5 p-3 text-xs">
+      <div className="rounded-lg bg-[#0A0A0B]/5 p-3 text-xs">
         <p className="text-muted-foreground mb-1">Query: <span className="font-mono">{data.sampleQuery}</span></p>
         <p className="text-muted-foreground">Results: {data.sampleResults.length} leads found</p>
       </div>
@@ -427,7 +427,7 @@ function DemoAnalytics({ data }: { data: any }) {
                 <XAxis dataKey="name" tick={{ fontSize: 9 }} />
                 <YAxis tick={{ fontSize: 9 }} />
                 <Tooltip contentStyle={{ fontSize: 11 }} />
-                <Bar dataKey="value" fill="#0A2A3A" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="value" fill="#0A0A0B" radius={[2, 2, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

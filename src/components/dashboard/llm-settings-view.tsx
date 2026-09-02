@@ -78,7 +78,7 @@ export function LlmSettingsView() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Brain className="h-8 w-8" style={{ color: '#0A2A3A' }} />
+          <Brain className="h-8 w-8" style={{ color: '#0A0A0B' }} />
           Multi-LLM Aggregator
         </h1>
         <p className="text-muted-foreground mt-1">
@@ -135,7 +135,7 @@ export function LlmSettingsView() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="font-semibold flex items-center gap-2">
-                        <Zap className="h-4 w-4" style={{ color: '#FF5722' }} />
+                        <Zap className="h-4 w-4" style={{ color: '#FF6A00' }} />
                         {p.displayName}
                         <Badge variant="outline">{p.id}</Badge>
                         {p.isFreeTier && <Badge variant="secondary">FREE</Badge>}

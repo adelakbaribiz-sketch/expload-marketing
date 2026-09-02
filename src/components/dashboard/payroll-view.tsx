@@ -97,7 +97,7 @@ export function PayrollView() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Wallet className="h-8 w-8 animate-float-3d" style={{ color: '#F26522' }} />
+          <Wallet className="h-8 w-8 animate-float-3d" style={{ color: '#FF6A00' }} />
           Payroll & Salary System
           <GuideTooltip sectionId="payroll" />
         </h1>

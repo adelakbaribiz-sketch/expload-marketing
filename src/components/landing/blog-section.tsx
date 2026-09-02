@@ -11,9 +11,9 @@ import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 const CATEGORY_COLORS: Record<string, string> = {
-  'Marketing': '#0A2A3A',
-  'SEO': '#FF5722',
-  'Lead Gen': '#80DEEA',
+  'Marketing': '#0A0A0B',
+  'SEO': '#FF6A00',
+  'Lead Gen': '#C9CDD3',
   'AI': '#7C4DFF',
   'Social': '#EC4899',
   'Ads': '#F59E0B',
@@ -63,22 +63,22 @@ export function BlogSection() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {posts.map((post: any) => (
               <Card key={post.id} className="overflow-hidden hover:shadow-xl transition-all cursor-pointer group" onClick={() => setSelectedPost(post)}>
-                <div className="h-32 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${CATEGORY_COLORS[post.category] ?? '#0A2A3A'}33, ${CATEGORY_COLORS[post.category] ?? '#0A2A3A'}11)` }}>
+                <div className="h-32 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${CATEGORY_COLORS[post.category] ?? '#0A0A0B'}33, ${CATEGORY_COLORS[post.category] ?? '#0A0A0B'}11)` }}>
                   <div className="absolute inset-0 grid place-items-center">
-                    <BookOpen className="h-12 w-12 opacity-20" style={{ color: CATEGORY_COLORS[post.category] ?? '#0A2A3A' }} />
+                    <BookOpen className="h-12 w-12 opacity-20" style={{ color: CATEGORY_COLORS[post.category] ?? '#0A0A0B' }} />
                   </div>
-                  {post.featured && <Badge className="absolute top-3 right-3 gap-1" style={{ background: CATEGORY_COLORS[post.category] ?? '#0A2A3A' }}>Featured</Badge>}
+                  {post.featured && <Badge className="absolute top-3 right-3 gap-1" style={{ background: CATEGORY_COLORS[post.category] ?? '#0A0A0B' }}>Featured</Badge>}
                 </div>
                 <CardContent className="p-5">
                   <div className="flex items-center gap-2 mb-3">
-                    <Badge variant="outline" className="text-[10px]" style={{ borderColor: CATEGORY_COLORS[post.category] ?? '#0A2A3A', color: CATEGORY_COLORS[post.category] ?? '#0A2A3A' }}>{post.category}</Badge>
+                    <Badge variant="outline" className="text-[10px]" style={{ borderColor: CATEGORY_COLORS[post.category] ?? '#0A0A0B', color: CATEGORY_COLORS[post.category] ?? '#0A0A0B' }}>{post.category}</Badge>
                     <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="h-2.5 w-2.5" /> {post.readTime} min</span>
                   </div>
-                  <h3 className="font-semibold text-base mb-2 line-clamp-2 group-hover:text-[#FF5722] transition-colors">{post.title}</h3>
+                  <h3 className="font-semibold text-base mb-2 line-clamp-2 group-hover:text-[#FF6A00] transition-colors">{post.title}</h3>
                   <p className="text-sm text-muted-foreground line-clamp-3 mb-4">{post.excerpt}</p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span className="flex items-center gap-1.5">
-                      <div className="grid place-items-center h-6 w-6 rounded-full bg-[#0A2A3A] text-white text-[10px]">{post.author.charAt(0)}</div>
+                      <div className="grid place-items-center h-6 w-6 rounded-full bg-[#0A0A0B] text-white text-[10px]">{post.author.charAt(0)}</div>
                       {post.author}
                     </span>
                     <div className="flex items-center gap-3">
@@ -104,14 +104,14 @@ export function BlogSection() {
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto scroll-thin">
             <DialogHeader>
               <div className="flex items-center gap-2 mb-2">
-                <Badge variant="outline" className="text-[10px]" style={{ borderColor: CATEGORY_COLORS[selectedPost.category] ?? '#0A2A3A', color: CATEGORY_COLORS[selectedPost.category] ?? '#0A2A3A' }}>{selectedPost.category}</Badge>
+                <Badge variant="outline" className="text-[10px]" style={{ borderColor: CATEGORY_COLORS[selectedPost.category] ?? '#0A0A0B', color: CATEGORY_COLORS[selectedPost.category] ?? '#0A0A0B' }}>{selectedPost.category}</Badge>
                 <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> {selectedPost.readTime} min read</span>
               </div>
               <DialogTitle className="text-xl">{selectedPost.title}</DialogTitle>
             </DialogHeader>
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-4 pb-4 border-b">
               <span className="flex items-center gap-1.5">
-                <div className="grid place-items-center h-6 w-6 rounded-full bg-[#0A2A3A] text-white text-[10px]">{selectedPost.author.charAt(0)}</div>
+                <div className="grid place-items-center h-6 w-6 rounded-full bg-[#0A0A0B] text-white text-[10px]">{selectedPost.author.charAt(0)}</div>
                 {selectedPost.author} · {new Date(selectedPost.publishedAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
               </span>
               <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> {selectedPost.viewCount}</span>
@@ -121,7 +121,7 @@ export function BlogSection() {
               <ArticleContent content={selectedPost.content} />
             </div>
             <div className="mt-6 pt-6 border-t">
-              <div className="rounded-xl bg-gradient-to-br from-[#0A2A3A] to-[#0D47A1] p-6 text-center text-white">
+              <div className="rounded-xl bg-gradient-to-br from-[#0A0A0B] to-[#1F1F23] p-6 text-center text-white">
                 <h4 className="font-semibold mb-2">Ready to Automate Your Marketing?</h4>
                 <p className="text-sm text-white/70 mb-4">Join Expload Marketing and get access to all 10 marketing phases.</p>
                 <Button variant="secondary" className="gap-2" onClick={() => { setSelectedPost(null); openAuthModal('signup') }}>

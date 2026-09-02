@@ -89,7 +89,7 @@ export function WhiteLabelView() {
     <div className="space-y-4 p-4 md:p-6 animate-fade-in-up">
       <div>
         <h2 className="text-base font-semibold flex items-center gap-2">
-          <Palette className="h-5 w-5 text-[#0A2A3A]" />
+          <Palette className="h-5 w-5 text-[#0A0A0B]" />
           White Label & Reseller Hub
         </h2>
         <p className="text-xs text-muted-foreground">Custom branding, reseller customers, commissions, and pricing</p>
@@ -97,9 +97,9 @@ export function WhiteLabelView() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card><CardContent className="p-4"><Users className="h-4 w-4 text-[#0A2A3A] mb-1" /><p className="text-2xl font-bold">{stats.totalCustomers ?? 0}</p><p className="text-xs text-muted-foreground">Reseller Customers</p></CardContent></Card>
+        <Card><CardContent className="p-4"><Users className="h-4 w-4 text-[#0A0A0B] mb-1" /><p className="text-2xl font-bold">{stats.totalCustomers ?? 0}</p><p className="text-xs text-muted-foreground">Reseller Customers</p></CardContent></Card>
         <Card><CardContent className="p-4"><DollarSign className="h-4 w-4 text-emerald-600 mb-1" /><p className="text-2xl font-bold text-emerald-600">${(stats.totalRevenue ?? 0).toLocaleString()}</p><p className="text-xs text-muted-foreground">Total Revenue</p></CardContent></Card>
-        <Card><CardContent className="p-4"><Percent className="h-4 w-4 text-[#FF5722] mb-1" /><p className="text-2xl font-bold text-[#FF5722]">${(stats.totalCommission ?? 0).toLocaleString()}</p><p className="text-xs text-muted-foreground">Total Commission</p></CardContent></Card>
+        <Card><CardContent className="p-4"><Percent className="h-4 w-4 text-[#FF6A00] mb-1" /><p className="text-2xl font-bold text-[#FF6A00]">${(stats.totalCommission ?? 0).toLocaleString()}</p><p className="text-xs text-muted-foreground">Total Commission</p></CardContent></Card>
         <Card><CardContent className="p-4"><TrendingUp className="h-4 w-4 text-amber-600 mb-1" /><p className="text-2xl font-bold text-amber-600">${(stats.pendingCommission ?? 0).toLocaleString()}</p><p className="text-xs text-muted-foreground">Pending Commission</p></CardContent></Card>
       </div>
 
@@ -228,7 +228,7 @@ export function WhiteLabelView() {
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="grid place-items-center h-9 w-9 rounded-lg bg-[#0A2A3A] text-white shrink-0"><Building2 className="h-4 w-4" /></div>
+                        <div className="grid place-items-center h-9 w-9 rounded-lg bg-[#0A0A0B] text-white shrink-0"><Building2 className="h-4 w-4" /></div>
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate">{c.customerTenant?.name || 'Unknown'}</p>
                           <p className="text-xs text-muted-foreground truncate" dir="ltr">{c.customerTenant?.domain} · ${c.monthlyFee}/mo</p>
@@ -250,7 +250,7 @@ export function WhiteLabelView() {
         {/* Commissions Tab */}
         <TabsContent value="commissions" className="space-y-3">
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><DollarSign className="h-4 w-4 text-[#FF5722]" /> Commission History</CardTitle></CardHeader>
+            <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><DollarSign className="h-4 w-4 text-[#FF6A00]" /> Commission History</CardTitle></CardHeader>
             <CardContent>
               {customersData?.commissions?.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">No commissions earned yet.</p>
@@ -260,7 +260,7 @@ export function WhiteLabelView() {
                     <div key={comm.id} className="flex items-center gap-3 p-2 rounded-md bg-muted/30 text-xs">
                       <Badge variant="outline" className="text-[9px]">{comm.type}</Badge>
                       <span className="flex-1 truncate">{comm.description || 'Commission'}</span>
-                      <span className="font-medium text-[#FF5722]">${comm.amount}</span>
+                      <span className="font-medium text-[#FF6A00]">${comm.amount}</span>
                       <Badge variant={comm.status === 'paid' ? 'default' : 'secondary'} className="text-[9px]">{comm.status}</Badge>
                       <span className="text-muted-foreground">{new Date(comm.createdAt).toLocaleDateString()}</span>
                     </div>

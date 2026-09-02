@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 
 const SEVERITY_COLORS: Record<string, string> = {
-  info: '#0A2A3A', warning: '#f59e0b', critical: '#ef4444',
+  info: '#0A0A0B', warning: '#f59e0b', critical: '#ef4444',
 }
 
 export function SuperAdminView() {
@@ -106,11 +106,11 @@ export function SuperAdminView() {
 
       {/* Platform Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        <Card><CardContent className="p-3"><Building2 className="h-4 w-4 text-[#0A2A3A] mb-1" /><p className="text-xl font-bold">{stats?.tenants ?? 0}</p><p className="text-[10px] text-muted-foreground">Tenants</p></CardContent></Card>
-        <Card><CardContent className="p-3"><Users className="h-4 w-4 text-[#FF5722] mb-1" /><p className="text-xl font-bold">{stats?.users ?? 0}</p><p className="text-[10px] text-muted-foreground">Users</p></CardContent></Card>
+        <Card><CardContent className="p-3"><Building2 className="h-4 w-4 text-[#0A0A0B] mb-1" /><p className="text-xl font-bold">{stats?.tenants ?? 0}</p><p className="text-[10px] text-muted-foreground">Tenants</p></CardContent></Card>
+        <Card><CardContent className="p-3"><Users className="h-4 w-4 text-[#FF6A00] mb-1" /><p className="text-xl font-bold">{stats?.users ?? 0}</p><p className="text-[10px] text-muted-foreground">Users</p></CardContent></Card>
         <Card><CardContent className="p-3"><DollarSign className="h-4 w-4 text-emerald-600 mb-1" /><p className="text-xl font-bold text-emerald-600">${(stats?.mrr ?? 0).toLocaleString()}</p><p className="text-[10px] text-muted-foreground">MRR</p></CardContent></Card>
         <Card><CardContent className="p-3"><TrendingUp className="h-4 w-4 text-violet-600 mb-1" /><p className="text-xl font-bold">${(stats?.arr ?? 0).toLocaleString()}</p><p className="text-[10px] text-muted-foreground">ARR</p></CardContent></Card>
-        <Card><CardContent className="p-3"><Activity className="h-4 w-4 text-[#80DEEA] mb-1" /><p className="text-xl font-bold">{stats?.activeSubs ?? 0}</p><p className="text-[10px] text-muted-foreground">Active Subs</p></CardContent></Card>
+        <Card><CardContent className="p-3"><Activity className="h-4 w-4 text-[#C9CDD3] mb-1" /><p className="text-xl font-bold">{stats?.activeSubs ?? 0}</p><p className="text-[10px] text-muted-foreground">Active Subs</p></CardContent></Card>
         <Card><CardContent className="p-3"><Eye className="h-4 w-4 text-amber-600 mb-1" /><p className="text-xl font-bold">{stats?.apiProducts ?? 0}</p><p className="text-[10px] text-muted-foreground">API Products</p></CardContent></Card>
       </div>
 
@@ -129,7 +129,7 @@ export function SuperAdminView() {
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="grid place-items-center h-10 w-10 rounded-lg bg-[#0A2A3A] text-white shrink-0">
+                      <div className="grid place-items-center h-10 w-10 rounded-lg bg-[#0A0A0B] text-white shrink-0">
                         <Building2 className="h-5 w-5" />
                       </div>
                       <div className="min-w-0">
@@ -161,7 +161,7 @@ export function SuperAdminView() {
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className={`grid place-items-center h-9 w-9 rounded-full text-white shrink-0 ${u.superAdmin ? 'bg-[#FFD700] text-black' : 'bg-[#0A2A3A]'}`}>
+                      <div className={`grid place-items-center h-9 w-9 rounded-full text-white shrink-0 ${u.superAdmin ? 'bg-[#FFD700] text-black' : 'bg-[#0A0A0B]'}`}>
                         {u.superAdmin ? <Crown className="h-4 w-4" /> : <Users className="h-4 w-4" />}
                       </div>
                       <div className="min-w-0">
@@ -197,7 +197,7 @@ export function SuperAdminView() {
               <div className="space-y-1.5 max-h-[500px] overflow-y-auto scroll-thin">
                 {auditLogs.map((log: any) => (
                   <div key={log.id} className="flex items-center gap-3 p-2 rounded-md bg-muted/30 text-xs">
-                    <Badge variant="outline" className="text-[9px] capitalize" style={{ background: (SEVERITY_COLORS[log.severity] ?? '#0A2A3A') + '20', color: SEVERITY_COLORS[log.severity] ?? '#0A2A3A' }}>
+                    <Badge variant="outline" className="text-[9px] capitalize" style={{ background: (SEVERITY_COLORS[log.severity] ?? '#0A0A0B') + '20', color: SEVERITY_COLORS[log.severity] ?? '#0A0A0B' }}>
                       {log.severity === 'critical' && <AlertTriangle className="h-2.5 w-2.5 mr-1" />}
                       {log.severity}
                     </Badge>

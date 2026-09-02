@@ -100,7 +100,7 @@ export function NegotiationView() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Handshake className="h-8 w-8" style={{ color: '#0A2A3A' }} />
+          <Handshake className="h-8 w-8" style={{ color: '#0A0A0B' }} />
           Negotiation Engine
         </h1>
         <p className="text-muted-foreground mt-1">
@@ -134,7 +134,7 @@ export function NegotiationView() {
                 <button
                   key={s.id}
                   onClick={() => setSelectedSessionId(s.id)}
-                  className={`w-full text-left p-2 rounded border transition-colors ${selectedSessionId === s.id ? 'bg-[#0A2A3A] text-white' : 'hover:bg-muted'}`}
+                  className={`w-full text-left p-2 rounded border transition-colors ${selectedSessionId === s.id ? 'bg-[#0A0A0B] text-white' : 'hover:bg-muted'}`}
                 >
                   <div className="font-medium text-sm truncate">{s.projectName}</div>
                   <div className="text-xs opacity-75">{s.customerName}</div>

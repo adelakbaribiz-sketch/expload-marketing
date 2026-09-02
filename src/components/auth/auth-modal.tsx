@@ -112,7 +112,7 @@ export function AuthModal() {
     <Dialog open={authModalOpen} onOpenChange={(o) => !o && closeAuthModal()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <div className="grid place-items-center h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white mx-auto mb-2 shadow-lg shadow-emerald-500/20">
+          <div className="grid place-items-center h-12 w-12 rounded-2xl bg-brand-accent-gradient text-primary-foreground mx-auto mb-2 shadow-lg shadow-primary/20">
             <Rocket className="h-6 w-6" />
           </div>
           <DialogTitle className="text-center">Expload Marketing</DialogTitle>

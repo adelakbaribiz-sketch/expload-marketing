@@ -143,7 +143,7 @@ export function OnboardingWizardView() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Wand2 className="h-8 w-8" style={{ color: '#0A2A3A' }} />
+          <Wand2 className="h-8 w-8" style={{ color: '#0A0A0B' }} />
           Onboarding Wizard
         </h1>
         <p className="text-muted-foreground mt-1">
@@ -156,7 +156,7 @@ export function OnboardingWizardView() {
       <div className="flex justify-between">
         {STEPS.map(s => (
           <div key={s.id} className={`flex flex-col items-center ${s.id < currentStep ? 'opacity-50' : ''}`}>
-            <div className={`h-10 w-10 rounded-full grid place-items-center text-lg ${s.id === currentStep ? 'bg-[#0A2A3A] text-white' : s.id < currentStep ? 'bg-emerald-500 text-white' : 'bg-muted'}`}>
+            <div className={`h-10 w-10 rounded-full grid place-items-center text-lg ${s.id === currentStep ? 'bg-[#0A0A0B] text-white' : s.id < currentStep ? 'bg-emerald-500 text-white' : 'bg-muted'}`}>
               {s.id < currentStep ? <Check className="h-5 w-5" /> : s.icon}
             </div>
             <span className="text-xs mt-1">{s.name}</span>

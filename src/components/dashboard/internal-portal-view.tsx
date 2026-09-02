@@ -16,10 +16,10 @@ import {
 
 const ROLE_COLORS: Record<string, string> = {
   staff: '#6b7280', senior: '#3b82f6', lead: '#8b5cf6',
-  manager: '#f59e0b', director: '#ef4444', vp: '#a78bfa', c_level: '#0A2A3A',
+  manager: '#f59e0b', director: '#ef4444', vp: '#a78bfa', c_level: '#0A0A0B',
 }
 const PLATFORM_ROLE_COLORS: Record<string, string> = {
-  employee: '#6b7280', admin: '#f59e0b', super_admin: '#0A2A3A',
+  employee: '#6b7280', admin: '#f59e0b', super_admin: '#0A0A0B',
 }
 
 export function InternalPortalView() {
@@ -96,7 +96,7 @@ export function InternalPortalView() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Shield className="h-8 w-8" style={{ color: '#0A2A3A' }} />
+          <Shield className="h-8 w-8" style={{ color: '#0A0A0B' }} />
           Internal Portal
         </h1>
         <p className="text-muted-foreground mt-1">
@@ -205,7 +205,7 @@ export function InternalPortalView() {
 
         <TabsContent value="activity" className="space-y-1">
           {activities.slice(0, 50).map(a => (
-            <div key={a.id} className="text-sm border-l-2 pl-3 py-1" style={{ borderColor: '#0A2A3A' }}>
+            <div key={a.id} className="text-sm border-l-2 pl-3 py-1" style={{ borderColor: '#0A0A0B' }}>
               <div className="flex justify-between">
                 <span className="font-medium">{a.action.replace(/_/g, ' ')}</span>
                 <span className="text-xs text-muted-foreground">{new Date(a.createdAt).toLocaleString()}</span>

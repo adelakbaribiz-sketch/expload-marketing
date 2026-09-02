@@ -156,7 +156,7 @@ export function ClubView() {
               <p className="text-[10px] text-muted-foreground">Total Spend</p>
             </div>
             <div className="rounded-lg bg-white/50 dark:bg-white/5 p-2 text-center">
-              <Megaphone className="h-4 w-4 mx-auto text-[#FF5722] mb-1" />
+              <Megaphone className="h-4 w-4 mx-auto text-[#FF6A00] mb-1" />
               <p className="text-lg font-bold">{membership.adCreditsBalance}</p>
               <p className="text-[10px] text-muted-foreground">Ad Credits</p>
             </div>
@@ -215,7 +215,7 @@ export function ClubView() {
 
           {/* Rewards */}
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Gift className="h-4 w-4 text-[#FF5722]" /> Redeem Points</CardTitle></CardHeader>
+            <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Gift className="h-4 w-4 text-[#FF6A00]" /> Redeem Points</CardTitle></CardHeader>
             <CardContent>
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {rewards.map((reward: any) => (

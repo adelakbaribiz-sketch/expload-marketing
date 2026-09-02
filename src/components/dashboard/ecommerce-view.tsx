@@ -88,7 +88,7 @@ export function EcommerceView() {
     <div className="space-y-4 p-4 md:p-6 animate-fade-in-up">
       <div>
         <h2 className="text-base font-semibold flex items-center gap-2">
-          <ShoppingBag className="h-5 w-5 text-[#0A2A3A]" />
+          <ShoppingBag className="h-5 w-5 text-[#0A0A0B]" />
           Ecommerce Analyzer
         </h2>
         <p className="text-xs text-muted-foreground">Research products on Amazon, AliExpress, Alibaba, eBay — analyze profit, competition, and trends</p>
@@ -179,7 +179,7 @@ export function EcommerceView() {
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
               <CardContent className="p-4 space-y-3">
-                <h3 className="text-sm font-medium flex items-center gap-2"><Calculator className="h-4 w-4 text-[#FF5722]" /> Profit Calculator</h3>
+                <h3 className="text-sm font-medium flex items-center gap-2"><Calculator className="h-4 w-4 text-[#FF6A00]" /> Profit Calculator</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div><Label>Selling Price ($)</Label><Input type="number" value={calcForm.productPrice} onChange={(e) => setCalcForm({ ...calcForm, productPrice: e.target.value })} dir="ltr" /></div>
                   <div><Label>Sourcing Cost ($)</Label><Input type="number" value={calcForm.productCost} onChange={(e) => setCalcForm({ ...calcForm, productCost: e.target.value })} dir="ltr" /></div>
@@ -198,13 +198,13 @@ export function EcommerceView() {
 
             {calcResult ? (
               <div className="space-y-3">
-                <Card className="border-[#0A2A3A]/20">
+                <Card className="border-[#0A0A0B]/20">
                   <CardContent className="p-4">
                     <h4 className="text-sm font-medium mb-3">Results</h4>
                     <div className="grid grid-cols-2 gap-3 mb-3">
                       <div className="rounded-lg bg-muted/50 p-3 text-center"><DollarSign className="h-4 w-4 mx-auto text-emerald-600 mb-1" /><p className="text-xl font-bold text-emerald-600">${calcResult.estimate.monthlyProfit}</p><p className="text-[10px] text-muted-foreground">Monthly Profit</p></div>
-                      <div className="rounded-lg bg-muted/50 p-3 text-center"><TrendingUp className="h-4 w-4 mx-auto text-[#FF5722] mb-1" /><p className="text-xl font-bold text-[#FF5722]">{calcResult.estimate.margin}%</p><p className="text-[10px] text-muted-foreground">Margin</p></div>
-                      <div className="rounded-lg bg-muted/50 p-3 text-center"><Target className="h-4 w-4 mx-auto text-[#80DEEA] mb-1" /><p className="text-xl font-bold">{calcResult.estimate.roi}%</p><p className="text-[10px] text-muted-foreground">ROI</p></div>
+                      <div className="rounded-lg bg-muted/50 p-3 text-center"><TrendingUp className="h-4 w-4 mx-auto text-[#FF6A00] mb-1" /><p className="text-xl font-bold text-[#FF6A00]">{calcResult.estimate.margin}%</p><p className="text-[10px] text-muted-foreground">Margin</p></div>
+                      <div className="rounded-lg bg-muted/50 p-3 text-center"><Target className="h-4 w-4 mx-auto text-[#C9CDD3] mb-1" /><p className="text-xl font-bold">{calcResult.estimate.roi}%</p><p className="text-[10px] text-muted-foreground">ROI</p></div>
                       <div className="rounded-lg bg-muted/50 p-3 text-center"><Clock className="h-4 w-4 mx-auto text-amber-600 mb-1" /><p className="text-xl font-bold">{calcResult.estimate.breakEvenMonths}</p><p className="text-[10px] text-muted-foreground">Break-even (months)</p></div>
                     </div>
                     <div className="pt-3 border-t">

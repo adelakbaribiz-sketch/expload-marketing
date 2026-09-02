@@ -18,7 +18,7 @@ import { useState } from 'react'
 
 const SOURCE_COLORS: Record<string, string> = {
   google_ads: '#4285F4', facebook_ads: '#1877F2', organic: '#22c55e',
-  referral: '#f59e0b', direct: '#64748b', email: '#0A2A3A',
+  referral: '#f59e0b', direct: '#64748b', email: '#0A0A0B',
 }
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -59,7 +59,7 @@ export function AttributionView() {
     <div className="space-y-4 p-4 md:p-6 animate-fade-in-up">
       <div>
         <h2 className="text-base font-semibold flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-[#0A2A3A]" />
+          <BarChart3 className="h-5 w-5 text-[#0A0A0B]" />
           Attribution & Analytics
         </h2>
         <p className="text-xs text-muted-foreground">Track user acquisition sources, detect fraud, analyze funnels and cohorts — like Metrix.ir</p>
@@ -67,10 +67,10 @@ export function AttributionView() {
 
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card><CardContent className="p-4"><Users className="h-4 w-4 text-[#0A2A3A] mb-1" /><p className="text-2xl font-bold">{events.length}</p><p className="text-xs text-muted-foreground">Attributed Events</p></CardContent></Card>
+        <Card><CardContent className="p-4"><Users className="h-4 w-4 text-[#0A0A0B] mb-1" /><p className="text-2xl font-bold">{events.length}</p><p className="text-xs text-muted-foreground">Attributed Events</p></CardContent></Card>
         <Card><CardContent className="p-4"><AlertTriangle className="h-4 w-4 text-red-600 mb-1" /><p className="text-2xl font-bold text-red-600">{fraudEvents.length}</p><p className="text-xs text-muted-foreground">Fraud Detected</p></CardContent></Card>
         <Card><CardContent className="p-4"><Shield className="h-4 w-4 text-emerald-600 mb-1" /><p className="text-2xl font-bold">{rules.length}</p><p className="text-xs text-muted-foreground">Fraud Rules Active</p></CardContent></Card>
-        <Card><CardContent className="p-4"><TrendingUp className="h-4 w-4 text-[#FF5722] mb-1" /><p className="text-2xl font-bold text-[#FF5722]">${totalRevenue.toLocaleString()}</p><p className="text-xs text-muted-foreground">Attributed Revenue</p></CardContent></Card>
+        <Card><CardContent className="p-4"><TrendingUp className="h-4 w-4 text-[#FF6A00] mb-1" /><p className="text-2xl font-bold text-[#FF6A00]">${totalRevenue.toLocaleString()}</p><p className="text-xs text-muted-foreground">Attributed Revenue</p></CardContent></Card>
       </div>
 
       <Tabs defaultValue="sources">
@@ -167,17 +167,17 @@ export function AttributionView() {
         {/* Funnel Tab */}
         <TabsContent value="funnel" className="space-y-3">
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Target className="h-4 w-4 text-[#FF5722]" /> Marketing Funnel</CardTitle></CardHeader>
+            <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Target className="h-4 w-4 text-[#FF6A00]" /> Marketing Funnel</CardTitle></CardHeader>
             <CardContent>
               <p className="text-xs text-muted-foreground mb-4">Visualize your conversion funnel from visit to customer.</p>
               {/* Default funnel stages */}
               <div className="space-y-2">
                 {[
-                  { name: 'Visit', count: 10000, pct: 100, color: '#0A2A3A' },
-                  { name: 'Signup', count: 2500, pct: 25, color: '#80DEEA' },
+                  { name: 'Visit', count: 10000, pct: 100, color: '#0A0A0B' },
+                  { name: 'Signup', count: 2500, pct: 25, color: '#C9CDD3' },
                   { name: 'Lead', count: 800, pct: 8, color: '#4FC3F7' },
-                  { name: 'Qualified', count: 320, pct: 3.2, color: '#FF5722' },
-                  { name: 'Deal', count: 95, pct: 0.95, color: '#FF7043' },
+                  { name: 'Qualified', count: 320, pct: 3.2, color: '#FF6A00' },
+                  { name: 'Deal', count: 95, pct: 0.95, color: '#FF8A3D' },
                   { name: 'Customer', count: 38, pct: 0.38, color: '#22c55e' },
                 ].map((stage, i) => (
                   <div key={i} className="flex items-center gap-3">
@@ -195,7 +195,7 @@ export function AttributionView() {
                 ))}
               </div>
               <div className="mt-4 pt-3 border-t text-xs text-muted-foreground">
-                Overall conversion rate: <span className="font-bold text-[#FF5722]">0.38%</span> · Drop-off: <span className="font-bold text-red-600">99.62%</span>
+                Overall conversion rate: <span className="font-bold text-[#FF6A00]">0.38%</span> · Drop-off: <span className="font-bold text-red-600">99.62%</span>
               </div>
             </CardContent>
           </Card>
@@ -210,12 +210,12 @@ export function AttributionView() {
               {/* Default journey visualization */}
               <div className="space-y-2">
                 {[
-                  { type: 'trigger', label: 'User signs up', icon: Zap, color: 'bg-[#FF5722]' },
-                  { type: 'action', label: 'Send welcome email', icon: MessageSquare, color: 'bg-[#0A2A3A]' },
+                  { type: 'trigger', label: 'User signs up', icon: Zap, color: 'bg-[#FF6A00]' },
+                  { type: 'action', label: 'Send welcome email', icon: MessageSquare, color: 'bg-[#0A0A0B]' },
                   { type: 'wait', label: 'Wait 2 days', icon: Loader2, color: 'bg-amber-500' },
-                  { type: 'action', label: 'Push notification: "Check features!"', icon: Bell, color: 'bg-[#0A2A3A]' },
+                  { type: 'action', label: 'Push notification: "Check features!"', icon: Bell, color: 'bg-[#0A0A0B]' },
                   { type: 'wait', label: 'Wait 5 days', icon: Loader2, color: 'bg-amber-500' },
-                  { type: 'action', label: 'Send follow-up email', icon: MessageSquare, color: 'bg-[#0A2A3A]' },
+                  { type: 'action', label: 'Send follow-up email', icon: MessageSquare, color: 'bg-[#0A0A0B]' },
                 ].map((step, i) => {
                   const Icon = step.icon
                   return (
@@ -235,8 +235,8 @@ export function AttributionView() {
                 })}
               </div>
               <div className="mt-4 pt-3 border-t flex items-center gap-4 text-xs">
-                <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-[#FF5722]" /> Trigger</span>
-                <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3 text-[#0A2A3A]" /> Action</span>
+                <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-[#FF6A00]" /> Trigger</span>
+                <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3 text-[#0A0A0B]" /> Action</span>
                 <span className="flex items-center gap-1"><Loader2 className="h-3 w-3 text-amber-500" /> Wait</span>
               </div>
             </CardContent>

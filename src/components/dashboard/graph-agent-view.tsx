@@ -21,9 +21,9 @@ const NODE_COLORS: Record<string, string> = {
   create_campaign: '#8b5cf6', send_campaign: '#ec4899',
   analyze_competitor: '#06b6d4', generate_content: '#f97316',
   schedule_social: '#ec4899', run_seo_audit: '#10b981',
-  launch_ads: '#ef4444', start_negotiation: '#1B3A4B',
+  launch_ads: '#ef4444', start_negotiation: '#0A0A0B',
   onboard_customer: '#7c3aed', run_diagnostics: '#f97316',
-  generate_report: '#F26522', assign_assistant: '#8CD4D8',
+  generate_report: '#FF6A00', assign_assistant: '#C9CDD3',
   process_payment: '#10b981', notify_user: '#999999',
 }
 
@@ -95,7 +95,7 @@ export function GraphAgentView() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Network className="h-8 w-8 animate-float-3d" style={{ color: '#F26522' }} />
+          <Network className="h-8 w-8 animate-float-3d" style={{ color: '#FF6A00' }} />
           Graph Agent Orchestrator
           <GuideTooltip sectionId="agent-hub" />
         </h1>
@@ -159,7 +159,7 @@ export function GraphAgentView() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <Target className="h-5 w-5" style={{ color: '#F26522' }} />
+                <Target className="h-5 w-5" style={{ color: '#FF6A00' }} />
                 {plan.plan_name}
               </span>
               <Button
@@ -192,7 +192,7 @@ export function GraphAgentView() {
                     <div
                       className="flex-1 border-2 rounded-lg p-3 transition-all"
                       style={{
-                        borderColor: status === 'completed' ? '#10b981' : status === 'failed' ? '#ef4444' : status === 'running' ? '#F26522' : color,
+                        borderColor: status === 'completed' ? '#10b981' : status === 'failed' ? '#ef4444' : status === 'running' ? '#FF6A00' : color,
                         background: status === 'completed' ? 'rgba(16,185,129,0.05)' : status === 'failed' ? 'rgba(239,68,68,0.05)' : 'transparent',
                       }}
                     >

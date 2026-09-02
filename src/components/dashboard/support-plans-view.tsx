@@ -86,16 +86,16 @@ export function SupportPlansView() {
 
   // If no plans seeded, show defaults
   const displayPlans = plans.length > 0 ? plans : [
-    { id: 'basic', name: 'Basic', monthlyPrice: 99, responseTimeHours: 48, features: ['Email support', '48h response time', '5 tickets/month', 'Knowledge base access'], channels: ['email'], color: '#8CD4D8', isFeatured: false },
-    { id: 'premium', name: 'Premium', monthlyPrice: 499, responseTimeHours: 4, features: ['Email + chat support', '4h response time', 'Unlimited tickets', 'Dedicated CSM', 'Monthly strategy call'], channels: ['email', 'chat'], color: '#F26522', isFeatured: true },
-    { id: 'enterprise', name: 'Enterprise', monthlyPrice: 1999, responseTimeHours: 1, features: ['24/7 phone + Slack', '1h response SLA', 'Unlimited everything', 'Dedicated team', 'Quarterly on-site visit', 'Custom integrations'], channels: ['email', 'chat', 'phone', 'slack'], color: '#1B3A4B', isFeatured: false },
+    { id: 'basic', name: 'Basic', monthlyPrice: 99, responseTimeHours: 48, features: ['Email support', '48h response time', '5 tickets/month', 'Knowledge base access'], channels: ['email'], color: '#C9CDD3', isFeatured: false },
+    { id: 'premium', name: 'Premium', monthlyPrice: 499, responseTimeHours: 4, features: ['Email + chat support', '4h response time', 'Unlimited tickets', 'Dedicated CSM', 'Monthly strategy call'], channels: ['email', 'chat'], color: '#FF6A00', isFeatured: true },
+    { id: 'enterprise', name: 'Enterprise', monthlyPrice: 1999, responseTimeHours: 1, features: ['24/7 phone + Slack', '1h response SLA', 'Unlimited everything', 'Dedicated team', 'Quarterly on-site visit', 'Custom integrations'], channels: ['email', 'chat', 'phone', 'slack'], color: '#0A0A0B', isFeatured: false },
   ]
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <LifeBuoy className="h-8 w-8 animate-float-3d" style={{ color: '#F26522' }} />
+          <LifeBuoy className="h-8 w-8 animate-float-3d" style={{ color: '#FF6A00' }} />
           Support Plans
           <GuideTooltip sectionId="support-plans" />
         </h1>
@@ -110,10 +110,10 @@ export function SupportPlansView() {
           <Card
             key={plan.id}
             className={`card-3d relative ${plan.isFeatured ? 'border-2 scale-105' : ''}`}
-            style={plan.isFeatured ? { borderColor: '#F26522' } : undefined}
+            style={plan.isFeatured ? { borderColor: '#FF6A00' } : undefined}
           >
             {plan.isFeatured && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-semibold text-white" style={{ background: '#F26522' }}>
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-semibold text-white" style={{ background: '#FF6A00' }}>
                 MOST POPULAR
               </div>
             )}

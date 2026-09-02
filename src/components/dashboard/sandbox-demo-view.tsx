@@ -15,11 +15,11 @@ import {
 } from 'lucide-react'
 
 const DEMO_MODULES = [
-  { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, color: '#1B3A4B' },
+  { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, color: '#0A0A0B' },
   { id: 'leads', name: 'Find Leads', icon: Search, color: '#3b82f6' },
   { id: 'campaigns', name: 'Email Campaigns', icon: Mail, color: '#f59e0b' },
   { id: 'analytics', name: 'Analytics', icon: BarChart3, color: '#10b981' },
-  { id: 'graph-agent', name: 'Graph Agent', icon: Network, color: '#F26522' },
+  { id: 'graph-agent', name: 'Graph Agent', icon: Network, color: '#FF6A00' },
 ]
 
 export function SandboxDemoView() {
@@ -89,7 +89,7 @@ export function SandboxDemoView() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Play className="h-8 w-8 animate-float-3d" style={{ color: '#F26522' }} />
+          <Play className="h-8 w-8 animate-float-3d" style={{ color: '#FF6A00' }} />
           Demo & Simulation Sandbox
         </h1>
         <p className="text-muted-foreground mt-1">
@@ -156,7 +156,7 @@ export function SandboxDemoView() {
       {/* Active demo session */}
       {session && (
         <>
-          <Card className="card-3d border-2" style={{ borderColor: '#F26522' }}>
+          <Card className="card-3d border-2" style={{ borderColor: '#FF6A00' }}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>

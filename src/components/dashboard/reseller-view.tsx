@@ -66,7 +66,7 @@ export function ResellerView() {
     <div className="space-y-4 p-4 md:p-6 animate-fade-in-up">
       <div>
         <h2 className="text-base font-semibold flex items-center gap-2">
-          <Package className="h-5 w-5 text-[#FF5722]" />
+          <Package className="h-5 w-5 text-[#FF6A00]" />
           Reseller Opportunities
         </h2>
         <p className="text-xs text-muted-foreground">Become a reseller — see costs, risks, profit estimates, and apply directly</p>
@@ -75,7 +75,7 @@ export function ResellerView() {
       {/* My Applications */}
       {myApplications.length > 0 && (
         <Card>
-          <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Award className="h-4 w-4 text-[#0A2A3A]" /> My Applications ({myApplications.length})</CardTitle></CardHeader>
+          <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Award className="h-4 w-4 text-[#0A0A0B]" /> My Applications ({myApplications.length})</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-2">
               {myApplications.map((app: any) => (
@@ -108,11 +108,11 @@ export function ResellerView() {
                   <div className="flex items-center gap-3">
                     <div className="grid place-items-center h-12 w-12 rounded-xl text-2xl shadow-md" style={{ background: opp.color + '22' }}>{opp.icon}</div>
                     <div className="min-w-0">
-                      <p className="font-medium text-sm group-hover:text-[#FF5722] transition-colors">{opp.title}</p>
+                      <p className="font-medium text-sm group-hover:text-[#FF6A00] transition-colors">{opp.title}</p>
                       <Badge variant="outline" className="text-[9px] capitalize mt-0.5">{opp.type.replace('_', ' ')}</Badge>
                     </div>
                   </div>
-                  {opp.isFeatured && <Badge className="text-[9px] bg-[#FF5722]">Featured</Badge>}
+                  {opp.isFeatured && <Badge className="text-[9px] bg-[#FF6A00]">Featured</Badge>}
                 </div>
 
                 {/* Description */}
@@ -120,14 +120,14 @@ export function ResellerView() {
 
                 {/* Key metrics */}
                 <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                  <div className="rounded-md bg-muted/50 p-2"><DollarSign className="h-3 w-3 text-[#0A2A3A] mb-0.5" /><p className="font-medium">${opp.initialInvestment}</p><p className="text-[9px] text-muted-foreground">Initial Investment</p></div>
+                  <div className="rounded-md bg-muted/50 p-2"><DollarSign className="h-3 w-3 text-[#0A0A0B] mb-0.5" /><p className="font-medium">${opp.initialInvestment}</p><p className="text-[9px] text-muted-foreground">Initial Investment</p></div>
                   <div className="rounded-md bg-muted/50 p-2"><TrendingUp className="h-3 w-3 text-emerald-600 mb-0.5" /><p className="font-medium text-emerald-600">${opp.monthlyProfitMin}-${opp.monthlyProfitMax}</p><p className="text-[9px] text-muted-foreground">Monthly Profit</p></div>
                   <div className="rounded-md bg-muted/50 p-2"><Clock className="h-3 w-3 text-amber-600 mb-0.5" /><p className="font-medium">{opp.breakEvenMonths} months</p><p className="text-[9px] text-muted-foreground">Break-even</p></div>
                   <div className="rounded-md bg-muted/50 p-2"><AlertTriangle className="h-3 w-3 mb-0.5" style={{ color: RISK_COLORS[opp.riskLevel] }} /><p className="font-medium capitalize" style={{ color: RISK_COLORS[opp.riskLevel] }}>{opp.riskLevel}</p><p className="text-[9px] text-muted-foreground">Risk Level</p></div>
                 </div>
 
                 {/* CTA */}
-                <Button size="sm" variant="outline" className="w-full gap-1.5 group-hover:bg-[#0A2A3A] group-hover:text-white transition-colors">
+                <Button size="sm" variant="outline" className="w-full gap-1.5 group-hover:bg-[#0A0A0B] group-hover:text-white transition-colors">
                   View Details & Apply <ChevronRight className="h-3.5 w-3.5" />
                 </Button>
               </CardContent>
@@ -155,7 +155,7 @@ export function ResellerView() {
 
             {/* Investment & Profit */}
             <div className="grid grid-cols-4 gap-3">
-              <div className="rounded-lg bg-muted/50 p-3 text-center"><DollarSign className="h-4 w-4 mx-auto text-[#0A2A3A] mb-1" /><p className="text-lg font-bold">${selectedOpp.initialInvestment}</p><p className="text-[10px] text-muted-foreground">Initial Cost</p></div>
+              <div className="rounded-lg bg-muted/50 p-3 text-center"><DollarSign className="h-4 w-4 mx-auto text-[#0A0A0B] mb-1" /><p className="text-lg font-bold">${selectedOpp.initialInvestment}</p><p className="text-[10px] text-muted-foreground">Initial Cost</p></div>
               <div className="rounded-lg bg-muted/50 p-3 text-center"><DollarSign className="h-4 w-4 mx-auto text-amber-600 mb-1" /><p className="text-lg font-bold">${selectedOpp.monthlyCostMin}-${selectedOpp.monthlyCostMax}</p><p className="text-[10px] text-muted-foreground">Monthly Cost</p></div>
               <div className="rounded-lg bg-muted/50 p-3 text-center"><TrendingUp className="h-4 w-4 mx-auto text-emerald-600 mb-1" /><p className="text-lg font-bold text-emerald-600">${selectedOpp.monthlyProfitMin}-${selectedOpp.monthlyProfitMax}</p><p className="text-[10px] text-muted-foreground">Monthly Profit</p></div>
               <div className="rounded-lg bg-muted/50 p-3 text-center"><Clock className="h-4 w-4 mx-auto text-amber-600 mb-1" /><p className="text-lg font-bold">{selectedOpp.breakEvenMonths}mo</p><p className="text-[10px] text-muted-foreground">Break-even</p></div>
@@ -213,7 +213,7 @@ export function ResellerView() {
 
             {/* Application Form */}
             <div className="space-y-3">
-              <h4 className="text-sm font-medium flex items-center gap-2"><Target className="h-4 w-4 text-[#FF5722]" /> Apply for This Opportunity</h4>
+              <h4 className="text-sm font-medium flex items-center gap-2"><Target className="h-4 w-4 text-[#FF6A00]" /> Apply for This Opportunity</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Your Name</Label><Input value={applyForm.applicantName} onChange={(e) => setApplyForm({ ...applyForm, applicantName: e.target.value })} /></div>
                 <div><Label>Email</Label><Input type="email" value={applyForm.applicantEmail} onChange={(e) => setApplyForm({ ...applyForm, applicantEmail: e.target.value })} dir="ltr" /></div>
@@ -230,7 +230,7 @@ export function ResellerView() {
 
             <DialogFooter>
               <Button variant="ghost" onClick={() => setSelectedOpp(null)}>Cancel</Button>
-              <Button className="gap-2 bg-[#FF5722] hover:bg-[#FF7043]" onClick={() => applyMutation.mutate({ id: selectedOpp.id, form: applyForm })} disabled={!applyForm.applicantName || !applyForm.applicantEmail || !applyForm.agreedTerms || applyMutation.isPending}>
+              <Button className="gap-2 bg-[#FF6A00] hover:bg-[#FF8A3D]" onClick={() => applyMutation.mutate({ id: selectedOpp.id, form: applyForm })} disabled={!applyForm.applicantName || !applyForm.applicantEmail || !applyForm.agreedTerms || applyMutation.isPending}>
                 {applyMutation.isPending ? 'Submitting…' : <><Zap className="h-4 w-4" /> Apply & Start Earning</>}
               </Button>
             </DialogFooter>

@@ -22,8 +22,8 @@ import {
 import { useState } from 'react'
 
 const CATEGORY_COLORS: Record<string, string> = {
-  social: '#FF5722', email: '#0A2A3A', ads: '#7C4DFF',
-  blog: '#80DEEA', affiliate: '#22c55e', qr: '#f59e0b', general: '#64748b',
+  social: '#FF6A00', email: '#0A0A0B', ads: '#7C4DFF',
+  blog: '#C9CDD3', affiliate: '#22c55e', qr: '#f59e0b', general: '#64748b',
 }
 
 export function PromoLinkView() {
@@ -32,7 +32,7 @@ export function PromoLinkView() {
   const [form, setForm] = useState({
     name: '', targetUrl: '', description: '',
     utmSource: '', utmMedium: '', utmCampaign: '', utmTerm: '', utmContent: '',
-    category: 'general', qrCodeColor: '#0A2A3A', qrCodeSize: 300,
+    category: 'general', qrCodeColor: '#0A0A0B', qrCodeSize: 300,
     expiresAt: '', variantLabel: '',
   })
   const [result, setResult] = useState<any>(null)
@@ -96,7 +96,7 @@ export function PromoLinkView() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold flex items-center gap-2">
-            <Link2 className="h-5 w-5 text-[#0A2A3A]" />
+            <Link2 className="h-5 w-5 text-[#0A0A0B]" />
             Marketing Link Generator
           </h2>
           <p className="text-xs text-muted-foreground">Create trackable short links with UTM, QR codes, and social share buttons</p>
@@ -146,7 +146,7 @@ export function PromoLinkView() {
                   <div>
                     <Label>QR Color</Label>
                     <div className="flex gap-2 mt-1">
-                      {['#0A2A3A', '#FF5722', '#80DEEA', '#22c55e', '#7C4DFF'].map(c => (
+                      {['#0A0A0B', '#FF6A00', '#C9CDD3', '#22c55e', '#7C4DFF'].map(c => (
                         <button key={c} className={`h-8 w-8 rounded-md border-2 ${form.qrCodeColor === c ? 'border-foreground' : 'border-transparent'}`} style={{ background: c }} onClick={() => setForm({ ...form, qrCodeColor: c })} />
                       ))}
                     </div>
@@ -167,8 +167,8 @@ export function PromoLinkView() {
 
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card><CardContent className="p-4"><Link2 className="h-4 w-4 text-[#0A2A3A] mb-1" /><p className="text-2xl font-bold">{links.length}</p><p className="text-xs text-muted-foreground">Total Links</p></CardContent></Card>
-        <Card><CardContent className="p-4"><MousePointerClick className="h-4 w-4 text-[#FF5722] mb-1" /><p className="text-2xl font-bold">{links.reduce((s: number, l: any) => s + l.totalClicks, 0)}</p><p className="text-xs text-muted-foreground">Total Clicks</p></CardContent></Card>
+        <Card><CardContent className="p-4"><Link2 className="h-4 w-4 text-[#0A0A0B] mb-1" /><p className="text-2xl font-bold">{links.length}</p><p className="text-xs text-muted-foreground">Total Links</p></CardContent></Card>
+        <Card><CardContent className="p-4"><MousePointerClick className="h-4 w-4 text-[#FF6A00] mb-1" /><p className="text-2xl font-bold">{links.reduce((s: number, l: any) => s + l.totalClicks, 0)}</p><p className="text-xs text-muted-foreground">Total Clicks</p></CardContent></Card>
         <Card><CardContent className="p-4"><TrendingUp className="h-4 w-4 text-emerald-600 mb-1" /><p className="text-2xl font-bold">{links.filter((l: any) => l.isActive).length}</p><p className="text-xs text-muted-foreground">Active Links</p></CardContent></Card>
         <Card><CardContent className="p-4"><QrCode className="h-4 w-4 text-violet-600 mb-1" /><p className="text-2xl font-bold">{links.filter((l: any) => l.category === 'qr').length}</p><p className="text-xs text-muted-foreground">QR Codes</p></CardContent></Card>
       </div>
@@ -264,9 +264,9 @@ export function PromoLinkView() {
                 <code className="block rounded-md bg-muted p-2 text-xs font-mono break-all" dir="ltr">{selectedLink.targetUrl}</code>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-md bg-muted/50 p-2"><MousePointerClick className="h-4 w-4 mx-auto text-[#FF5722] mb-1" /><p className="font-bold">{selectedLink.totalClicks}</p><p className="text-[9px] text-muted-foreground">Clicks</p></div>
+                <div className="rounded-md bg-muted/50 p-2"><MousePointerClick className="h-4 w-4 mx-auto text-[#FF6A00] mb-1" /><p className="font-bold">{selectedLink.totalClicks}</p><p className="text-[9px] text-muted-foreground">Clicks</p></div>
                 <div className="rounded-md bg-muted/50 p-2"><TrendingUp className="h-4 w-4 mx-auto text-emerald-600 mb-1" /><p className="font-bold">{selectedLink.conversions}</p><p className="text-[9px] text-muted-foreground">Conversions</p></div>
-                <div className="rounded-md bg-muted/50 p-2"><Eye className="h-4 w-4 mx-auto text-[#0A2A3A] mb-1" /><p className="font-bold">{selectedLink._count?.clicks || 0}</p><p className="text-[9px] text-muted-foreground">Records</p></div>
+                <div className="rounded-md bg-muted/50 p-2"><Eye className="h-4 w-4 mx-auto text-[#0A0A0B] mb-1" /><p className="font-bold">{selectedLink._count?.clicks || 0}</p><p className="text-[9px] text-muted-foreground">Records</p></div>
               </div>
               {selectedLink.utmSource && (
                 <div className="flex flex-wrap gap-1">

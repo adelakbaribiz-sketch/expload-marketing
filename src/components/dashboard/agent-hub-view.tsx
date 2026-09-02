@@ -40,10 +40,10 @@ const QUICK_ACTIONS: AgentAction[] = [
   { id: 'create-content', label: 'Generate Content', description: 'AI content ideas + draft generator', icon: FileText, color: '#06b6d4', view: 'content' },
   { id: 'run-seo-crawl', label: 'Run SEO Audit', description: 'Crawl site + 50+ on-page checks', icon: BarChart3, color: '#10b981', view: 'seo' },
   { id: 'launch-ad', label: 'Launch Ad Campaign', description: 'Google/Meta/TikTok ad management', icon: Megaphone, color: '#ef4444', view: 'ads' },
-  { id: 'start-negotiation', label: 'Start Negotiation', description: 'Generate AI proposals with 6-round fallback', icon: Handshake, color: '#0A2A3A', view: 'negotiation' },
+  { id: 'start-negotiation', label: 'Start Negotiation', description: 'Generate AI proposals with 6-round fallback', icon: Handshake, color: '#0A0A0B', view: 'negotiation' },
   { id: 'onboard-customer', label: 'Onboard New Customer', description: '6-step wizard: crawl site, ingest docs, generate proposal', icon: Wand2, color: '#7c3aed', view: 'onboarding-wizard' },
   { id: 'run-diagnostics', label: 'Run Diagnostics', description: 'AI business diagnostics + recommendations', icon: Play, color: '#f97316', view: 'diagnostics' },
-  { id: 'autonomous-agent', label: 'Run Autonomous Agent', description: '24/7 marketing agent — fully autonomous', icon: Bot, color: '#FF5722', view: 'autonomous' },
+  { id: 'autonomous-agent', label: 'Run Autonomous Agent', description: '24/7 marketing agent — fully autonomous', icon: Bot, color: '#FF6A00', view: 'autonomous' },
 ]
 
 const MODULE_SHORTCUTS = [
@@ -58,7 +58,7 @@ const MODULE_SHORTCUTS = [
   { label: 'Calendar', icon: Calendar, view: 'calendar', color: '#3b82f6' },
   { label: 'Goals', icon: TrendingUp, view: 'goals', color: '#10b981' },
   { label: 'Workflow', icon: Workflow, view: 'workflow', color: '#f59e0b' },
-  { label: 'Super Admin', icon: Crown, view: 'super-admin', color: '#0A2A3A' },
+  { label: 'Super Admin', icon: Crown, view: 'super-admin', color: '#0A0A0B' },
 ]
 
 export function AgentHubView({ onNavigate }: AgentHubProps) {
@@ -101,11 +101,11 @@ export function AgentHubView({ onNavigate }: AgentHubProps) {
   return (
     <div className="space-y-6">
       {/* Hero header */}
-      <div className="bg-gradient-to-br from-[#0A2A3A] to-[#1e3a4a] text-white rounded-xl p-8 shadow-lg">
+      <div className="bg-gradient-to-br from-[#0A0A0B] to-[#1e3a4a] text-white rounded-xl p-8 shadow-lg">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold flex items-center gap-3">
-              <Zap className="h-10 w-10" style={{ color: '#FF5722' }} />
+              <Zap className="h-10 w-10" style={{ color: '#FF6A00' }} />
               Agent Hub
             </h1>
             <p className="text-lg opacity-90 mt-2">
@@ -114,7 +114,7 @@ export function AgentHubView({ onNavigate }: AgentHubProps) {
           </div>
           <div className="text-right text-sm">
             <div className="opacity-75">Unread notifications</div>
-            <div className="text-3xl font-bold" style={{ color: '#FF5722' }}>{unreadCount}</div>
+            <div className="text-3xl font-bold" style={{ color: '#FF6A00' }}>{unreadCount}</div>
           </div>
         </div>
       </div>
@@ -186,7 +186,7 @@ export function AgentHubView({ onNavigate }: AgentHubProps) {
       {/* Quick Actions grid */}
       <div>
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-          <Sparkles className="h-5 w-5" style={{ color: '#FF5722' }} />
+          <Sparkles className="h-5 w-5" style={{ color: '#FF6A00' }} />
           One-Click Actions
         </h2>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -231,7 +231,7 @@ export function AgentHubView({ onNavigate }: AgentHubProps) {
       {/* Module shortcuts */}
       <div>
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-          <BarChart3 className="h-5 w-5" style={{ color: '#0A2A3A' }} />
+          <BarChart3 className="h-5 w-5" style={{ color: '#0A0A0B' }} />
           Module Shortcuts
         </h2>
         <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-12 gap-2">
@@ -258,7 +258,7 @@ export function AgentHubView({ onNavigate }: AgentHubProps) {
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="grid place-items-center h-12 w-12 rounded-full bg-gradient-to-br from-[#FF5722] to-[#FF7043] text-white">
+              <div className="grid place-items-center h-12 w-12 rounded-full bg-gradient-to-br from-[#FF6A00] to-[#FF8A3D] text-white">
                 <Bot className="h-6 w-6" />
               </div>
               <div>
@@ -268,7 +268,7 @@ export function AgentHubView({ onNavigate }: AgentHubProps) {
                 </p>
               </div>
             </div>
-            <Button onClick={() => onNavigate?.('autonomous')} className="bg-[#FF5722] hover:bg-[#FF7043]">
+            <Button onClick={() => onNavigate?.('autonomous')} className="bg-[#FF6A00] hover:bg-[#FF8A3D]">
               <Play className="h-4 w-4 mr-1" /> Launch Agent
             </Button>
           </div>

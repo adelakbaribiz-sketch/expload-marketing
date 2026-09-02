@@ -65,7 +65,7 @@ export function CompetitorAnalysisView() {
     <div className="space-y-4 p-4 md:p-6 animate-fade-in-up">
       <div>
         <h2 className="text-base font-semibold flex items-center gap-2">
-          <Microscope className="h-5 w-5 text-[#0A2A3A]" />
+          <Microscope className="h-5 w-5 text-[#0A0A0B]" />
           Competitor Deep Analysis
         </h2>
         <p className="text-xs text-muted-foreground">10-factor comprehensive analysis: content, frequency, engagement, SEO, thumbnails, audience, monetization, cross-platform, SWOT</p>
@@ -86,7 +86,7 @@ export function CompetitorAnalysisView() {
                 </SelectContent>
               </Select>
             </div>
-            <Button className="gap-2 bg-[#FF5722] hover:bg-[#FF7043]" onClick={() => runMutation.mutate(selectedCompetitor)} disabled={!selectedCompetitor || runMutation.isPending}>
+            <Button className="gap-2 bg-[#FF6A00] hover:bg-[#FF8A3D]" onClick={() => runMutation.mutate(selectedCompetitor)} disabled={!selectedCompetitor || runMutation.isPending}>
               {runMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Analyzing...</> : <><Sparkles className="h-4 w-4" /> Run Deep Analysis</>}
             </Button>
           </div>
@@ -108,7 +108,7 @@ export function CompetitorAnalysisView() {
             return (
               <Card key={analysis.id} className="overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-[#0A2A3A] to-[#0D47A1] text-white p-4">
+                <div className="bg-gradient-to-r from-[#0A0A0B] to-[#1F1F23] text-white p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-semibold">{analysis.competitor?.name || 'Competitor'} — Deep Analysis</h3>
@@ -135,9 +135,9 @@ export function CompetitorAnalysisView() {
                     {/* Content & Frequency */}
                     <TabsContent value="content" className="space-y-3">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <StatBox icon={Target} label="Content Type" value={analysis.contentType || '—'} color="text-[#0A2A3A]" />
-                        <StatBox icon={Clock} label="Posts/Week" value={analysis.postsPerWeek || '—'} color="text-[#FF5722]" />
-                        <StatBox icon={Clock} label="Posts/Month" value={analysis.postsPerMonth || '—'} color="text-[#80DEEA]" />
+                        <StatBox icon={Target} label="Content Type" value={analysis.contentType || '—'} color="text-[#0A0A0B]" />
+                        <StatBox icon={Clock} label="Posts/Week" value={analysis.postsPerWeek || '—'} color="text-[#FF6A00]" />
+                        <StatBox icon={Clock} label="Posts/Month" value={analysis.postsPerMonth || '—'} color="text-[#C9CDD3]" />
                         <StatBox icon={CheckCircle2} label="Consistency" value={`${analysis.consistencyScore || 0}/100`} color="text-emerald-600" />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
@@ -151,21 +151,21 @@ export function CompetitorAnalysisView() {
                     {/* Engagement & Metrics */}
                     <TabsContent value="engagement" className="space-y-3">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <StatBox icon={Eye} label="Avg Views" value={(analysis.avgViews || 0).toLocaleString()} color="text-[#0A2A3A]" />
-                        <StatBox icon={Heart} label="Avg Likes" value={(analysis.avgLikes || 0).toLocaleString()} color="text-[#FF5722]" />
-                        <StatBox icon={MessageCircle} label="Avg Comments" value={(analysis.avgComments || 0).toLocaleString()} color="text-[#80DEEA]" />
+                        <StatBox icon={Eye} label="Avg Views" value={(analysis.avgViews || 0).toLocaleString()} color="text-[#0A0A0B]" />
+                        <StatBox icon={Heart} label="Avg Likes" value={(analysis.avgLikes || 0).toLocaleString()} color="text-[#FF6A00]" />
+                        <StatBox icon={MessageCircle} label="Avg Comments" value={(analysis.avgComments || 0).toLocaleString()} color="text-[#C9CDD3]" />
                         <StatBox icon={Share2} label="Avg Shares" value={(analysis.avgShares || 0).toLocaleString()} color="text-violet-600" />
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <StatBox icon={TrendingUp} label="Engagement Rate" value={`${analysis.engagementRate || 0}%`} color="text-emerald-600" />
                         <StatBox icon={MessageCircle} label="Response Rate" value={`${analysis.commentResponseRate || 0}%`} color="text-amber-600" />
-                        <StatBox icon={Clock} label="Response Time" value={analysis.avgResponseTime || '—'} color="text-[#FF5722]" />
+                        <StatBox icon={Clock} label="Response Time" value={analysis.avgResponseTime || '—'} color="text-[#FF6A00]" />
                         <StatBox icon={Target} label="CTR" value={`${analysis.ctr || 0}%`} color="text-violet-600" />
                       </div>
                       <div className="grid grid-cols-3 gap-3">
-                        <StatBox icon={Users} label="Subscribers" value={(analysis.totalSubscribers || 0).toLocaleString()} color="text-[#0A2A3A]" />
+                        <StatBox icon={Users} label="Subscribers" value={(analysis.totalSubscribers || 0).toLocaleString()} color="text-[#0A0A0B]" />
                         <StatBox icon={TrendingUp} label="Growth Rate" value={`${analysis.subscriberGrowth || 0}%`} color="text-emerald-600" />
-                        <StatBox icon={Clock} label="Avg Watch Time" value={analysis.avgWatchTime || '—'} color="text-[#FF5722]" />
+                        <StatBox icon={Clock} label="Avg Watch Time" value={analysis.avgWatchTime || '—'} color="text-[#FF6A00]" />
                       </div>
                     </TabsContent>
 
@@ -182,18 +182,18 @@ export function CompetitorAnalysisView() {
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
-                        <StatBox icon={Target} label="Tag Strategy" value={analysis.tagStrategy || '—'} color="text-[#0A2A3A]" />
-                        <StatBox icon={Eye} label="Visual Consistency" value={`${analysis.visualConsistency || 0}/100`} color="text-[#FF5722]" />
+                        <StatBox icon={Target} label="Tag Strategy" value={analysis.tagStrategy || '—'} color="text-[#0A0A0B]" />
+                        <StatBox icon={Eye} label="Visual Consistency" value={`${analysis.visualConsistency || 0}/100`} color="text-[#FF6A00]" />
                         <StatBox icon={Lightbulb} label="Thumbnail Style" value={analysis.thumbnailStyle || '—'} color="text-violet-600" />
-                        <StatBox icon={Globe} label="Tone of Voice" value={analysis.toneOfVoice || '—'} color="text-[#80DEEA]" />
+                        <StatBox icon={Globe} label="Tone of Voice" value={analysis.toneOfVoice || '—'} color="text-[#C9CDD3]" />
                       </div>
                     </TabsContent>
 
                     {/* Audience & Monetization */}
                     <TabsContent value="audience" className="space-y-3">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <StatBox icon={Users} label="Age Range" value={analysis.audienceAgeRange || '—'} color="text-[#0A2A3A]" />
-                        <StatBox icon={Users} label="Gender" value={analysis.audienceGender || '—'} color="text-[#FF5722]" />
+                        <StatBox icon={Users} label="Age Range" value={analysis.audienceAgeRange || '—'} color="text-[#0A0A0B]" />
+                        <StatBox icon={Users} label="Gender" value={analysis.audienceGender || '—'} color="text-[#FF6A00]" />
                         <StatBox icon={DollarSign} label="Monthly Earnings" value={`$${(analysis.estimatedMonthlyEarnings || 0).toLocaleString()}`} color="text-emerald-600" />
                         <StatBox icon={Globe} label="Total Followers" value={(analysis.totalFollowersAll || 0).toLocaleString()} color="text-violet-600" />
                       </div>
@@ -219,7 +219,7 @@ export function CompetitorAnalysisView() {
                             <div className="space-y-1">
                               <p className="text-xs font-medium mb-1">Recommendations:</p>
                               {ai.recommendations?.map((r: string, i: number) => (
-                                <div key={i} className="flex items-start gap-2 text-xs"><Zap className="h-3 w-3 text-[#FF5722] mt-0.5 shrink-0" />{r}</div>
+                                <div key={i} className="flex items-start gap-2 text-xs"><Zap className="h-3 w-3 text-[#FF6A00] mt-0.5 shrink-0" />{r}</div>
                               ))}
                             </div>
                           </CardContent>
@@ -229,12 +229,12 @@ export function CompetitorAnalysisView() {
                         <Card className="border-emerald-500/20"><CardContent className="p-3"><p className="text-xs font-medium text-emerald-600 mb-2 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Strengths</p>{strengths.map((s: string, i: number) => <div key={i} className="text-xs flex items-start gap-1.5 mb-1"><span className="text-emerald-600">+</span>{s}</div>)}</CardContent></Card>
                         <Card className="border-red-500/20"><CardContent className="p-3"><p className="text-xs font-medium text-red-500 mb-2 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Weaknesses</p>{weaknesses.map((w: string, i: number) => <div key={i} className="text-xs flex items-start gap-1.5 mb-1"><span className="text-red-500">−</span>{w}</div>)}</CardContent></Card>
                       </div>
-                      <Card className="border-[#FF5722]/20 bg-[#FF5722]/5">
+                      <Card className="border-[#FF6A00]/20 bg-[#FF6A00]/5">
                         <CardContent className="p-3">
-                          <p className="text-xs font-medium text-[#FF5722] mb-2 flex items-center gap-1"><Lightbulb className="h-3 w-3" /> Your Improvement Opportunities</p>
+                          <p className="text-xs font-medium text-[#FF6A00] mb-2 flex items-center gap-1"><Lightbulb className="h-3 w-3" /> Your Improvement Opportunities</p>
                           <div className="grid grid-cols-2 gap-1">
                             {opportunities.map((o: string, i: number) => (
-                              <div key={i} className="text-xs flex items-start gap-1.5"><Zap className="h-2.5 w-2.5 text-[#FF5722] mt-0.5 shrink-0" />{o}</div>
+                              <div key={i} className="text-xs flex items-start gap-1.5"><Zap className="h-2.5 w-2.5 text-[#FF6A00] mt-0.5 shrink-0" />{o}</div>
                             ))}
                           </div>
                         </CardContent>

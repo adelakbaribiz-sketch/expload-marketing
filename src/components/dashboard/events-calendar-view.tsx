@@ -15,8 +15,8 @@ import { Calendar, Globe2, Sparkles, Loader2, Clock, TrendingUp, CheckCircle } f
 
 const CATEGORY_COLORS: Record<string, string> = {
   holiday: '#ef4444', cultural: '#ec4899', sports: '#10b981',
-  tech: '#3b82f6', business: '#f59e0b', religious: '#1B3A4B',
-  seasonal: '#8CD4D8', trending: '#F26522',
+  tech: '#3b82f6', business: '#f59e0b', religious: '#0A0A0B',
+  seasonal: '#C9CDD3', trending: '#FF6A00',
 }
 
 export function EventsCalendarView() {
@@ -85,7 +85,7 @@ export function EventsCalendarView() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Calendar className="h-8 w-8 animate-float-3d" style={{ color: '#F26522' }} />
+          <Calendar className="h-8 w-8 animate-float-3d" style={{ color: '#FF6A00' }} />
           Events & Smart Scheduler
           <GuideTooltip sectionId="calendar" />
         </h1>
@@ -220,7 +220,7 @@ export function EventsCalendarView() {
 
       {/* Suggestion results */}
       {result && (
-        <Card className="card-3d border-2" style={{ borderColor: '#F26522' }}>
+        <Card className="card-3d border-2" style={{ borderColor: '#FF6A00' }}>
           <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-emerald-500" />

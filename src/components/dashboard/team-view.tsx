@@ -25,7 +25,7 @@ const ROLE_ICONS: Record<string, any> = {
   owner: Crown, admin: Shield, manager: UserCog, editor: Edit, viewer: Eye, super_admin: ShieldCheck,
 }
 const ROLE_COLORS: Record<string, string> = {
-  owner: '#FF5722', admin: '#0A2A3A', manager: '#7C4DFF', editor: '#80DEEA', viewer: '#B0BEC5', super_admin: '#FFD700',
+  owner: '#FF6A00', admin: '#0A0A0B', manager: '#7C4DFF', editor: '#C9CDD3', viewer: '#B0BEC5', super_admin: '#FFD700',
 }
 
 export function TeamView() {
@@ -118,7 +118,7 @@ export function TeamView() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold flex items-center gap-2">
-            <Users className="h-5 w-5 text-[#0A2A3A]" />
+            <Users className="h-5 w-5 text-[#0A0A0B]" />
             Team & Access Control
           </h2>
           <p className="text-xs text-muted-foreground">Manage team members, roles, permissions, and project access</p>
@@ -274,7 +274,7 @@ export function TeamView() {
         {/* Audit Log Tab */}
         <TabsContent value="audit" className="space-y-3">
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Shield className="h-4 w-4 text-[#0A2A3A]" /> Audit Log ({auditLogs.length})</CardTitle></CardHeader>
+            <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Shield className="h-4 w-4 text-[#0A0A0B]" /> Audit Log ({auditLogs.length})</CardTitle></CardHeader>
             <CardContent>
               {auditLogs.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">No audit entries yet.</p>
@@ -283,8 +283,8 @@ export function TeamView() {
                   {auditLogs.map((log: any) => (
                     <div key={log.id} className="flex items-center gap-3 p-2 rounded-md bg-muted/30 text-xs">
                       <Badge variant="outline" className="text-[9px] capitalize" style={{
-                        background: log.severity === 'critical' ? '#ef444420' : log.severity === 'warning' ? '#f59e0b20' : '#0A2A3A20',
-                        color: log.severity === 'critical' ? '#ef4444' : log.severity === 'warning' ? '#f59e0b' : '#0A2A3A',
+                        background: log.severity === 'critical' ? '#ef444420' : log.severity === 'warning' ? '#f59e0b20' : '#0A0A0B20',
+                        color: log.severity === 'critical' ? '#ef4444' : log.severity === 'warning' ? '#f59e0b' : '#0A0A0B',
                       }}>{log.severity}</Badge>
                       <Badge variant="outline" className="text-[9px]">{log.action}</Badge>
                       <span className="flex-1 truncate">{log.description}</span>

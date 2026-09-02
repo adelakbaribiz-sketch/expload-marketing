@@ -276,7 +276,7 @@ export function Sidebar({ view, onViewChange }: SidebarProps) {
                       onClick={() => toggleSection(section.key)}
                       className={cn(
                         'flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-colors',
-                        hasActive ? 'text-[#FF5722]' : 'text-muted-foreground hover:text-foreground',
+                        hasActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
                       )}
                     >
                       <ChevronLeft className={cn('h-3 w-3 transition-transform', isExpanded ? '-rotate-90' : 'rotate-0')} />
@@ -298,14 +298,14 @@ export function Sidebar({ view, onViewChange }: SidebarProps) {
                               className={cn(
                                 'group flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-sm transition-all',
                                 active
-                                  ? 'bg-[#0A2A3A] text-white font-medium shadow-sm'
+                                  ? 'bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-sm'
                                   : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
                               )}
                             >
                               <Icon
                                 className={cn(
                                   'h-4 w-4 shrink-0 transition-colors',
-                                  active ? 'text-[#FF5722]' : 'text-muted-foreground',
+                                  active ? 'text-primary' : 'text-muted-foreground',
                                 )}
                               />
                               <span className="flex-1 text-right truncate">{item.label}</span>

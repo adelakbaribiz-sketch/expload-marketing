@@ -14,7 +14,7 @@ import { Users, Star, Clock, Briefcase, Award, Headset } from 'lucide-react'
 const SKILL_COLORS: Record<string, string> = {
   seo: '#10b981', content: '#3b82f6', ads: '#f59e0b',
   social: '#ec4899', design: '#8b5cf6', development: '#06b6d4',
-  email: '#f97316', full_marketing: '#1B3A4B',
+  email: '#f97316', full_marketing: '#0A0A0B',
 }
 
 export function VirtualAssistantView() {
@@ -69,7 +69,7 @@ export function VirtualAssistantView() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Headset className="h-8 w-8 animate-float-3d" style={{ color: '#F26522' }} />
+            <Headset className="h-8 w-8 animate-float-3d" style={{ color: '#FF6A00' }} />
             Virtual Assistant Service
             <GuideTooltip sectionId="virtual-assistants" />
           </h1>
@@ -114,7 +114,7 @@ export function VirtualAssistantView() {
               <CardContent className="p-4">
                 <div className="flex items-start gap-4">
                   <Avatar className="h-14 w-14 ring-2 ring-brand-light">
-                    <AvatarFallback style={{ background: '#1B3A4B', color: '#fff' }}>
+                    <AvatarFallback style={{ background: '#0A0A0B', color: '#fff' }}>
                       {a.name.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
