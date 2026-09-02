@@ -61,11 +61,22 @@ export function createDomainHandlers(config: DomainConfig) {
 }
 
 export function createDomainItemHandlers(config: DomainConfig) {
+  // Fetch-then-compare tenant ownership check, shared by GET/PATCH/DELETE.
+  // Models addressed by this factory all carry their own `tenantId` field —
+  // this is NOT true for every Prisma model (e.g. CompetitorAnalysis is
+  // scoped via its parent CompetitorProfile), so this factory must only be
+  // used for models with a direct tenantId column.
+  async function requireOwnedItem(id: string, tenantId: string) {
+    const model = db[config.model] as any
+    return model.findFirst({ where: { id, tenantId } })
+  }
+
   async function getItem(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+    const tenantId = await requireTenantId()
     const { id } = await ctx.params
     const model = db[config.model] as any
-    const item = await model.findUnique({
-      where: { id },
+    const item = await model.findFirst({
+      where: { id, tenantId },
       include: config.include,
     })
     if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -73,7 +84,10 @@ export function createDomainItemHandlers(config: DomainConfig) {
   }
 
   async function patchItem(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+    const tenantId = await requireTenantId()
     const { id } = await ctx.params
+    const existing = await requireOwnedItem(id, tenantId)
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     const body = await req.json().catch(() => ({}))
     const data: Record<string, any> = {}
     for (const field of config.fields) {
@@ -87,7 +101,10 @@ export function createDomainItemHandlers(config: DomainConfig) {
   }
 
   async function deleteItem(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+    const tenantId = await requireTenantId()
     const { id } = await ctx.params
+    const existing = await requireOwnedItem(id, tenantId)
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     const model = db[config.model] as any
     await model.delete({ where: { id } })
     return NextResponse.json({ ok: true })

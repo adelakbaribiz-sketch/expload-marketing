@@ -5,6 +5,8 @@ import { requireTenantId } from '@/lib/tenant'
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params
   const tenantId = await requireTenantId()
+  const existing = await db.user.findFirst({ where: { id, tenantId } })
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   const body = await req.json().catch(() => ({}))
 
   const updated = await db.user.update({
@@ -20,6 +22,9 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
 export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params
+  const tenantId = await requireTenantId()
+  const existing = await db.user.findFirst({ where: { id, tenantId } })
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   await db.user.update({ where: { id }, data: { isActive: false } })
   return NextResponse.json({ ok: true })
 }

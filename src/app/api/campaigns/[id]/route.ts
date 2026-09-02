@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requireTenantId } from '@/lib/tenant'
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const tenantId = await requireTenantId()
   const { id } = await ctx.params
-  const campaign = await db.emailCampaign.findUnique({
-    where: { id },
+  const campaign = await db.emailCampaign.findFirst({
+    where: { id, tenantId },
     include: {
       template: true,
       creator: { select: { id: true, name: true, email: true } },
@@ -16,7 +18,10 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 }
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const tenantId = await requireTenantId()
   const { id } = await ctx.params
+  const existing = await db.emailCampaign.findFirst({ where: { id, tenantId } })
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   const body = await req.json().catch(() => ({}))
   const updated = await db.emailCampaign.update({
     where: { id },
@@ -31,7 +36,10 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 }
 
 export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const tenantId = await requireTenantId()
   const { id } = await ctx.params
+  const existing = await db.emailCampaign.findFirst({ where: { id, tenantId } })
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   await db.emailCampaign.delete({ where: { id } })
   return NextResponse.json({ ok: true })
 }

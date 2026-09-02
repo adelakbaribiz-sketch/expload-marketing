@@ -25,7 +25,7 @@ async function handler(req: NextRequest) {
       fiatCurrency: body.fiatCurrency ?? 'USD',
       cryptoCurrency: body.cryptoCurrency,
       chain: body.chain,
-      tenantId: body.tenantId ?? user.tenantId,
+      tenantId: user.tenantId,
       distributorId: body.distributorId,
       invoiceId: body.invoiceId,
       description: body.description,

@@ -13,6 +13,13 @@ import { verifyPassword } from '@/lib/auth/password'
 
 const SESSION_COOKIE = 'session'
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60 // 30 days
+
+// Fail closed in production: a session secret that ships as a public,
+// hardcoded default would let anyone forge a valid session cookie for any
+// userId. The dev fallback only applies outside production.
+if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
+  throw new Error('NEXTAUTH_SECRET must be set in production — refusing to start with a public default session secret.')
+}
 const SECRET = process.env.NEXTAUTH_SECRET || 'dev-secret-change-in-production-please-use-a-long-random-string'
 
 /** Sign payload with HMAC-SHA256. */

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requireTenantId } from '@/lib/tenant'
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const tenantId = await requireTenantId()
   const { id } = await ctx.params
-  const lead = await db.lead.findUnique({
-    where: { id },
+  const lead = await db.lead.findFirst({
+    where: { id, tenantId },
     include: {
       project: true,
       company: true,
@@ -16,7 +18,10 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 }
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const tenantId = await requireTenantId()
   const { id } = await ctx.params
+  const existing = await db.lead.findFirst({ where: { id, tenantId } })
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   const body = await req.json().catch(() => ({}))
   const services = Array.isArray(body.services) ? JSON.stringify(body.services) : undefined
   const updated = await db.lead.update({
@@ -47,7 +52,10 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 }
 
 export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const tenantId = await requireTenantId()
   const { id } = await ctx.params
+  const existing = await db.lead.findFirst({ where: { id, tenantId } })
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   await db.lead.delete({ where: { id } })
   return NextResponse.json({ ok: true })
 }

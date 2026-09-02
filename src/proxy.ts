@@ -17,6 +17,12 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
  */
 
 const SESSION_COOKIE = 'session'
+
+// Fail closed in production — see src/lib/auth/simple-session.ts for the
+// matching check (this file must sign/verify with the exact same secret).
+if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
+  throw new Error('NEXTAUTH_SECRET must be set in production — refusing to start with a public default session secret.')
+}
 const SECRET = process.env.NEXTAUTH_SECRET || 'dev-secret-change-in-production-please-use-a-long-random-string'
 
 /** Sign payload with HMAC-SHA256 (must match simple-session.ts). */
@@ -162,7 +168,24 @@ export function proxy(req: NextRequest) {
     ))
   }
 
-  // 5. Authenticated — allow with headers
+  // 5. CSRF defense-in-depth for authenticated state-changing requests.
+  // The session cookie is SameSite=Lax, not Strict, and there's no CSRF
+  // token — a cross-site <form method="POST"> top-level navigation would
+  // still carry it. Reject when the browser-supplied Origin is present and
+  // doesn't match this app's own origin. Absent Origin is allowed through
+  // (non-browser API clients, older browsers) — this is defense-in-depth,
+  // not a complete guarantee.
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+    const origin = req.headers.get('origin')
+    if (origin && origin !== req.nextUrl.origin) {
+      return addHeaders(NextResponse.json(
+        { error: 'cross_origin_request_denied', message: 'Request origin does not match this site' },
+        { status: 403 },
+      ))
+    }
+  }
+
+  // 6. Authenticated — allow with headers
   return addHeaders(NextResponse.next())
 }
 
