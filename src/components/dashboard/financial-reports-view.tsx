@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -9,14 +9,30 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { GuideTooltip } from '@/components/guides/guided-tour'
-import { BarChart3, TrendingUp, TrendingDown, DollarSign, Activity, FileText, Sparkles, RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
+import { BarChart3, TrendingUp, TrendingDown, DollarSign, Activity, FileText, Sparkles, RefreshCw, Archive, Plus } from 'lucide-react'
+
+const ARCHIVE_TYPES = ['revenue_summary', 'commission_summary', 'payout_summary', 'license_usage']
+
+function periodToRange(period: Period): { start: Date; end: Date } {
+  const end = new Date()
+  const start = new Date()
+  if (period === 'daily') start.setDate(start.getDate() - 1)
+  else if (period === 'weekly') start.setDate(start.getDate() - 7)
+  else if (period === 'monthly') start.setMonth(start.getMonth() - 1)
+  else if (period === 'quarterly') start.setMonth(start.getMonth() - 3)
+  else start.setFullYear(start.getFullYear() - 1)
+  return { start, end }
+}
 
 type Period = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annual'
 type Audience = 'admin' | 'distributor' | 'affiliate' | 'platform'
 
 export function FinancialReportsView() {
+  const qc = useQueryClient()
   const [period, setPeriod] = useState<Period>('monthly')
   const [audience, setAudience] = useState<Audience>('admin')
+  const [archiveType, setArchiveType] = useState('revenue_summary')
 
   const { data: reportData, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['financial-report', period, audience],
@@ -27,10 +43,44 @@ export function FinancialReportsView() {
     },
   })
 
+  const { data: archiveData } = useQuery({
+    queryKey: ['financial-report-archive'],
+    queryFn: async () => {
+      const res = await fetch('/api/finance/reports')
+      if (!res.ok) return { reports: [] }
+      return res.json()
+    },
+  })
+
+  const generateArchive = useMutation({
+    mutationFn: async () => {
+      const { start, end } = periodToRange(period)
+      const res = await fetch('/api/finance/reports', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: archiveType, periodType: period,
+          periodStart: start.toISOString(), periodEnd: end.toISOString(),
+          scope: 'platform',
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error === 'forbidden' ? 'Only a super admin can archive reports' : (data.error || 'Failed'))
+      }
+      return res.json()
+    },
+    onSuccess: () => {
+      toast.success('Report archived')
+      qc.invalidateQueries({ queryKey: ['financial-report-archive'] })
+    },
+    onError: (err: any) => toast.error(String(err?.message ?? err)),
+  })
+
   const report = reportData?.report
   const revenue = report?.revenue
   const audienceMetrics = report?.audienceMetrics
   const aiInsights = report?.aiInsights
+  const archivedReports = archiveData?.reports ?? []
 
   return (
     <div className="space-y-6">
@@ -133,11 +183,12 @@ export function FinancialReportsView() {
           </div>
 
           <Tabs defaultValue="overview">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="breakdown">Breakdown</TabsTrigger>
               <TabsTrigger value="audience">Audience Metrics</TabsTrigger>
               <TabsTrigger value="ai">AI Insights</TabsTrigger>
+              <TabsTrigger value="archive">Archive</TabsTrigger>
             </TabsList>
 
             {/* Overview tab */}
@@ -306,6 +357,63 @@ export function FinancialReportsView() {
                   AI insights unavailable for this period. Configure an LLM API key (e.g. Groq) in Settings → Multi-LLM Aggregator.
                 </CardContent></Card>
               )}
+            </TabsContent>
+
+            {/* Archive tab */}
+            <TabsContent value="archive" className="space-y-3">
+              <Card>
+                <CardHeader className="pb-3 flex-row items-center justify-between">
+                  <CardTitle className="text-sm flex items-center gap-2"><Archive className="h-4 w-4 text-[#0A0A0B]" /> Archived Reports ({archivedReports.length})</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Select value={archiveType} onValueChange={setArchiveType}>
+                      <SelectTrigger className="w-44 h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {ARCHIVE_TYPES.map((t) => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" className="gap-1.5" onClick={() => generateArchive.mutate()} disabled={generateArchive.isPending}>
+                      <Plus className="h-3.5 w-3.5" /> {generateArchive.isPending ? 'Generating…' : 'Generate & Save'}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Permanent, point-in-time snapshots for compliance/audit — separate from the live report above.
+                    Generating requires super admin access.
+                  </p>
+                  {archivedReports.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-8 text-center">No archived reports yet.</p>
+                  ) : (
+                    <div className="space-y-2 max-h-96 overflow-y-auto scroll-thin">
+                      {archivedReports.map((r: any) => {
+                        const metrics = (() => { try { return JSON.parse(r.metrics) } catch { return {} } })()
+                        return (
+                          <div key={r.id} className="rounded-lg border p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div>
+                                <p className="text-sm font-medium capitalize">{r.type.replace(/_/g, ' ')}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {r.scope} · {new Date(r.periodStart).toLocaleDateString()} → {new Date(r.periodEnd).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <Badge variant="outline" className="text-[10px] capitalize">{r.status}</Badge>
+                            </div>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {Object.entries(metrics).slice(0, 4).map(([k, v]: any) => (
+                                typeof v === 'object' ? null : (
+                                  <Badge key={k} variant="secondary" className="text-[10px]">
+                                    {k}: {typeof v === 'number' ? v.toLocaleString() : String(v)}
+                                  </Badge>
+                                )
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </>

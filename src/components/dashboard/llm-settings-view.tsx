@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
-import { Brain, Activity, Zap, AlertTriangle, Key, BarChart3 } from 'lucide-react'
+import { Brain, Activity, Zap, AlertTriangle, Key, BarChart3, RotateCcw } from 'lucide-react'
 
 const PROVIDER_INFO: Record<string, { signupUrl: string; docs: string }> = {
   groq: { signupUrl: 'https://console.groq.com/keys', docs: 'https://console.groq.com/docs' },
@@ -65,6 +65,19 @@ export function LlmSettingsView() {
       qc.invalidateQueries({ queryKey: ['llm-providers'] })
     },
     onError: () => toast.error('Save failed'),
+  })
+
+  const resetProvider = useMutation({
+    mutationFn: async (providerId: string) => {
+      const res = await fetch(`/api/llm/providers?provider=${encodeURIComponent(providerId)}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed')
+      return res.json()
+    },
+    onSuccess: () => {
+      toast.success('Provider config reset to defaults')
+      qc.invalidateQueries({ queryKey: ['llm-providers'] })
+    },
+    onError: () => toast.error('Reset failed'),
   })
 
   const providers = providersData?.providers ?? []
@@ -178,6 +191,15 @@ export function LlmSettingsView() {
                           displayName: p.displayName, apiKey: '',
                         })}
                       />
+                      {p.hasApiKey && (
+                        <Button
+                          size="sm" variant="ghost" className="h-7 gap-1 text-xs text-destructive"
+                          onClick={() => resetProvider.mutate(p.id)}
+                          disabled={resetProvider.isPending}
+                        >
+                          <RotateCcw className="h-3 w-3" /> Reset
+                        </Button>
+                      )}
                     </div>
                   </div>
                   <ApiKeyInput

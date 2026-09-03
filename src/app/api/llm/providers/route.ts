@@ -84,8 +84,22 @@ async function handler(req: NextRequest) {
     return NextResponse.json({ config }, { status: 201 })
   }
 
+  if (req.method === 'DELETE') {
+    // Reset a provider's stored config back to defaults (providers themselves
+    // are a fixed, hardcoded list in the aggregator — this clears the DB
+    // override, not the provider's availability).
+    if (!superAdmin) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+    const url = new URL(req.url)
+    const provider = url.searchParams.get('provider')
+    if (!provider) return NextResponse.json({ error: 'provider query param required' }, { status: 400 })
+    await db.llmProviderConfig.deleteMany({ where: { provider } })
+    delete process.env[`${provider.toUpperCase()}_API_KEY`]
+    return NextResponse.json({ ok: true })
+  }
+
   return NextResponse.json({ error: 'method_not_allowed' }, { status: 405 })
 }
 
 export const GET = withProtection(handler, { rateLimit: 'read' })
 export const POST = withProtection(handler, { rateLimit: 'write' })
+export const DELETE = withProtection(handler, { rateLimit: 'write' })
