@@ -318,5 +318,165 @@
     "createFailed": "Failed to create",
     "updateFailed": "Failed to update",
     "deleteFailed": "Failed to delete"
+  },
+  "landing": {
+    "nav": {
+      "signIn": "Sign In",
+      "getStarted": "Get Started Free"
+    },
+    "hero": {
+      "badge": "AI-Powered Autonomous Marketing Platform",
+      "titleLine1": "Your Entire Marketing",
+      "titleLine2": "on Autopilot",
+      "subtitle": "From lead generation to autonomous marketing agent — manage your entire marketing lifecycle across 10 phases with AI-powered automation, in 20 languages.",
+      "ctaPrimary": "Sign Up & Auto-Setup in 1 Click",
+      "ctaSecondary": "Calculate My Price",
+      "autoSetupBadge": "10 items auto-configured on signup — zero manual setup",
+      "trustNoCard": "No credit card required",
+      "trustFreeTrial": "14-day free trial",
+      "trustCancel": "Cancel anytime"
+    },
+    "stats": {
+      "phases": "Marketing Phases",
+      "languages": "Languages Supported",
+      "dataModels": "Data Models",
+      "apiEndpoints": "API Endpoints"
+    },
+    "features": {
+      "badge": "10 Phases · One Platform",
+      "title": "Everything You Need to Automate Marketing",
+      "subtitle": "From discovering leads to autonomous weekly execution — each phase is a complete module with AI-powered automation.",
+      "items": {
+        "leadGeneration": { "title": "Lead Generation", "desc": "Discover potential customers automatically via Google Maps, search engines, and web scraping with AI-powered enrichment." },
+        "crmEngagement": { "title": "CRM & Engagement", "desc": "Manage deals, pipeline, email campaigns, WhatsApp marketing, chatbot AI, and review monitoring in one place." },
+        "contentStrategy": { "title": "Content Strategy", "desc": "AI-generated content ideas, content calendar, and strategy planning tailored to your industry." },
+        "seoPlatform": { "title": "SEO Platform", "desc": "Full website crawler, technical audit, keyword tracking, backlink monitoring, and A/B testing." },
+        "adAutomation": { "title": "Ad Automation", "desc": "Create and optimize Google Ads, Meta Ads campaigns with AI budget optimization and ad copy generation." },
+        "socialMedia": { "title": "Social Media", "desc": "Multi-channel publishing, content calendar, social listening, and engagement analytics across platforms." },
+        "backlinkPlatform": { "title": "Backlink Platform", "desc": "Discover backlink opportunities, manage outreach campaigns, and track domain authority over time." },
+        "specializedAnalyzers": { "title": "Specialized Analyzers", "desc": "Deep social media account analysis, export market research, and competitor intelligence." },
+        "aiAdvisor": { "title": "AI Advisor", "desc": "Monthly multilingual reports, business diagnostics, SWOT analysis, and growth recommendations." },
+        "autonomousAgent": { "title": "Autonomous Agent", "desc": "Executes all 10 phases automatically on a weekly cycle, creates tasks, and generates recommendations." }
+      }
+    },
+    "pricing": {
+      "badge": "Smart Pricing Calculator",
+      "title": "Get Your Personalized Price",
+      "subtitle": "Tell us about your business and we'll recommend the perfect plan with estimated ROI — based on your budget, product, and sales funnel.",
+      "form": {
+        "budget": "Monthly Marketing Budget (USD)",
+        "productPrice": "Average Product/Service Price (USD)",
+        "reviews": "Current Reviews",
+        "platforms": "Review Platforms",
+        "funnelTitle": "Sales Funnel Friction",
+        "monthlyLeads": "Monthly Leads Entering Funnel",
+        "qualifiedRate": "Lead → Qualified Rate",
+        "dealRate": "Qualified → Deal Rate",
+        "submit": "Get My Recommendation",
+        "calculating": "Calculating…"
+      },
+      "results": {
+        "recommendedPlan": "Recommended Plan",
+        "perMonth": "per month",
+        "orPerYear": "or {amount}/year",
+        "estimatedResults": "Estimated Monthly Results",
+        "estLeads": "Est. Leads",
+        "qualified": "Qualified",
+        "deals": "Deals",
+        "revenue": "Revenue",
+        "estimatedRoi": "Estimated ROI",
+        "startWithPlan": "Start with {plan} Plan",
+        "empty": "Fill in the form and click \"Get My Recommendation\" to see your personalized plan with estimated ROI and funnel analysis."
+      },
+      "comparison": {
+        "title": "Plan Comparison",
+        "leadsPerMonth": "Leads/month",
+        "campaigns": "Campaigns",
+        "teamMembers": "Team members",
+        "seoProjects": "SEO projects",
+        "socialAccounts": "Social accounts",
+        "workflows": "Workflows",
+        "aiCredits": "AI credits",
+        "unlimited": "Unlimited",
+        "perMoShort": "/mo",
+        "yearlyNote": "{amount}/year (2 months free)",
+        "choosePlan": "Choose This Plan",
+        "getStarted": "Get Started",
+        "plans": {
+          "starter": { "label": "Starter", "tagline": "For solo marketers & small businesses" },
+          "growth": { "label": "Growth", "tagline": "For growing teams scaling their marketing" },
+          "enterprise": { "label": "Enterprise", "tagline": "For large organizations with full automation" }
+        }
+      }
+    },
+    "whyUs": {
+      "badge": "Why Expload Marketing?",
+      "title": "More Than Just a Tool — Your AI Marketing Team",
+      "items": {
+        "autonomousAgent": { "title": "Autonomous Marketing Agent", "desc": "Runs all 10 marketing phases automatically every week, creates tasks, and generates recommendations — like having a full marketing team on autopilot." },
+        "aiPowered": { "title": "AI-Powered Everything", "desc": "From lead enrichment to content generation, SEO audit to ad copy — every module uses AI to save you time and improve results." },
+        "languages": { "title": "20 Languages, Full RTL", "desc": "Truly global platform with native RTL support for Arabic, Hebrew, and Persian. Reach customers in their language." },
+        "smartPricing": { "title": "Smart Pricing", "desc": "Our unique pricing calculator recommends the perfect plan based on your budget, product, and funnel — no overpaying." }
+      },
+      "agentCard": {
+        "title": "Autonomous Agent",
+        "subtitle": "Weekly Cycle Report",
+        "leadGen": "P1 Lead Generation",
+        "leadGenValue": "47 new leads",
+        "emailCampaigns": "P2 Email Campaigns",
+        "emailCampaignsValue": "3 campaigns sent",
+        "seoAudit": "P4 SEO Audit",
+        "seoAuditValue": "12 issues found",
+        "socialMedia": "P6 Social Media",
+        "socialMediaValue": "15 posts scheduled",
+        "aiRecommendations": "P9 AI Recommendations",
+        "aiRecommendationsValue": "5 new insights",
+        "tasksCreated": "Tasks Created",
+        "newTasks": "4 new tasks"
+      }
+    },
+    "finalCta": {
+      "title": "Ready to Automate Your Marketing?",
+      "subtitle": "Join the next generation of marketers using AI to generate leads, nurture customers, and grow revenue — all on autopilot.",
+      "ctaPrimary": "Start Your 14-Day Free Trial",
+      "ctaSecondary": "Sign In",
+      "footer": "No credit card required · Cancel anytime · 20 languages supported"
+    },
+    "footer": {
+      "tagline": "Autonomous Marketing AI Platform — your entire marketing lifecycle on autopilot.",
+      "platform": { "title": "Platform", "leadGeneration": "Lead Generation", "crmEngagement": "CRM & Engagement", "seoPlatform": "SEO Platform", "socialMedia": "Social Media", "aiAgents": "AI Agents" },
+      "resources": { "title": "Resources", "pricingCalculator": "Pricing Calculator", "documentation": "Documentation", "apiReference": "API Reference", "deploymentGuide": "Deployment Guide" },
+      "company": { "title": "Company", "about": "About", "privacyPolicy": "Privacy Policy", "termsOfService": "Terms of Service", "contact": "Contact" },
+      "copyright": "© {year} Expload Marketing. All rights reserved."
+    }
+  },
+  "auth": {
+    "title": "Expload Marketing",
+    "subtitle": "Sign in to your account or create a new organization",
+    "tabSignIn": "Sign In",
+    "tabSignUp": "Sign Up",
+    "email": "Email",
+    "emailPlaceholder": "you@company.com",
+    "password": "Password",
+    "passwordPlaceholder": "••••••••",
+    "signInButton": "Sign In",
+    "demoHint": "Use demo credentials (admin@expload.io / demo12345)",
+    "yourName": "Your Name",
+    "namePlaceholder": "John Doe",
+    "passwordMin": "Password (min 8 chars)",
+    "orgName": "Org Name",
+    "orgPlaceholder": "Acme Inc",
+    "domain": "Domain",
+    "domainPlaceholder": "acme.com",
+    "createAccount": "Create Account",
+    "errorEnterCredentials": "Please enter email and password",
+    "welcomeBack": "Welcome back!",
+    "loginFailed": "Login failed",
+    "errorFillFields": "Please fill all fields",
+    "errorPasswordLength": "Password must be at least 8 characters",
+    "signupFailed": "Signup failed",
+    "accountCreatedAutoSetup": "Account created! {count} items auto-configured. Welcome to Expload!",
+    "accountCreatedPleaseSignIn": "Account created! Please sign in.",
+    "demoFilled": "Demo credentials filled"
   }
 }

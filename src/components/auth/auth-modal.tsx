@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useAuth } from '@/components/auth/session-provider'
 import { useAuthStore } from '@/store/auth-store'
+import { useI18n } from '@/i18n/provider'
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ import { Rocket, Mail, Lock, User, Building2, Globe, Loader2 } from 'lucide-reac
 export function AuthModal() {
   const { login, refresh } = useAuth()
   const { authModalOpen, authModalMode, closeAuthModal, setAuthModalMode } = useAuthStore()
+  const { t } = useI18n()
   const [loading, setLoading] = useState(false)
 
   // Login form
@@ -36,17 +38,17 @@ export function AuthModal() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!loginEmail || !loginPassword) {
-      toast.error('Please enter email and password')
+      toast.error(t('auth.errorEnterCredentials'))
       return
     }
     setLoading(true)
     try {
       const result = await login(loginEmail, loginPassword)
       if (result.success) {
-        toast.success('Welcome back!')
+        toast.success(t('auth.welcomeBack'))
         closeAuthModal()
       } else {
-        toast.error(result.error || 'Login failed')
+        toast.error(result.error || t('auth.loginFailed'))
       }
     } catch (err: any) {
       toast.error(String(err?.message ?? err))
@@ -58,11 +60,11 @@ export function AuthModal() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!signupName || !signupEmail || !signupPassword || !tenantName || !tenantDomain) {
-      toast.error('Please fill all fields')
+      toast.error(t('auth.errorFillFields'))
       return
     }
     if (signupPassword.length < 8) {
-      toast.error('Password must be at least 8 characters')
+      toast.error(t('auth.errorPasswordLength'))
       return
     }
     setLoading(true)
@@ -80,19 +82,19 @@ export function AuthModal() {
       })
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.error || 'Signup failed')
+        toast.error(data.error || t('auth.signupFailed'))
         return
       }
       // Auto-login after signup
       const loginResult = await login(signupEmail, signupPassword)
       if (loginResult.success) {
         const setupCount = data.autoSetup?.length ?? 0
-        toast.success(`Account created! ${setupCount} items auto-configured. Welcome to Expload!`)
+        toast.success(t('auth.accountCreatedAutoSetup', { count: setupCount }))
         closeAuthModal()
         // Reload to enter the fully-configured dashboard
         setTimeout(() => window.location.reload(), 500)
       } else {
-        toast.success('Account created! Please sign in.')
+        toast.success(t('auth.accountCreatedPleaseSignIn'))
         setAuthModalMode('login')
       }
     } catch (err: any) {
@@ -105,7 +107,7 @@ export function AuthModal() {
   const fillDemo = () => {
     setLoginEmail('admin@expload.io')
     setLoginPassword('demo12345')
-    toast.info('Demo credentials filled')
+    toast.info(t('auth.demoFilled'))
   }
 
   return (
@@ -115,29 +117,29 @@ export function AuthModal() {
           <div className="grid place-items-center h-12 w-12 rounded-2xl bg-brand-accent-gradient text-primary-foreground mx-auto mb-2 shadow-lg shadow-primary/20">
             <Rocket className="h-6 w-6" />
           </div>
-          <DialogTitle className="text-center">Expload Marketing</DialogTitle>
+          <DialogTitle className="text-center">{t('auth.title')}</DialogTitle>
           <DialogDescription className="text-center">
-            Sign in to your account or create a new organization
+            {t('auth.subtitle')}
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={authModalMode} onValueChange={(v) => setAuthModalMode(v as 'login' | 'signup')}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Sign In</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            <TabsTrigger value="login">{t('auth.tabSignIn')}</TabsTrigger>
+            <TabsTrigger value="signup">{t('auth.tabSignUp')}</TabsTrigger>
           </TabsList>
 
           {/* Login */}
           <TabsContent value="login">
             <form onSubmit={handleLogin} className="space-y-3">
               <div>
-                <Label htmlFor="login-email">Email</Label>
+                <Label htmlFor="login-email">{t('auth.email')}</Label>
                 <div className="relative">
                   <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="login-email"
                     type="email"
-                    placeholder="you@company.com"
+                    placeholder={t('auth.emailPlaceholder')}
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     className="pr-9"
@@ -147,13 +149,13 @@ export function AuthModal() {
                 </div>
               </div>
               <div>
-                <Label htmlFor="login-password">Password</Label>
+                <Label htmlFor="login-password">{t('auth.password')}</Label>
                 <div className="relative">
                   <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="login-password"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder={t('auth.passwordPlaceholder')}
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     className="pr-9"
@@ -163,14 +165,14 @@ export function AuthModal() {
                 </div>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign In'}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('auth.signInButton')}
               </Button>
               <button
                 type="button"
                 onClick={fillDemo}
                 className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                Use demo credentials (admin@expload.io / demo12345)
+                {t('auth.demoHint')}
               </button>
             </form>
           </TabsContent>
@@ -179,11 +181,11 @@ export function AuthModal() {
           <TabsContent value="signup">
             <form onSubmit={handleSignup} className="space-y-3">
               <div>
-                <Label>Your Name</Label>
+                <Label>{t('auth.yourName')}</Label>
                 <div className="relative">
                   <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="John Doe"
+                    placeholder={t('auth.namePlaceholder')}
                     value={signupName}
                     onChange={(e) => setSignupName(e.target.value)}
                     className="pr-9"
@@ -191,12 +193,12 @@ export function AuthModal() {
                 </div>
               </div>
               <div>
-                <Label>Email</Label>
+                <Label>{t('auth.email')}</Label>
                 <div className="relative">
                   <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="email"
-                    placeholder="you@company.com"
+                    placeholder={t('auth.emailPlaceholder')}
                     value={signupEmail}
                     onChange={(e) => setSignupEmail(e.target.value)}
                     className="pr-9"
@@ -205,12 +207,12 @@ export function AuthModal() {
                 </div>
               </div>
               <div>
-                <Label>Password (min 8 chars)</Label>
+                <Label>{t('auth.passwordMin')}</Label>
                 <div className="relative">
                   <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="password"
-                    placeholder="••••••••"
+                    placeholder={t('auth.passwordPlaceholder')}
                     value={signupPassword}
                     onChange={(e) => setSignupPassword(e.target.value)}
                     className="pr-9"
@@ -220,11 +222,11 @@ export function AuthModal() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label>Org Name</Label>
+                  <Label>{t('auth.orgName')}</Label>
                   <div className="relative">
                     <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Acme Inc"
+                      placeholder={t('auth.orgPlaceholder')}
                       value={tenantName}
                       onChange={(e) => setTenantName(e.target.value)}
                       className="pr-9"
@@ -232,11 +234,11 @@ export function AuthModal() {
                   </div>
                 </div>
                 <div>
-                  <Label>Domain</Label>
+                  <Label>{t('auth.domain')}</Label>
                   <div className="relative">
                     <Globe className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="acme.com"
+                      placeholder={t('auth.domainPlaceholder')}
                       value={tenantDomain}
                       onChange={(e) => setTenantDomain(e.target.value)}
                       className="pr-9"
@@ -246,7 +248,7 @@ export function AuthModal() {
                 </div>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Account'}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('auth.createAccount')}
               </Button>
             </form>
           </TabsContent>
