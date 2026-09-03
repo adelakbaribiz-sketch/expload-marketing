@@ -64,6 +64,8 @@ import { FinancialReportsView } from '@/components/dashboard/financial-reports-v
 import { ProjectIntakeView } from '@/components/dashboard/project-intake-view'
 import { EventsCalendarView } from '@/components/dashboard/events-calendar-view'
 import { SandboxDemoView } from '@/components/dashboard/sandbox-demo-view'
+import { WebhooksView } from '@/components/dashboard/webhooks-view'
+import { ApprovalsView } from '@/components/dashboard/approvals-view'
 import { CommandPalette } from '@/components/i18n/command-palette'
 import { AuthModal } from '@/components/auth/auth-modal'
 import { useAuth } from '@/components/auth/session-provider'
@@ -183,6 +185,8 @@ export default function Home() {
     reseller: { title: 'Reseller Hub', subtitle: 'Become a reseller — see costs, risks, profit estimates, and apply directly' },
     attribution: { title: 'Attribution & Analytics', subtitle: 'Track acquisition sources, detect fraud, analyze funnels and customer journeys' },
     team: { title: 'Team & Access Control', subtitle: 'Manage team members, roles, permissions, and project-level access' },
+    approvals: { title: 'Approval Queue', subtitle: 'Review and approve campaigns, content, ads, and budget requests before they go live' },
+    webhooks: { title: 'Webhooks', subtitle: 'Register endpoints to receive real-time event notifications from your account' },
     'super-admin': { title: 'Super Admin Panel', subtitle: 'Platform-wide management of all tenants, users, and revenue' },
     'white-label': { title: 'White Label & Reseller', subtitle: 'Custom branding, reseller customers, commissions, and pricing' },
     finance: { title: 'Finance & Payments', subtitle: 'Revenue tracking, payments, invoices, financial alerts' },
@@ -334,6 +338,10 @@ function RenderView({ view, onNavigate }: { view: View; onNavigate?: (v: string)
       return <DistributorView />
     case 'internal-portal':
       return <InternalPortalView />
+    case 'approvals':
+      return <ApprovalsView />
+    case 'webhooks':
+      return <WebhooksView />
     case 'payment-gateways':
       return <PaymentGatewaysView />
     case 'llm-settings':

@@ -64,6 +64,8 @@ import {
   Calendar as CalendarIcon2,
   PlayCircle as PlayCircleIcon,
   BrainCircuit as BrainCircuitIcon,
+  Webhook as WebhookIcon,
+  ClipboardCheck as ClipboardCheckIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -73,7 +75,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useI18n } from '@/i18n/provider'
 import { useAuth } from '@/components/auth/session-provider'
 
-type View = 'dashboard' | 'unified' | 'roadmap' | 'quick-setup' | 'marketplace' | 'club' | 'ecommerce' | 'reseller' | 'attribution' | 'team' | 'super-admin' | 'white-label' | 'finance' | 'platform' | 'promo-links' | 'competitor-analysis' | 'investor-hub' | 'tenants' | 'projects' | 'leads' | 'generator' | 'campaigns' | 'crm' | 'engagement' | 'seo' | 'content' | 'growth' | 'ads' | 'social' | 'listening' | 'analytics' | 'ai' | 'advisor' | 'workflow' | 'autonomous' | 'backlinks' | 'social-analyzer' | 'export-analyzer' | 'calendar' | 'goals' | 'pricing' | 'activity' | 'settings' | 'distributors' | 'internal-portal' | 'payment-gateways' | 'llm-settings' | 'onboarding-wizard' | 'negotiation' | 'notification-center' | 'agent-hub' | 'virtual-assistants' | 'payroll' | 'support-plans' | 'graph-agent' | 'financial-reports' | 'project-intake' | 'events-calendar' | 'sandbox-demo' | 'ai-decisions'
+type View = 'dashboard' | 'unified' | 'roadmap' | 'quick-setup' | 'marketplace' | 'club' | 'ecommerce' | 'reseller' | 'attribution' | 'team' | 'super-admin' | 'white-label' | 'finance' | 'platform' | 'promo-links' | 'competitor-analysis' | 'investor-hub' | 'tenants' | 'projects' | 'leads' | 'generator' | 'campaigns' | 'crm' | 'engagement' | 'seo' | 'content' | 'growth' | 'ads' | 'social' | 'listening' | 'analytics' | 'ai' | 'advisor' | 'workflow' | 'autonomous' | 'backlinks' | 'social-analyzer' | 'export-analyzer' | 'calendar' | 'goals' | 'pricing' | 'activity' | 'settings' | 'distributors' | 'internal-portal' | 'payment-gateways' | 'llm-settings' | 'onboarding-wizard' | 'negotiation' | 'notification-center' | 'agent-hub' | 'virtual-assistants' | 'payroll' | 'support-plans' | 'graph-agent' | 'financial-reports' | 'project-intake' | 'events-calendar' | 'sandbox-demo' | 'ai-decisions' | 'webhooks' | 'approvals'
 
 interface SidebarProps {
   view: View
@@ -181,6 +183,8 @@ export function Sidebar({ view, onViewChange }: SidebarProps) {
         { id: 'platform', label: t('nav.platform'), icon: MegaphoneIcon, hint: '📣' },
         { id: 'promo-links', label: t('nav.promoLinks'), icon: Link2Icon, hint: '🔗' },
         { id: 'team', label: t('nav.team'), icon: UsersIcon, hint: '👥' },
+        { id: 'approvals', label: 'Approval Queue', icon: ClipboardCheckIcon, hint: 'OK' },
+        { id: 'webhooks', label: 'Webhooks', icon: WebhookIcon, hint: 'DEV' },
         { id: 'projects', label: t('nav.projects'), icon: FolderKanban },
         { id: 'tenants', label: t('nav.tenants'), icon: Building2, hint: 'Multi' },
         { id: 'activity', label: t('nav.activity'), icon: Activity },
