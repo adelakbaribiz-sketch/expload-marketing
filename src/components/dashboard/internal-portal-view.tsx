@@ -9,10 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import {
-  Users, Building2, Activity, UserPlus, Shield, Crown,
+  Users, Building2, Activity, UserPlus, Shield, Crown, Settings2, UserX,
 } from 'lucide-react'
+import { useState } from 'react'
 
 const ROLE_COLORS: Record<string, string> = {
   staff: '#6b7280', senior: '#3b82f6', lead: '#8b5cf6',
@@ -24,6 +26,11 @@ const PLATFORM_ROLE_COLORS: Record<string, string> = {
 
 export function InternalPortalView() {
   const qc = useQueryClient()
+  const [editingEmployee, setEditingEmployee] = useState<any | null>(null)
+  const [editForm, setEditForm] = useState({
+    departmentId: '', employeeRole: 'staff', platformRole: 'employee',
+    jobTitle: '', employmentType: 'full_time', assignedRegion: '', workPhone: '', location: '', status: 'active',
+  })
 
   const { data: employeesData, isLoading } = useQuery({
     queryKey: ['internal-employees'],
@@ -68,6 +75,52 @@ export function InternalPortalView() {
     },
     onError: () => toast.error('Failed to add employee'),
   })
+
+  const updateEmployee = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const res = await fetch(`/api/internal/employees/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || 'Failed')
+      }
+      return res.json()
+    },
+    onSuccess: () => {
+      toast.success('Employee updated')
+      qc.invalidateQueries({ queryKey: ['internal-employees'] })
+      setEditingEmployee(null)
+    },
+    onError: (err: any) => toast.error(String(err?.message ?? err)),
+  })
+
+  const terminateEmployee = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/internal/employees/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || 'Failed')
+      }
+      return res.json()
+    },
+    onSuccess: () => {
+      toast.success('Employee terminated')
+      qc.invalidateQueries({ queryKey: ['internal-employees'] })
+    },
+    onError: (err: any) => toast.error(String(err?.message ?? err)),
+  })
+
+  const openEditEmployee = (e: any) => {
+    setEditingEmployee(e)
+    setEditForm({
+      departmentId: e.departmentId ?? '', employeeRole: e.employeeRole, platformRole: e.platformRole,
+      jobTitle: e.jobTitle ?? '', employmentType: e.employmentType, assignedRegion: e.assignedRegion ?? '',
+      workPhone: e.workPhone ?? '', location: e.location ?? '', status: e.status,
+    })
+  }
 
   const createDepartment = useMutation({
     mutationFn: async (data: any) => {
@@ -166,7 +219,23 @@ export function InternalPortalView() {
                     {e.workEmail ?? e.user?.email} · {e.employmentType} · {e.assignedRegion ?? 'no region'}
                   </p>
                 </div>
-                <Badge variant="outline">{e.status}</Badge>
+                <div className="flex flex-col items-end gap-2">
+                  <Badge variant={e.status === 'terminated' ? 'secondary' : 'outline'}>{e.status}</Badge>
+                  <div className="flex items-center gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditEmployee(e)}>
+                      <Settings2 className="h-3.5 w-3.5" />
+                    </Button>
+                    {e.status !== 'terminated' && (
+                      <Button
+                        size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+                        onClick={() => terminateEmployee.mutate(e.id)}
+                        disabled={terminateEmployee.isPending}
+                      >
+                        <UserX className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -174,6 +243,97 @@ export function InternalPortalView() {
             <Card><CardContent className="p-8 text-center text-muted-foreground">No internal employees yet.</CardContent></Card>
           )}
         </TabsContent>
+
+        {/* Edit Employee Dialog */}
+        <Dialog open={!!editingEmployee} onOpenChange={(o) => !o && setEditingEmployee(null)}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Edit {editingEmployee?.user?.name ?? editingEmployee?.user?.email}</DialogTitle></DialogHeader>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <Label className="text-xs">Department</Label>
+                <Select value={editForm.departmentId} onValueChange={(v) => setEditForm({ ...editForm, departmentId: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                  <SelectContent>
+                    {departments.map(d => <SelectItem key={d.id} value={d.id}>{d.displayName}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Employee Role</Label>
+                <Select value={editForm.employeeRole} onValueChange={(v) => setEditForm({ ...editForm, employeeRole: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['staff', 'senior', 'lead', 'manager', 'director', 'vp', 'c_level'].map(r =>
+                      <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Platform Role</Label>
+                <Select value={editForm.platformRole} onValueChange={(v) => setEditForm({ ...editForm, platformRole: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="employee">employee</SelectItem>
+                    <SelectItem value="admin">admin</SelectItem>
+                    <SelectItem value="super_admin">super_admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Status</Label>
+                <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['active', 'on_leave', 'suspended', 'terminated'].map(s =>
+                      <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Job Title</Label>
+                <Input value={editForm.jobTitle} onChange={(e) => setEditForm({ ...editForm, jobTitle: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Employment Type</Label>
+                <Select value={editForm.employmentType} onValueChange={(v) => setEditForm({ ...editForm, employmentType: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['full_time', 'part_time', 'contractor', 'intern'].map(t =>
+                      <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Assigned Region</Label>
+                <Input value={editForm.assignedRegion} onChange={(e) => setEditForm({ ...editForm, assignedRegion: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Work Phone</Label>
+                <Input value={editForm.workPhone} onChange={(e) => setEditForm({ ...editForm, workPhone: e.target.value })} />
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-xs">Location</Label>
+                <Input value={editForm.location} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setEditingEmployee(null)}>Cancel</Button>
+              <Button
+                onClick={() => {
+                  if (!editingEmployee) return
+                  const { departmentId, ...rest } = editForm
+                  updateEmployee.mutate({
+                    id: editingEmployee.id,
+                    data: departmentId ? editForm : rest,
+                  })
+                }}
+                disabled={updateEmployee.isPending}
+              >
+                {updateEmployee.isPending ? 'Saving…' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <TabsContent value="departments" className="space-y-2">
           {departments.map(d => (

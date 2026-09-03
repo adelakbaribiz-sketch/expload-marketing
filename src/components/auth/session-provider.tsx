@@ -8,6 +8,8 @@ interface AuthUser {
   name: string | null
   role: string
   tenantId: string
+  isSuperAdmin: boolean
+  internalPlatformRole: string | null
 }
 
 interface AuthContextValue {

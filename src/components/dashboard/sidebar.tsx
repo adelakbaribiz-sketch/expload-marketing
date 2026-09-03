@@ -71,6 +71,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useI18n } from '@/i18n/provider'
+import { useAuth } from '@/components/auth/session-provider'
 
 type View = 'dashboard' | 'unified' | 'roadmap' | 'quick-setup' | 'marketplace' | 'club' | 'ecommerce' | 'reseller' | 'attribution' | 'team' | 'super-admin' | 'white-label' | 'finance' | 'platform' | 'promo-links' | 'competitor-analysis' | 'investor-hub' | 'tenants' | 'projects' | 'leads' | 'generator' | 'campaigns' | 'crm' | 'engagement' | 'seo' | 'content' | 'growth' | 'ads' | 'social' | 'listening' | 'analytics' | 'ai' | 'advisor' | 'workflow' | 'autonomous' | 'backlinks' | 'social-analyzer' | 'export-analyzer' | 'calendar' | 'goals' | 'pricing' | 'activity' | 'settings' | 'distributors' | 'internal-portal' | 'payment-gateways' | 'llm-settings' | 'onboarding-wizard' | 'negotiation' | 'notification-center' | 'agent-hub' | 'virtual-assistants' | 'payroll' | 'support-plans' | 'graph-agent' | 'financial-reports' | 'project-intake' | 'events-calendar' | 'sandbox-demo' | 'ai-decisions'
 
@@ -82,6 +83,7 @@ interface SidebarProps {
 export function Sidebar({ view, onViewChange }: SidebarProps) {
   const { sidebarOpen, setSidebarOpen, activeTenantId, setActiveTenant } = useAppStore()
   const { t } = useI18n()
+  const { user } = useAuth()
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     'overview': true,
     'acquire': true,
@@ -167,8 +169,12 @@ export function Sidebar({ view, onViewChange }: SidebarProps) {
       key: 'system', title: t('nav.sectionSystem') || 'System',
       items: [
         { id: 'notification-center', label: t('nav.notificationCenter'), icon: BellIcon, hint: '🔔' },
-        { id: 'internal-portal', label: t('nav.internalPortal'), icon: ShieldIcon, hint: 'STAFF' },
-        { id: 'super-admin', label: t('nav.superAdmin'), icon: Crown, hint: 'ADMIN' },
+        ...(user?.internalPlatformRole
+          ? [{ id: 'internal-portal' as const, label: t('nav.internalPortal'), icon: ShieldIcon, hint: 'STAFF' }]
+          : []),
+        ...(user?.isSuperAdmin
+          ? [{ id: 'super-admin' as const, label: t('nav.superAdmin'), icon: Crown, hint: 'ADMIN' }]
+          : []),
         { id: 'white-label', label: t('nav.whiteLabel'), icon: Palette, hint: 'WL' },
         { id: 'finance', label: t('nav.finance'), icon: DollarSignIcon, hint: '$' },
         { id: 'financial-reports', label: 'Financial Reports', icon: BarChart3, hint: '📊' },
@@ -335,8 +341,8 @@ export function Sidebar({ view, onViewChange }: SidebarProps) {
                 <Users2 className="h-3.5 w-3.5" />
               </div>
               <div className="min-w-0">
-                <p className="font-medium truncate">admin@expload.io</p>
-                <p className="text-muted-foreground truncate text-[11px]">owner</p>
+                <p className="font-medium truncate">{user?.name || user?.email || '—'}</p>
+                <p className="text-muted-foreground truncate text-[11px]">{user?.role ?? ''}</p>
               </div>
             </div>
           </div>

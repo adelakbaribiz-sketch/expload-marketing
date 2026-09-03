@@ -17,7 +17,7 @@ import {
 import { toast } from 'sonner'
 import {
   Users, Crown, Shield, UserPlus, Mail, Trash2, UserCog,
-  Check, X, Eye, Edit, ShieldCheck, AlertTriangle,
+  Check, X, Eye, Edit, ShieldCheck, AlertTriangle, Copy, Plus, Settings2,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -32,7 +32,14 @@ export function TeamView() {
   const qc = useQueryClient()
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteForm, setInviteForm] = useState({ email: '', name: '', roleName: 'member', roleId: '' })
+  const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [tab, setTab] = useState('members')
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false)
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null)
+  const [roleForm, setRoleForm] = useState({
+    name: '', displayName: '', description: '', color: '#7C4DFF', icon: '👤', level: 10,
+    permissionIds: [] as string[],
+  })
 
   const { data: membersData, isLoading } = useQuery({
     queryKey: ['team-members'],
@@ -70,13 +77,113 @@ export function TeamView() {
       if (!res.ok) throw new Error('invite failed')
       return res.json()
     },
-    onSuccess: () => {
-      toast.success('Invitation sent!')
+    onSuccess: (data: any) => {
+      toast.success('Invitation created!')
       qc.invalidateQueries({ queryKey: ['team-members'] })
-      setInviteOpen(false)
       setInviteForm({ email: '', name: '', roleName: 'member', roleId: '' })
+      setInviteLink(data?.inviteUrl ? `${window.location.origin}${data.inviteUrl}` : null)
     },
   })
+
+  const createRoleMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await fetch('/api/team/roles', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error('create role failed')
+      return res.json()
+    },
+    onSuccess: () => {
+      toast.success('Role created')
+      qc.invalidateQueries({ queryKey: ['team-roles'] })
+      closeRoleDialog()
+    },
+  })
+
+  const updateRoleDefMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: any }) => {
+      const res = await fetch(`/api/team/roles/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error('update role failed')
+      return res.json()
+    },
+    onSuccess: () => {
+      toast.success('Role updated')
+      qc.invalidateQueries({ queryKey: ['team-roles'] })
+      closeRoleDialog()
+    },
+  })
+
+  const deleteRoleMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/team/roles/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'delete role failed')
+      }
+      return res.json()
+    },
+    onSuccess: () => {
+      toast.success('Role deleted')
+      qc.invalidateQueries({ queryKey: ['team-roles'] })
+    },
+    onError: (err: any) => toast.error(String(err?.message ?? err)),
+  })
+
+  const openCreateRole = () => {
+    setEditingRoleId(null)
+    setRoleForm({ name: '', displayName: '', description: '', color: '#7C4DFF', icon: '👤', level: 10, permissionIds: [] })
+    setRoleDialogOpen(true)
+  }
+
+  const openEditRole = (role: any) => {
+    setEditingRoleId(role.id)
+    setRoleForm({
+      name: role.name, displayName: role.displayName, description: role.description || '',
+      color: role.color, icon: role.icon, level: role.level,
+      permissionIds: (role.permissions ?? []).map((rp: any) => rp.permission.id),
+    })
+    setRoleDialogOpen(true)
+  }
+
+  const closeRoleDialog = () => {
+    setRoleDialogOpen(false)
+    setEditingRoleId(null)
+  }
+
+  const togglePermission = (permId: string) => {
+    setRoleForm((prev) => ({
+      ...prev,
+      permissionIds: prev.permissionIds.includes(permId)
+        ? prev.permissionIds.filter((p) => p !== permId)
+        : [...prev.permissionIds, permId],
+    }))
+  }
+
+  const submitRole = () => {
+    if (editingRoleId) {
+      updateRoleDefMutation.mutate({
+        id: editingRoleId,
+        payload: {
+          displayName: roleForm.displayName, description: roleForm.description,
+          color: roleForm.color, level: roleForm.level, permissionIds: roleForm.permissionIds,
+        },
+      })
+    } else {
+      createRoleMutation.mutate(roleForm)
+    }
+  }
+
+  const copyInviteLink = () => {
+    if (!inviteLink) return
+    navigator.clipboard.writeText(inviteLink).then(
+      () => toast.success('Invite link copied'),
+      () => toast.error('Could not copy — select and copy manually'),
+    )
+  }
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, roleId, roleName }: { userId: string; roleId: string; roleName: string }) => {
@@ -123,40 +230,58 @@ export function TeamView() {
           </h2>
           <p className="text-xs text-muted-foreground">Manage team members, roles, permissions, and project access</p>
         </div>
-        <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setInviteLink(null) }}>
           <DialogTrigger asChild>
             <Button className="gap-2"><UserPlus className="h-4 w-4" /> Invite Member</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Invite Team Member</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label>Email Address</Label>
-                <Input type="email" value={inviteForm.email} onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })} placeholder="colleague@company.com" dir="ltr" />
+            {inviteLink ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Invitation created. Share this link with them — it expires in 7 days.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Input value={inviteLink} readOnly dir="ltr" className="text-xs" />
+                  <Button size="icon" variant="outline" onClick={copyInviteLink}><Copy className="h-4 w-4" /></Button>
+                </div>
               </div>
-              <div>
-                <Label>Name</Label>
-                <Input value={inviteForm.name} onChange={(e) => setInviteForm({ ...inviteForm, name: e.target.value })} placeholder="John Doe" />
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <Label>Email Address</Label>
+                  <Input type="email" value={inviteForm.email} onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })} placeholder="colleague@company.com" dir="ltr" />
+                </div>
+                <div>
+                  <Label>Name</Label>
+                  <Input value={inviteForm.name} onChange={(e) => setInviteForm({ ...inviteForm, name: e.target.value })} placeholder="John Doe" />
+                </div>
+                <div>
+                  <Label>Role</Label>
+                  <Select value={inviteForm.roleName} onValueChange={(v) => setInviteForm({ ...inviteForm, roleName: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {roles.map((r: any) => (
+                        <SelectItem key={r.id} value={r.name}>
+                          {r.icon} {r.displayName} {r.description ? `— ${r.description.slice(0, 40)}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div>
-                <Label>Role</Label>
-                <Select value={inviteForm.roleName} onValueChange={(v) => setInviteForm({ ...inviteForm, roleName: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {roles.map((r: any) => (
-                      <SelectItem key={r.id} value={r.name}>
-                        {r.icon} {r.displayName} {r.description ? `— ${r.description.slice(0, 40)}` : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            )}
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setInviteOpen(false)}>Cancel</Button>
-              <Button onClick={() => inviteMutation.mutate(inviteForm)} disabled={!inviteForm.email || !inviteForm.name || inviteMutation.isPending}>
-                {inviteMutation.isPending ? 'Sending…' : 'Send Invitation'}
-              </Button>
+              {inviteLink ? (
+                <Button onClick={() => setInviteOpen(false)}>Done</Button>
+              ) : (
+                <>
+                  <Button variant="ghost" onClick={() => setInviteOpen(false)}>Cancel</Button>
+                  <Button onClick={() => inviteMutation.mutate(inviteForm)} disabled={!inviteForm.email || !inviteForm.name || inviteMutation.isPending}>
+                    {inviteMutation.isPending ? 'Sending…' : 'Create Invitation'}
+                  </Button>
+                </>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -227,7 +352,12 @@ export function TeamView() {
         {/* Roles Tab */}
         <TabsContent value="roles" className="space-y-3">
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm">Roles ({roles.length})</CardTitle></CardHeader>
+            <CardHeader className="pb-3 flex-row items-center justify-between">
+              <CardTitle className="text-sm">Roles ({roles.length})</CardTitle>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={openCreateRole}>
+                <Plus className="h-3.5 w-3.5" /> Create Role
+              </Button>
+            </CardHeader>
             <CardContent>
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {roles.map((role: any) => {
@@ -236,11 +366,26 @@ export function TeamView() {
                     <div key={role.id} className="rounded-lg border p-3">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="grid place-items-center h-9 w-9 rounded-lg text-white shrink-0" style={{ background: role.color }}>{role.icon}</div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium">{role.displayName}</p>
                           <p className="text-[10px] text-muted-foreground">Level {role.level} · {role._count?.users || 0} users</p>
                         </div>
-                        {role.isSystem && <Badge variant="outline" className="text-[9px] ml-auto">System</Badge>}
+                        {role.isSystem ? (
+                          <Badge variant="outline" className="text-[9px]">System</Badge>
+                        ) : (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditRole(role)}>
+                              <Settings2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+                              onClick={() => deleteRoleMutation.mutate(role.id)}
+                              disabled={deleteRoleMutation.isPending}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                       {role.description && <p className="text-xs text-muted-foreground mb-2">{role.description}</p>}
                       <div className="flex flex-wrap gap-1">
@@ -255,6 +400,77 @@ export function TeamView() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Create/Edit Role Dialog */}
+          <Dialog open={roleDialogOpen} onOpenChange={(o) => !o && closeRoleDialog()}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader><DialogTitle>{editingRoleId ? 'Edit Role' : 'Create Custom Role'}</DialogTitle></DialogHeader>
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto scroll-thin pr-1">
+                {!editingRoleId && (
+                  <div>
+                    <Label>Internal Name (lowercase, no spaces)</Label>
+                    <Input
+                      value={roleForm.name}
+                      onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
+                      placeholder="regional_manager" dir="ltr"
+                    />
+                  </div>
+                )}
+                <div>
+                  <Label>Display Name</Label>
+                  <Input value={roleForm.displayName} onChange={(e) => setRoleForm({ ...roleForm, displayName: e.target.value })} placeholder="Regional Manager" />
+                </div>
+                <div>
+                  <Label>Description</Label>
+                  <Input value={roleForm.description} onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })} placeholder="Manages a region's team and projects" />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label>Icon</Label>
+                    <Input value={roleForm.icon} onChange={(e) => setRoleForm({ ...roleForm, icon: e.target.value })} maxLength={2} />
+                  </div>
+                  <div>
+                    <Label>Color</Label>
+                    <Input type="color" value={roleForm.color} onChange={(e) => setRoleForm({ ...roleForm, color: e.target.value })} className="h-9 p-1" />
+                  </div>
+                  <div>
+                    <Label>Level (0-100)</Label>
+                    <Input type="number" min={0} max={100} value={roleForm.level} onChange={(e) => setRoleForm({ ...roleForm, level: Number(e.target.value) })} />
+                  </div>
+                </div>
+                <div>
+                  <Label>Permissions ({roleForm.permissionIds.length} selected)</Label>
+                  <div className="flex flex-wrap gap-1.5 mt-1.5 max-h-48 overflow-y-auto scroll-thin p-2 rounded-md border">
+                    {allPermissions.map((p: any) => {
+                      const selected = roleForm.permissionIds.includes(p.id)
+                      return (
+                        <Badge
+                          key={p.id}
+                          variant={selected ? 'default' : 'outline'}
+                          className="text-[10px] cursor-pointer select-none"
+                          onClick={() => togglePermission(p.id)}
+                        >
+                          {p.category}:{p.displayName}
+                        </Badge>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={closeRoleDialog}>Cancel</Button>
+                <Button
+                  onClick={submitRole}
+                  disabled={
+                    (!editingRoleId && !roleForm.name) || !roleForm.displayName ||
+                    createRoleMutation.isPending || updateRoleDefMutation.isPending
+                  }
+                >
+                  {createRoleMutation.isPending || updateRoleDefMutation.isPending ? 'Saving…' : editingRoleId ? 'Save Changes' : 'Create Role'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* Permissions reference */}
           <Card>

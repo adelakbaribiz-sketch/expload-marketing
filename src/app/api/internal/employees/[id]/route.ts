@@ -39,6 +39,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
   }
   const body = await req.json()
+  if (body.platformRole === 'super_admin' && !superAdmin) {
+    return NextResponse.json({ error: 'Only a super admin can grant the super_admin platform role' }, { status: 403 })
+  }
   const allowed = [
     'departmentId', 'employeeRole', 'platformRole', 'permissions',
     'jobTitle', 'employmentType', 'managerId', 'assignedRegion',

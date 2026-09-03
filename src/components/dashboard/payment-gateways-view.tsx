@@ -47,6 +47,26 @@ export function PaymentGatewaysView() {
     onError: () => toast.error('Failed to update gateway'),
   })
 
+  const addGateway = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await fetch('/api/payments/gateways', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to add gateway')
+      }
+      return res.json()
+    },
+    onSuccess: () => {
+      toast.success('Gateway added')
+      qc.invalidateQueries({ queryKey: ['payment-gateways'] })
+    },
+    onError: (err: any) => toast.error(String(err?.message ?? err)),
+  })
+
   const gateways = gatewaysData?.gateways ?? []
   const currencies = cryptoData?.currencies ?? ['BTC', 'ETH', 'USDT', 'USDC', 'TRX', 'BNB', 'SOL']
   const rates = cryptoData?.rates ?? {}
@@ -194,7 +214,25 @@ export function PaymentGatewaysView() {
             <CardContent className="p-4">
               <form className="grid gap-3 md:grid-cols-2" onSubmit={(e) => {
                 e.preventDefault()
-                toast.info('Gateway creation requires super_admin API call')
+                const fd = new FormData(e.currentTarget)
+                const provider = String(fd.get('provider') || '')
+                const displayName = String(fd.get('displayName') || '')
+                if (!provider || !displayName) {
+                  toast.error('Provider and display name are required')
+                  return
+                }
+                addGateway.mutate({
+                  provider,
+                  displayName,
+                  apiKey: String(fd.get('apiKey') || '') || undefined,
+                  secretKey: String(fd.get('secretKey') || '') || undefined,
+                  webhookSecret: String(fd.get('webhookSecret') || '') || undefined,
+                  merchantId: String(fd.get('merchantId') || '') || undefined,
+                  priority: Number(fd.get('priority') || 100),
+                  routeBy: String(fd.get('routeBy') || 'currency'),
+                }, {
+                  onSuccess: () => (e.target as HTMLFormElement).reset(),
+                })
               }}>
                 <div>
                   <label className="text-xs">Provider</label>
@@ -228,7 +266,11 @@ export function PaymentGatewaysView() {
                   <option value="amount">amount</option>
                   <option value="method">method</option>
                 </select></div>
-                <div className="md:col-span-2"><Button type="submit"><Plus className="h-4 w-4 mr-1" /> Add Gateway</Button></div>
+                <div className="md:col-span-2">
+                  <Button type="submit" disabled={addGateway.isPending}>
+                    <Plus className="h-4 w-4 mr-1" /> {addGateway.isPending ? 'Adding…' : 'Add Gateway'}
+                  </Button>
+                </div>
               </form>
             </CardContent>
           </Card>

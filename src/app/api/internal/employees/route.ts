@@ -40,6 +40,14 @@ async function handler(req: NextRequest) {
   if (req.method === 'POST') {
     // Create new internal employee (expandable by admin/super_admin)
     const body = await req.json()
+
+    // Only an existing super_admin may grant super_admin platformRole — an
+    // admin-level internal employee could otherwise mint themselves/others
+    // a super_admin account.
+    if (body.platformRole === 'super_admin' && !superAdmin) {
+      return NextResponse.json({ error: 'Only a super admin can grant the super_admin platform role' }, { status: 403 })
+    }
+
     // Find or create user
     let linkedUser = await db.user.findUnique({ where: { email: body.email.toLowerCase() } })
     if (!linkedUser) {

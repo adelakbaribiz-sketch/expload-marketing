@@ -14,6 +14,8 @@ export async function GET() {
       name: user.name,
       role: user.role,
       tenantId: user.tenantId,
+      isSuperAdmin: user.isSuperAdmin,
+      internalPlatformRole: user.internalPlatformRole,
     },
   })
 }

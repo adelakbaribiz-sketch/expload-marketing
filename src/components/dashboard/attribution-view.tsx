@@ -9,12 +9,18 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+} from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import {
   BarChart3, Shield, Bell, MessageSquare, GitBranch, Webhook,
-  TrendingUp, AlertTriangle, Check, Loader2, Zap, Target, Users,
+  TrendingUp, AlertTriangle, Check, Loader2, Zap, Target, Users, Plus, Trash2,
 } from 'lucide-react'
 import { useState } from 'react'
+
+const FRAUD_RULE_TYPES = ['click_injection', 'sdk_spoofing', 'click_spamming', 'ip_anomaly', 'device_farm']
 
 const SOURCE_COLORS: Record<string, string> = {
   google_ads: '#4285F4', facebook_ads: '#1877F2', organic: '#22c55e',
@@ -25,8 +31,12 @@ const SEVERITY_COLORS: Record<string, string> = {
   low: '#22c55e', medium: '#f59e0b', high: '#ef4444', critical: '#dc2626',
 }
 
+const emptyRuleForm = { name: '', type: 'click_injection', description: '', severity: 'medium', action: 'flag', threshold: '' }
+
 export function AttributionView() {
   const qc = useQueryClient()
+  const [ruleDialogOpen, setRuleDialogOpen] = useState(false)
+  const [ruleForm, setRuleForm] = useState(emptyRuleForm)
 
   const { data: eventsData } = useQuery({
     queryKey: ['attribution-events'],
@@ -45,6 +55,69 @@ export function AttributionView() {
       return res.json()
     },
   })
+
+  const createRule = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await fetch('/api/attribution/rules', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error('Failed to create rule')
+      return res.json()
+    },
+    onSuccess: () => {
+      toast.success('Fraud rule created')
+      qc.invalidateQueries({ queryKey: ['fraud-rules'] })
+      setRuleDialogOpen(false)
+      setRuleForm(emptyRuleForm)
+    },
+    onError: (err: any) => toast.error(String(err?.message ?? err)),
+  })
+
+  const toggleRule = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const res = await fetch(`/api/attribution/rules/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      return res.json()
+    },
+    onSuccess: () => {
+      toast.success('Rule updated')
+      qc.invalidateQueries({ queryKey: ['fraud-rules'] })
+    },
+    onError: (err: any) => toast.error(String(err?.message ?? err)),
+  })
+
+  const deleteRule = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/attribution/rules/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed')
+      return res.json()
+    },
+    onSuccess: () => {
+      toast.success('Rule deleted')
+      qc.invalidateQueries({ queryKey: ['fraud-rules'] })
+    },
+    onError: (err: any) => toast.error(String(err?.message ?? err)),
+  })
+
+  const submitRule = () => {
+    if (!ruleForm.name.trim() || !ruleForm.description.trim()) {
+      toast.error('Name and description are required')
+      return
+    }
+    createRule.mutate({
+      name: ruleForm.name,
+      type: ruleForm.type,
+      description: ruleForm.description,
+      severity: ruleForm.severity,
+      action: ruleForm.action,
+      config: JSON.stringify({ threshold: ruleForm.threshold || undefined }),
+      isActive: true,
+    })
+  }
 
   const events = eventsData?.items ?? []
   const rules = rulesData?.items ?? []
@@ -132,10 +205,67 @@ export function AttributionView() {
         {/* Fraud Tab */}
         <TabsContent value="fraud" className="space-y-3">
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Shield className="h-4 w-4 text-emerald-600" /> Fraud Detection Rules ({rules.length})</CardTitle></CardHeader>
+            <CardHeader className="pb-3 flex-row items-center justify-between">
+              <CardTitle className="text-sm flex items-center gap-2"><Shield className="h-4 w-4 text-emerald-600" /> Fraud Detection Rules ({rules.length})</CardTitle>
+              <Dialog open={ruleDialogOpen} onOpenChange={(o) => { setRuleDialogOpen(o); if (!o) setRuleForm(emptyRuleForm) }}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Add Rule</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader><DialogTitle>New Fraud Rule</DialogTitle></DialogHeader>
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs">Name</Label>
+                      <Input value={ruleForm.name} onChange={(e) => setRuleForm({ ...ruleForm, name: e.target.value })} placeholder="Block rapid repeat clicks" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Description</Label>
+                      <Input value={ruleForm.description} onChange={(e) => setRuleForm({ ...ruleForm, description: e.target.value })} placeholder="Flags 5+ clicks from the same device within 60s" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">Type</Label>
+                        <Select value={ruleForm.type} onValueChange={(v) => setRuleForm({ ...ruleForm, type: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {FRAUD_RULE_TYPES.map((t) => <SelectItem key={t} value={t}>{t.replace('_', ' ')}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Severity</Label>
+                        <Select value={ruleForm.severity} onValueChange={(v) => setRuleForm({ ...ruleForm, severity: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {['low', 'medium', 'high', 'critical'].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Action</Label>
+                        <Select value={ruleForm.action} onValueChange={(v) => setRuleForm({ ...ruleForm, action: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {['flag', 'block', 'review'].map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Threshold (optional)</Label>
+                        <Input value={ruleForm.threshold} onChange={(e) => setRuleForm({ ...ruleForm, threshold: e.target.value })} placeholder="5" />
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="ghost" onClick={() => setRuleDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={submitRule} disabled={createRule.isPending}>{createRule.isPending ? 'Creating…' : 'Create Rule'}</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </CardHeader>
             <CardContent>
               {rules.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">No fraud rules. Run 1-Click Setup to create default rules.</p>
+                <p className="text-sm text-muted-foreground py-4 text-center">No fraud rules yet. Add one above, or run 1-Click Setup to create default rules.</p>
               ) : (
                 <div className="space-y-2">
                   {rules.map((r: any) => (
@@ -147,7 +277,20 @@ export function AttributionView() {
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
                           <Badge variant="outline" className="text-[9px] capitalize" style={{ background: SEVERITY_COLORS[r.severity] + '20', color: SEVERITY_COLORS[r.severity] }}>{r.severity}</Badge>
-                          <Badge variant={r.isActive ? 'default' : 'secondary'} className="text-[9px]">{r.isActive ? 'Active' : 'Inactive'}</Badge>
+                          <Button
+                            size="sm" variant="ghost" className="h-6 px-2 text-[10px]"
+                            onClick={() => toggleRule.mutate({ id: r.id, isActive: !r.isActive })}
+                            disabled={toggleRule.isPending}
+                          >
+                            {r.isActive ? 'Disable' : 'Enable'}
+                          </Button>
+                          <Button
+                            size="icon" variant="ghost" className="h-6 w-6 text-destructive"
+                            onClick={() => deleteRule.mutate(r.id)}
+                            disabled={deleteRule.isPending}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-1">

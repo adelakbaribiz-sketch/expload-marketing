@@ -47,7 +47,7 @@ async function handler(req: NextRequest) {
     },
   })
 
-  return NextResponse.json({ invitation, inviteUrl: `/api/team/invite/${token}` }, { status: 201 })
+  return NextResponse.json({ invitation, inviteUrl: `/invite/${token}` }, { status: 201 })
 }
 
 export const POST = withProtection(handler, { rateLimit: 'write' })

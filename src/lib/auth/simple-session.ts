@@ -66,6 +66,18 @@ export async function clearSessionCookie(): Promise<void> {
   cookieStore.delete(SESSION_COOKIE)
 }
 
+/** Platform-level role flags, layered on top of the tenant-scoped `role` string. */
+async function getPlatformRoleFlags(userId: string): Promise<{ isSuperAdmin: boolean; internalPlatformRole: string | null }> {
+  const [superAdmin, internalEmployee] = await Promise.all([
+    db.superAdmin.findUnique({ where: { userId } }),
+    db.internalEmployee.findUnique({ where: { userId } }),
+  ])
+  return {
+    isSuperAdmin: !!superAdmin && superAdmin.isActive,
+    internalPlatformRole: internalEmployee && internalEmployee.status !== 'terminated' ? internalEmployee.platformRole : null,
+  }
+}
+
 /** Get the current authenticated user from the session cookie. */
 export async function getCurrentUser() {
   const cookieStore = await cookies()
@@ -82,12 +94,16 @@ export async function getCurrentUser() {
 
   if (!user || !user.isActive || !user.tenant?.isActive) return null
 
+  const { isSuperAdmin, internalPlatformRole } = await getPlatformRoleFlags(user.id)
+
   return {
     id: user.id,
     email: user.email,
     name: user.name,
     role: user.role,
     tenantId: user.tenantId,
+    isSuperAdmin,
+    internalPlatformRole,
   }
 }
 
@@ -118,12 +134,15 @@ export async function authenticateUser(email: string, password: string) {
   if (!isValid) return null
 
   await setSessionCookie(user.id)
+  const { isSuperAdmin, internalPlatformRole } = await getPlatformRoleFlags(user.id)
   return {
     id: user.id,
     email: user.email,
     name: user.name,
     role: user.role,
     tenantId: user.tenantId,
+    isSuperAdmin,
+    internalPlatformRole,
   }
 }
 

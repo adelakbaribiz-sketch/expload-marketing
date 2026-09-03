@@ -78,6 +78,7 @@ const PUBLIC_PAGE_ROUTES = [
   '/contact',
   '/terms',
   '/privacy',
+  '/invite',
 ]
 
 const SECURITY_HEADERS: Record<string, string> = {
