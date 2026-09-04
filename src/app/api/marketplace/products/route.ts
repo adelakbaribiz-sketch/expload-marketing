@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireTenantId } from '@/lib/tenant'
+import { isSuperAdmin } from '@/lib/auth/rbac'
 
 export async function GET() {
   const products = await db.apiProduct.findMany({
@@ -12,7 +13,11 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const tenantId = await requireTenantId()
+  await requireTenantId()
+  // ApiProduct has no tenantId — it's a platform-global marketplace listing,
+  // same reasoning as marketplace/products/[id]'s PATCH/DELETE (already
+  // SuperAdmin-gated). POST was the one method left open to any tenant user.
+  if (!(await isSuperAdmin())) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   const body = await req.json().catch(() => ({}))
   const product = await db.apiProduct.create({
     data: {

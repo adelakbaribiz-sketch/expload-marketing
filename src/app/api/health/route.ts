@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { validateEnv } from '@/lib/config/env'
 import { db } from '@/lib/db'
+import { isSuperAdmin } from '@/lib/auth/rbac'
 
 /**
  * Health check endpoint for load balancer / container orchestration probes.
@@ -51,16 +52,32 @@ export async function GET() {
   // Overall health
   const allOk = Object.values(checks).every((c) => c.ok) && env.ok
 
+  // This route is deliberately public (proxy.ts) — container/load-balancer
+  // probes and Dockerfile's HEALTHCHECK hit it with no auth available. But
+  // "public" only needs to mean up/down, not a free infra-reconnaissance
+  // dump: masked DB/Redis URLs, which integrations are configured, exact
+  // uptime, and raw upstream error text were previously returned to every
+  // anonymous caller. Only a real platform SuperAdmin gets the detail.
+  const admin = await isSuperAdmin()
+  const publicChecks = Object.fromEntries(
+    Object.entries(checks).map(([k, v]) => [k, { ok: v.ok }]),
+  )
+
   return NextResponse.json(
-    {
-      status: allOk ? 'healthy' : 'unhealthy',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: env.config.nodeEnv,
-      version: process.env.npm_package_version ?? 'unknown',
-      checks,
-      config: env.config,
-    },
+    admin
+      ? {
+          status: allOk ? 'healthy' : 'unhealthy',
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          environment: env.config.nodeEnv,
+          version: process.env.npm_package_version ?? 'unknown',
+          checks,
+          config: env.config,
+        }
+      : {
+          status: allOk ? 'healthy' : 'unhealthy',
+          checks: publicChecks,
+        },
     { status: allOk ? 200 : 503 },
   )
 }

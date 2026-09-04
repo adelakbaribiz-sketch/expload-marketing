@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireTenantId } from '@/lib/tenant'
-import { getCurrentUser, getAuthUserId } from '@/lib/auth/simple-session'
+import { getAuthUserId } from '@/lib/auth/simple-session'
+import { hasPermission } from '@/lib/auth/rbac'
 
 export async function GET() {
   const tenantId = await requireTenantId()
@@ -19,14 +20,22 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const tenantId = await requireTenantId()
+  const check = await hasPermission('team.manage')
+  if (!check.allowed) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+
   const currentUserId = await getAuthUserId()
   const body = await req.json().catch(() => ({}))
 
   // Update user role
   if (body.userId && body.roleId) {
+    const target = await db.user.findUnique({ where: { id: body.userId } })
+    if (!target || target.tenantId !== tenantId) {
+      return NextResponse.json({ error: 'not_found' }, { status: 404 })
+    }
     const updated = await db.user.update({
       where: { id: body.userId },
       data: { roleId: body.roleId, role: body.roleName || 'member' },
+      select: { id: true, email: true, name: true, role: true, roleId: true, isActive: true, tenantId: true },
     })
     // Log to audit
     await db.auditLogEntry.create({

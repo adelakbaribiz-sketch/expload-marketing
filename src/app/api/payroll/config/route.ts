@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth/simple-session'
+import { isPlatformStaffAdmin } from '@/lib/auth/rbac'
 import { withProtection } from '@/lib/security/with-protection'
 
 async function handler(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  // PayrollConfig is platform-global (no tenantId) — the company-wide
+  // revenue-split formula, not something any authenticated tenant user
+  // should be able to read/rewrite.
+  if (!(await isPlatformStaffAdmin())) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
 
   if (req.method === 'GET') {
     const config = await db.payrollConfig.findFirst({ where: { isActive: true } })

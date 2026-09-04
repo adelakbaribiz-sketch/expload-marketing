@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { withProtection } from '@/lib/security/with-protection'
 
 /**
  * PUBLIC Live Demo API — no authentication required.
@@ -7,7 +8,7 @@ import { db } from '@/lib/db'
  * Creates an anonymous demo session and returns mock data that
  * simulates a fully-populated marketing dashboard.
  */
-export async function POST(req: NextRequest) {
+async function handler(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const action = body.action || 'init' // init | navigate | track
 
@@ -54,6 +55,8 @@ export async function POST(req: NextRequest) {
     isDemo: true,
   })
 }
+
+export const POST = withProtection(handler, { rateLimit: 'public' })
 
 /** Generate realistic demo data for each dashboard view. */
 function getDemoData(view: string): any {

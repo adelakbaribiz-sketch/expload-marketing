@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth/simple-session'
+import { isSuperAdmin } from '@/lib/auth/rbac'
 import { withProtection } from '@/lib/security/with-protection'
 
 async function handler(req: NextRequest) {
@@ -16,6 +17,11 @@ async function handler(req: NextRequest) {
     if (assistantId) where.assistantId = assistantId
     if (assignmentId) where.assignmentId = assignmentId
     if (status) where.status = status
+    // AssistantTimesheet has no direct tenantId — it's only reachable via
+    // its (optional) assignment, so tenant-scoping must go through that join.
+    if (!(await isSuperAdmin())) {
+      where.assignment = { tenantId: user.tenantId }
+    }
     const timesheets = await db.assistantTimesheet.findMany({
       where, orderBy: { date: 'desc' }, take: 200,
     })
@@ -25,6 +31,12 @@ async function handler(req: NextRequest) {
   if (req.method === 'POST') {
     // Log time entry (assistant or admin)
     const body = await req.json()
+    if (body.assignmentId) {
+      const assignment = await db.assistantAssignment.findUnique({ where: { id: body.assignmentId } })
+      if (!assignment || (assignment.tenantId !== user.tenantId && !(await isSuperAdmin()))) {
+        return NextResponse.json({ error: 'not_found' }, { status: 404 })
+      }
+    }
     const ts = await db.assistantTimesheet.create({
       data: {
         assistantId: body.assistantId,
@@ -53,6 +65,10 @@ async function handler(req: NextRequest) {
   if (req.method === 'PATCH') {
     // Approve / reject timesheet
     const body = await req.json()
+    const existing = await db.assistantTimesheet.findUnique({ where: { id: body.id }, include: { assignment: true } })
+    if (!existing || (existing.assignment?.tenantId !== user.tenantId && !(await isSuperAdmin()))) {
+      return NextResponse.json({ error: 'not_found' }, { status: 404 })
+    }
     const update: any = { status: body.status }
     if (body.status === 'approved') {
       update.approvedBy = user.id

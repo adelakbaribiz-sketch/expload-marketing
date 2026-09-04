@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth/simple-session'
+import { isSuperAdmin } from '@/lib/auth/rbac'
 import { withProtection } from '@/lib/security/with-protection'
 import { emitNotificationEvent } from '@/lib/notifications/emitter'
 
@@ -15,8 +16,11 @@ async function handler(req: NextRequest) {
     const where: any = {}
     if (status) where.status = status
     if (assistantId) where.assistantId = assistantId
-    // Non-admin users see only their tenant's assignments
-    if (user.role !== 'owner' && user.role !== 'admin') {
+    // `user.role` is the caller's per-TENANT role (every tenant's own
+    // creator is 'owner') — it says nothing about platform-wide access, so
+    // it must never be used to decide whether to skip the tenant filter.
+    // Only a real platform SuperAdmin sees across tenants.
+    if (!(await isSuperAdmin())) {
       where.tenantId = user.tenantId
     }
     const assignments = await db.assistantAssignment.findMany({
@@ -70,6 +74,10 @@ async function handler(req: NextRequest) {
 
   if (req.method === 'PATCH') {
     const body = await req.json()
+    const existing = await db.assistantAssignment.findUnique({ where: { id: body.id } })
+    if (!existing || (existing.tenantId !== user.tenantId && !(await isSuperAdmin()))) {
+      return NextResponse.json({ error: 'not_found' }, { status: 404 })
+    }
     const update: any = {}
     for (const f of ['status', 'hoursLogged', 'tasksTotal', 'tasksCompleted', 'customerRating', 'customerFeedback', 'actualEndDate']) {
       if (f in body) update[f] = body[f]

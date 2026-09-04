@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { withProtection } from '@/lib/security/with-protection'
 
 /** Log a sandbox action and check if limit reached. */
-export async function POST(req: NextRequest) {
+async function handler(req: NextRequest) {
   const body = await req.json()
   const { sessionId, actionType, module, metadata } = body
   if (!sessionId || !actionType) {
@@ -43,3 +44,5 @@ export async function POST(req: NextRequest) {
     showUpgradePrompt: (updated.maxActions - updated.actionsUsed) <= 5,
   })
 }
+
+export const POST = withProtection(handler, { rateLimit: 'public' })

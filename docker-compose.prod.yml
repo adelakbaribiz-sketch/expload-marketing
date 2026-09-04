@@ -22,12 +22,16 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-marketing}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-marketing_secret_change_me}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env.production — no default is provided}
       POSTGRES_DB: ${POSTGRES_DB:-marketing_saas}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # No host port published: the app container reaches Postgres via the
+    # internal marketing-network (postgres:5432) — publishing 5432 to the
+    # host would expose the database directly to the internet with only a
+    # password (often left at its documented default) standing between it
+    # and every visitor. Use `docker compose exec postgres psql ...` for
+    # local admin access instead.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-marketing} -d ${POSTGRES_DB:-marketing_saas}"]
       interval: 10s
@@ -46,8 +50,9 @@ services:
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
+    # No host port published — same reasoning as postgres above; Redis here
+    # has no auth configured at all, so exposing 6379 publicly would let
+    # anyone read/write the job queue with zero credentials.
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -75,7 +80,7 @@ services:
       PORT: 3000
 
       # Database
-      DATABASE_URL: postgresql://${POSTGRES_USER:-marketing}:${POSTGRES_PASSWORD:-marketing_secret_change_me}@postgres:5432/${POSTGRES_DB:-marketing_saas}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-marketing}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env.production — no default is provided}@postgres:5432/${POSTGRES_DB:-marketing_saas}?schema=public
 
       # Redis
       REDIS_URL: redis://redis:6379
@@ -100,8 +105,15 @@ services:
 
       # SIEM (optional)
       SIEM_WEBHOOK_URL: ${SIEM_WEBHOOK_URL:-}
+    # Bound to loopback only: Caddy (Caddyfile) runs on the host and reverse
+    # proxies to localhost:3000, which this satisfies — but "3000:3000"
+    # (Docker's default 0.0.0.0 bind) would ALSO make the app directly
+    # reachable on the public interface, bypassing Caddy entirely and, with
+    # it, every X-Forwarded-For-trusting rate limit (src/lib/security/
+    # rate-limit.ts's getClientId() unconditionally trusts that header,
+    # which is only safe because Caddy — not the client — sets it).
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     networks:
       - marketing-network
 

@@ -8,10 +8,23 @@ async function handler(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   const superAdmin = await isSuperAdmin()
+  // PaymentGatewayConfig is platform-global (no tenantId) and stores live
+  // payment-provider credentials (apiKey/secretKey/webhookSecret) — this
+  // previously had NO role check on GET at all, so any authenticated user
+  // of any tenant (self-signup is public) could fetch every configured
+  // gateway's real Stripe/PayPal/NOWPayments secrets in plaintext. Gateway
+  // config is a platform-operator concern, not tenant-user data.
+  if (!superAdmin) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
 
   if (req.method === 'GET') {
     return NextResponse.json({
-      gateways: await db.paymentGatewayConfig.findMany({ orderBy: { priority: 'asc' } }),
+      // The dashboard's admin form only ever WRITES these fields (password
+      // inputs, never pre-filled) — nothing reads them back from GET, so
+      // they're safely omitted rather than merely masked.
+      gateways: await db.paymentGatewayConfig.findMany({
+        orderBy: { priority: 'asc' },
+        omit: { apiKey: true, secretKey: true, webhookSecret: true },
+      }),
     })
   }
 

@@ -68,6 +68,24 @@ export async function isSuperAdmin(): Promise<boolean> {
   return Boolean(sa?.isActive)
 }
 
+/**
+ * Check if user is platform staff with admin-level access (super admin, or
+ * an internal employee whose platformRole is 'admin'/'super_admin'). This is
+ * the correct gate for platform-global, non-tenant-scoped internal-operations
+ * data (payroll, internal HR) — same convention already used inline in
+ * POST /api/internal/employees.
+ */
+export async function isPlatformStaffAdmin(): Promise<boolean> {
+  const user = await getCurrentUser()
+  if (!user) return false
+  const [sa, emp] = await Promise.all([
+    db.superAdmin.findUnique({ where: { userId: user.id } }),
+    db.internalEmployee.findUnique({ where: { userId: user.id } }),
+  ])
+  if (sa?.isActive) return true
+  return Boolean(emp && (emp.platformRole === 'admin' || emp.platformRole === 'super_admin') && emp.status === 'active')
+}
+
 /** Get all permissions for the current user. */
 export async function getUserPermissions(): Promise<string[]> {
   const user = await getCurrentUser()

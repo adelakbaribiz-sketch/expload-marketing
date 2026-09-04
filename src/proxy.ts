@@ -60,7 +60,11 @@ const PUBLIC_API_ROUTES = [
   '/api/auth/signup',
   '/api/auth/logout',
   '/api/public/',
-  '/api/webhooks/',
+  // Scoped to the inbound gateway-webhook receiver only — NOT '/api/webhooks/',
+  // which would also match the tenant-scoped WebhookSubscription CRUD route
+  // (GET/PATCH/DELETE /api/webhooks/[id]) and exempt it from both the
+  // session-auth check and the CSRF Origin check below.
+  '/api/webhooks/crypto/',
   '/api/team/invite/',
   '/api/sandbox/start',
   '/api/sandbox/action',

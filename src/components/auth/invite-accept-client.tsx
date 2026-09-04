@@ -42,13 +42,18 @@ export function InviteAcceptClient({ token }: { token: string }) {
       .catch((err) => setLoadError(String(err.message ?? err)))
   }, [token])
 
-  const acceptExisting = async () => {
+  const acceptExisting = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!password) {
+      toast.error('Enter your account password to confirm it\'s really you.')
+      return
+    }
     setSubmitting(true)
     try {
       const res = await fetch(`/api/team/invite/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'accept' }),
+        body: JSON.stringify({ action: 'accept', password }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to accept invitation')
@@ -147,16 +152,26 @@ export function InviteAcceptClient({ token }: { token: string }) {
 
           {invitation && !invitation.expired && invitation.status === 'pending' && !accepted && (
             invitation.userExists ? (
-              <div className="space-y-4">
+              <form onSubmit={acceptExisting} className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                   An account already exists for <span dir="ltr">{invitation.email}</span> as role{' '}
-                  <span className="font-medium">{invitation.role}</span>. Accept to join {invitation.tenantName} with
-                  this account, then sign in as usual.
+                  <span className="font-medium">{invitation.role}</span>. Enter that account's password to confirm
+                  it's you, then accept to join {invitation.tenantName}.
                 </p>
-                <Button className="w-full" onClick={acceptExisting} disabled={submitting}>
+                <div>
+                  <Label>Password</Label>
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    dir="ltr"
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={submitting}>
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Accept Invitation'}
                 </Button>
-              </div>
+              </form>
             ) : (
               <form onSubmit={acceptNew} className="space-y-3">
                 <div>

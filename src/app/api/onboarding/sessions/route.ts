@@ -42,6 +42,10 @@ async function handler(req: NextRequest) {
   if (req.method === 'PATCH') {
     // Update session (save answers, advance step, etc.)
     const body = await req.json()
+    const existing = await db.onboardingSession.findUnique({ where: { id: body.id } })
+    if (!existing || existing.tenantId !== user.tenantId) {
+      return NextResponse.json({ error: 'not_found' }, { status: 404 })
+    }
     const update: any = {}
     for (const f of ['customerName', 'customerEmail', 'customerPhone', 'businessName', 'businessWebsite', 'industry', 'currentStep', 'totalSteps', 'answers', 'customSystemPrompt', 'extractedContext', 'aiSummary', 'aiNeedsAnalysis', 'crawlStatus', 'crawlError', 'docsProcessed', 'status', 'negotiationId']) {
       if (f in body) {

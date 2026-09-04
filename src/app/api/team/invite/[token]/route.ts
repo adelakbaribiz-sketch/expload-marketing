@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { hashPassword } from '@/lib/auth/password'
+import { hashPassword, verifyPassword } from '@/lib/auth/password'
 import { sanitizeText } from '@/lib/security/sanitize'
+import { withProtection } from '@/lib/security/with-protection'
 import { z } from 'zod'
 
 /** Look up an invitation by token — used by the public /invite/[token] page. */
-export async function GET(_req: NextRequest, ctx: { params: Promise<{ token: string }> }) {
+async function getHandler(_req: NextRequest, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params
   const invitation = await db.teamInvitation.findUnique({
     where: { token },
@@ -33,7 +34,7 @@ const AcceptNewUserSchema = z.object({
 })
 
 /** Accept or reject a team invitation by token. */
-export async function POST(req: NextRequest, ctx: { params: Promise<{ token: string }> }) {
+async function postHandler(req: NextRequest, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params
   const body = await req.json().catch(() => ({}))
 
@@ -46,7 +47,16 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ token: str
     const existingUser = await db.user.findUnique({ where: { email: invitation.email } })
 
     if (existingUser) {
-      // Existing account — just add them to the inviting tenant with the invited role.
+      // Existing account — knowledge of the invite token alone is not proof of
+      // identity (the token is emailed, but this endpoint has no way to confirm
+      // the caller received that email rather than, say, another tenant member
+      // guessing/observing the invited address). Require the account's own
+      // password to prove the caller actually controls it before moving it —
+      // and its tenantId/role — into a different tenant.
+      const parsed = z.object({ password: z.string().min(1) }).safeParse(body)
+      if (!existingUser.hashedPassword || !parsed.success || !(await verifyPassword(parsed.data.password, existingUser.hashedPassword))) {
+        return NextResponse.json({ error: 'This email already has an account. Log in and enter your password to accept this invitation.' }, { status: 401 })
+      }
       await db.user.update({
         where: { id: existingUser.id },
         data: { tenantId: invitation.tenantId, role: invitation.role, isActive: true },
@@ -83,3 +93,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ token: str
     return NextResponse.json({ ok: true, message: 'Invitation rejected' })
   }
 }
+
+// Both are public (unauthenticated by design — an invitee has no session
+// yet) but that also means unlimited unauthenticated attempts without a
+// rate limit; POST now performs a password check for the existing-account
+// branch, so it gets the same 'auth' preset login uses, not just 'write'.
+export const GET = withProtection(getHandler, { rateLimit: 'read' })
+export const POST = withProtection(postHandler, { rateLimit: 'auth' })

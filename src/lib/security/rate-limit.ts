@@ -130,4 +130,8 @@ export const RATE_LIMITS = {
   ai: { limit: 10, windowMs: 60 * 1000 },
   /** Auth endpoints — very strict, 5 req/min */
   auth: { limit: 5, windowMs: 60 * 1000 },
+  /** Public, unauthenticated endpoints that write to the DB (sandbox, demo,
+   *  pricing calculator) — no session to key off of and no legitimate
+   *  reason for a real visitor to call these dozens of times a minute. */
+  public: { limit: 20, windowMs: 60 * 1000 },
 } as const

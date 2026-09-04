@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { withProtection } from '@/lib/security/with-protection'
 
 /**
  * PUBLIC Pricing Calculator endpoint — no authentication required.
@@ -7,7 +8,7 @@ import { db } from '@/lib/db'
  * Allows potential customers to get a plan recommendation before
  * signing up. Saves the calculation anonymously for analytics.
  */
-export async function POST(req: NextRequest) {
+async function handler(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const monthlyBudget = Number(body.monthlyBudget || 0)
   const productPrice = Number(body.productPrice || 0)
@@ -121,6 +122,8 @@ export async function POST(req: NextRequest) {
     ],
   })
 }
+
+export const POST = withProtection(handler, { rateLimit: 'public' })
 
 function getPlanFeatures(plan: string) {
   const features: Record<string, any> = {

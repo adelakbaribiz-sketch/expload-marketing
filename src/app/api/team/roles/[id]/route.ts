@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireTenantId } from '@/lib/tenant'
+import { hasPermission } from '@/lib/auth/rbac'
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const tenantId = await requireTenantId()
+  const check = await hasPermission('team.manage')
+  if (!check.allowed) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   const { id } = await ctx.params
-  // Role.tenantId is nullable — system roles (isSystem) are shared across
-  // all tenants by design, so they're excluded from the ownership filter.
-  const existing = await db.role.findFirst({ where: { id, OR: [{ tenantId }, { isSystem: true }] } })
+  // Only this tenant's own custom roles are editable here — a shared
+  // isSystem role must never be mutated by one tenant's request, since that
+  // would silently change every other tenant using that same system role.
+  const existing = await db.role.findFirst({ where: { id, tenantId, isSystem: false } })
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   const body = await req.json().catch(() => ({}))
 
@@ -35,6 +39,8 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
 export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const tenantId = await requireTenantId()
+  const check = await hasPermission('team.manage')
+  if (!check.allowed) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   const { id } = await ctx.params
   const role = await db.role.findFirst({ where: { id, OR: [{ tenantId }, { isSystem: true }] } })
   if (!role) return NextResponse.json({ error: 'Not found' }, { status: 404 })

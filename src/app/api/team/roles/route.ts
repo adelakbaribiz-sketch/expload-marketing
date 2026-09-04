@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireTenantId } from '@/lib/tenant'
 import { withProtection } from '@/lib/security/with-protection'
+import { hasPermission } from '@/lib/auth/rbac'
 
 export async function GET() {
   const tenantId = await requireTenantId()
@@ -16,6 +17,8 @@ export async function GET() {
 
 async function postHandler(req: NextRequest) {
   const tenantId = await requireTenantId()
+  const check = await hasPermission('team.manage')
+  if (!check.allowed) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   const body = await req.json().catch(() => ({}))
   const role = await db.role.create({
     data: {

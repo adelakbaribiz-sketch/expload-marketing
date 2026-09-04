@@ -4,6 +4,7 @@ import { requireTenantId } from '@/lib/tenant'
 import { getAuthUserId } from '@/lib/auth/simple-session'
 import { withProtection } from '@/lib/security/with-protection'
 import { sanitizeEmail, sanitizeText } from '@/lib/security/sanitize'
+import { hasPermission } from '@/lib/auth/rbac'
 import { z } from 'zod'
 
 const InviteSchema = z.object({
@@ -15,6 +16,8 @@ const InviteSchema = z.object({
 
 async function handler(req: NextRequest) {
   const tenantId = await requireTenantId()
+  const check = await hasPermission('team.manage')
+  if (!check.allowed) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   const invitedBy = await getAuthUserId()
   const body = await req.json().catch(() => null)
   const parsed = InviteSchema.safeParse(body)

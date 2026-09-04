@@ -14,10 +14,16 @@ dist/
 
 # Production
 *.production
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Git (never needs to be in a build context; Dockerfile's `COPY . .`
+# would otherwise bake full history into the builder stage's layers)
+.git
+.gitignore
 
 # Debug
 npm-debug.log*

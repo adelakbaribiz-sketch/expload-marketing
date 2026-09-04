@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth/simple-session'
+import { isPlatformStaffAdmin } from '@/lib/auth/rbac'
 import { withProtection } from '@/lib/security/with-protection'
 import { emitNotificationEvent } from '@/lib/notifications/emitter'
 
@@ -21,6 +22,7 @@ import { emitNotificationEvent } from '@/lib/notifications/emitter'
 async function handler(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  if (!(await isPlatformStaffAdmin())) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
 
   if (req.method !== 'POST') return NextResponse.json({ error: 'method_not_allowed' }, { status: 405 })
 

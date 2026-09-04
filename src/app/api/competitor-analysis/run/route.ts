@@ -12,7 +12,7 @@ async function handler(req: NextRequest) {
   if (!competitorId) return NextResponse.json({ error: 'competitorId required' }, { status: 400 })
 
   const competitor = await db.competitorProfile.findUnique({ where: { id: competitorId } })
-  if (!competitor) return NextResponse.json({ error: 'Competitor not found' }, { status: 404 })
+  if (!competitor || competitor.tenantId !== tenantId) return NextResponse.json({ error: 'Competitor not found' }, { status: 404 })
 
   // Generate comprehensive analysis with simulated data + AI insights
   const analysis = await db.competitorAnalysis.create({

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth/simple-session'
+import { isPlatformStaffAdmin } from '@/lib/auth/rbac'
 import { withProtection } from '@/lib/security/with-protection'
 
 async function handler(req: NextRequest) {
@@ -19,6 +20,8 @@ async function handler(req: NextRequest) {
   }
 
   if (req.method === 'POST') {
+    // AssistantService is a platform-global catalog (no tenantId).
+    if (!(await isPlatformStaffAdmin())) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
     const body = await req.json()
     const service = await db.assistantService.create({
       data: {

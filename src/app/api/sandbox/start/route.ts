@@ -7,11 +7,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { withProtection } from '@/lib/security/with-protection'
 
 const SANDBOX_MAX_ACTIONS = 20
 const SANDBOX_DURATION_HOURS = 24
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
 
   // Create a mock tenant for the sandbox session
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
   }, { status: 201 })
 }
 
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   const url = new URL(req.url)
   const sessionId = url.searchParams.get('sessionId')
   if (!sessionId) return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
@@ -76,3 +77,6 @@ export async function GET(req: NextRequest) {
     actionsRemaining: session.maxActions - session.actionsUsed,
   })
 }
+
+export const POST = withProtection(postHandler, { rateLimit: 'public' })
+export const GET = withProtection(getHandler, { rateLimit: 'public' })

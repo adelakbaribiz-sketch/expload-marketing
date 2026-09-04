@@ -13,9 +13,11 @@
  */
 
 import 'server-only'
+import { assertPublicHost } from '@/lib/security/ssrf-guard'
 
 const MAX_CHARS = 50000
 const FETCH_TIMEOUT_MS = 15000
+const MAX_REDIRECTS = 5
 
 export interface CrawlResult {
   url: string
@@ -32,32 +34,55 @@ export async function crawlWebsite(url: string): Promise<CrawlResult> {
   let normalized = url.trim()
   if (!/^https?:\/\//i.test(normalized)) normalized = `https://${normalized}`
 
-  // Validate
-  try { new URL(normalized) } catch { throw new Error(`Invalid URL: ${url}`) }
+  let current: URL
+  try { current = new URL(normalized) } catch { throw new Error(`Invalid URL: ${url}`) }
+  if (current.protocol !== 'http:' && current.protocol !== 'https:') {
+    throw new Error(`Unsupported URL scheme: ${current.protocol}`)
+  }
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
   try {
-    const res = await fetch(normalized, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ExploadCrawler/1.0; +https://expload.io/bot)',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'en-US,en;q=0.9,fa;q=0.8,ar;q=0.7',
-      },
-      redirect: 'follow',
-    })
+    // Manually walk redirects (redirect: 'manual') so every hop — not just
+    // the first URL — gets the same private-address check. A naive check
+    // only on the initial URL is bypassable by redirecting from an
+    // allowed public host to an internal one.
+    for (let hop = 0; ; hop++) {
+      if (hop > MAX_REDIRECTS) throw new Error('Too many redirects')
+      await assertPublicHost(current.hostname)
 
-    if (!res.ok) throw new Error(`Fetch failed: ${res.status} ${res.statusText}`)
+      const res = await fetch(current.toString(), {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ExploadCrawler/1.0; +https://expload.io/bot)',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Accept-Language': 'en-US,en;q=0.9,fa;q=0.8,ar;q=0.7',
+        },
+        redirect: 'manual',
+      })
 
-    const contentType = res.headers.get('content-type') ?? ''
-    if (!contentType.includes('text/html') && !contentType.includes('application/xhtml')) {
-      throw new Error(`Unsupported content type: ${contentType}`)
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get('location')
+        if (!location) throw new Error(`Redirect with no Location header (${res.status})`)
+        const next = new URL(location, current)
+        if (next.protocol !== 'http:' && next.protocol !== 'https:') {
+          throw new Error(`Unsupported redirect URL scheme: ${next.protocol}`)
+        }
+        current = next
+        continue
+      }
+
+      if (!res.ok) throw new Error(`Fetch failed: ${res.status} ${res.statusText}`)
+
+      const contentType = res.headers.get('content-type') ?? ''
+      if (!contentType.includes('text/html') && !contentType.includes('application/xhtml')) {
+        throw new Error(`Unsupported content type: ${contentType}`)
+      }
+
+      const html = await res.text()
+      return parseHtml(current.toString(), html)
     }
-
-    const html = await res.text()
-    return parseHtml(normalized, html)
   } finally {
     clearTimeout(timeout)
   }

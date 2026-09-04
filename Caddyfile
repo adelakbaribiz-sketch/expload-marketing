@@ -1,23 +1,40 @@
-:81 {
-	@transform_port_query {
-		query XTransformPort=*
-	}
+# Reference Caddyfile — matches what `scripts/deploy-vps.sh` generates on the
+# actual production host (see that script for the live, auto-generated
+# version with the real domain substituted in). Kept here as a checked-in
+# reference matching TECHNICAL_SPECIFICATION.md §9.7's documented intent:
+# auto-HTTPS, reverse proxy to localhost:3000, security headers.
+#
+# Replace example.com with your real domain before using this file directly
+# — Caddy only issues Let's Encrypt certificates for a real registered
+# domain block, not for a bare port/IP listener.
+#
+# Security note (fixed 2026-09-05): an earlier version of this file listened
+# on plain HTTP :81 with an unauthenticated `?XTransformPort=<n>` handler
+# that reverse-proxied to ANY caller-chosen local port with no allowlist —
+# a real open-proxy primitive into whatever else might be listening on
+# loopback. It was never part of the actual deploy path (deploy-vps.sh
+# generates its own Caddyfile independently of this one) but its presence
+# here could mislead someone into deploying it as-is. Removed outright
+# rather than "fixed in place," since no legitimate use for an
+# arbitrary-port proxy was found anywhere in this project.
 
-	handle @transform_port_query {
-		reverse_proxy localhost:{query.XTransformPort} {
-			header_up Host {host}
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
-			header_up X-Real-IP {remote_host}
-		}
-	}
+example.com {
+  reverse_proxy localhost:3000 {
+    header_up Host {host}
+    header_up X-Forwarded-For {remote_host}
+    header_up X-Forwarded-Proto {scheme}
+    header_up X-Real-IP {remote_host}
+  }
 
-	handle {
-		reverse_proxy localhost:3000 {
-			header_up Host {host}
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
-			header_up X-Real-IP {remote_host}
-		}
-	}
+  header {
+    Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+    X-Content-Type-Options nosniff
+    X-Frame-Options DENY
+    Referrer-Policy strict-origin-when-cross-origin
+  }
+
+  encode gzip zstd
+
+  @static path /_next/static/* /fonts/* /images/* /favicon.ico
+  header @static Cache-Control "public, max-age=31536000, immutable"
 }

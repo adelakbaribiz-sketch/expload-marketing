@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
       tenant: { select: { id: true, name: true, domain: true } },
       superAdmin: true,
     },
+    omit: { hashedPassword: true },
     orderBy: { createdAt: 'desc' },
     take: limit,
   })

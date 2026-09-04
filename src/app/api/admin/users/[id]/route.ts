@@ -26,6 +26,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       ...(body.role ? { role: String(body.role) } : {}),
       ...(typeof body.isActive === 'boolean' ? { isActive: body.isActive } : {}),
     },
+    omit: { hashedPassword: true },
   })
   return NextResponse.json({ user: updated })
 }
