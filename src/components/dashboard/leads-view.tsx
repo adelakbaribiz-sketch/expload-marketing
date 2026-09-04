@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { Search, Sparkles, Trash2, RefreshCw, ExternalLink, Phone, Mail } from 'lucide-react'
 import { useI18n } from '@/i18n/provider'
+import { useAuth } from '@/components/auth/session-provider'
 
 const STATUS_COLORS: Record<string, string> = {
   new: '#10b981',
@@ -40,6 +41,12 @@ const STATUS_VALUES = ['new', 'contacted', 'qualified', 'won', 'lost'] as const
 
 export function LeadsView() {
   const { t } = useI18n()
+  const { user } = useAuth()
+  // viewer is documented (src/lib/auth/rbac.ts) as read-only for leads —
+  // hide write affordances rather than showing buttons whose click would
+  // (today) silently succeed server-side with no role check either; this
+  // establishes the intended UI-level pattern, see USER-JOURNEYS.md journey 6.
+  const canWrite = user?.role !== 'viewer'
   const qc = useQueryClient()
 
   const STATUS_OPTIONS = STATUS_VALUES.map((v) => ({
@@ -262,31 +269,37 @@ export function LeadsView() {
                       </td>
                       <td className="py-2.5">
                         <div className="flex items-center gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              enrichMutation.mutate(l.id)
-                            }}
-                            disabled={enrichMutation.isPending}
-                            title={t('leads.enrichWithAI')}
-                          >
-                            <Sparkles className="h-3.5 w-3.5 text-violet-600" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0 hover:bg-destructive/10 hover:text-destructive"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              if (confirm(t('leads.deleteConfirm'))) deleteMutation.mutate(l.id)
-                            }}
-                            title={t('common.delete')}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                          {canWrite ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  enrichMutation.mutate(l.id)
+                                }}
+                                disabled={enrichMutation.isPending}
+                                title={t('leads.enrichWithAI')}
+                              >
+                                <Sparkles className="h-3.5 w-3.5 text-violet-600" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (confirm(t('leads.deleteConfirm'))) deleteMutation.mutate(l.id)
+                                }}
+                                title={t('common.delete')}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground">View only</span>
+                          )}
                         </div>
                       </td>
                     </tr>

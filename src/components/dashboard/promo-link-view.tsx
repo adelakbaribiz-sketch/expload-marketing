@@ -237,7 +237,7 @@ export function PromoLinkView() {
                     </div>
                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => copyToClipboard(link.shortUrl)}><Copy className="h-3.5 w-3.5" /></Button>
                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setSelectedLink(link)}><Eye className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => deleteMutation.mutate(link.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => { if (confirm(`Delete promo link "${link.name}"? Any already-shared link will stop working.`)) deleteMutation.mutate(link.id) }}><Trash2 className="h-3.5 w-3.5" /></Button>
                   </div>
                 </div>
               </CardContent>

@@ -255,7 +255,7 @@ export function MarketplaceView() {
                         </div>
                         <Badge variant={k.isActive ? 'default' : 'secondary'} className="text-[10px]">{k.isActive ? 'Active' : 'Revoked'}</Badge>
                         {k.isActive && (
-                          <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 h-7 w-7 p-0" onClick={() => revokeKeyMutation.mutate(k.id)}>
+                          <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 h-7 w-7 p-0" onClick={() => { if (confirm(`Revoke API key "${k.name}"? Anything using it will immediately stop working.`)) revokeKeyMutation.mutate(k.id) }}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         )}

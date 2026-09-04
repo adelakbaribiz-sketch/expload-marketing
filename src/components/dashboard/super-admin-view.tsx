@@ -187,7 +187,16 @@ export function SuperAdminView() {
                       <Badge variant="outline" className="text-[10px]">{t._count?.leads} leads</Badge>
                       <Badge variant="outline" className="text-[10px]">{t._count?.projects} projects</Badge>
                       <Badge variant={t.isActive ? 'default' : 'secondary'} className="text-[10px]">{t.isActive ? 'Active' : 'Disabled'}</Badge>
-                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => toggleTenantMutation.mutate({ id: t.id, isActive: t.isActive })}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs"
+                        onClick={() => {
+                          if (!t.isActive || confirm(`Disable tenant "${t.name}"? All ${t._count?.users ?? 0} of its users will immediately lose access.`)) {
+                            toggleTenantMutation.mutate({ id: t.id, isActive: t.isActive })
+                          }
+                        }}
+                      >
                         {t.isActive ? 'Disable' : 'Enable'}
                       </Button>
                     </div>
@@ -222,7 +231,12 @@ export function SuperAdminView() {
                         size="sm"
                         variant={u.superAdmin ? 'destructive' : 'outline'}
                         className="h-7 text-xs"
-                        onClick={() => promoteMutation.mutate({ id: u.id, make: !u.superAdmin })}
+                        onClick={() => {
+                          const msg = u.superAdmin
+                            ? `Remove Super Admin access from ${u.name || u.email}?`
+                            : `Grant ${u.name || u.email} full Super Admin access to the entire platform?`
+                          if (confirm(msg)) promoteMutation.mutate({ id: u.id, make: !u.superAdmin })
+                        }}
                       >
                         {u.superAdmin ? 'Demote' : 'Make Super Admin'}
                       </Button>

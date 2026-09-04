@@ -194,7 +194,7 @@ export function WebhooksView() {
                     </Button>
                     <Button
                       size="icon" variant="ghost" className="text-destructive"
-                      onClick={() => deleteWebhook.mutate(w.id)}
+                      onClick={() => { if (confirm(`Delete webhook "${w.url}"? Any integration relying on it will stop receiving events.`)) deleteWebhook.mutate(w.id) }}
                       disabled={deleteWebhook.isPending}
                     >
                       <Trash2 className="h-4 w-4" />

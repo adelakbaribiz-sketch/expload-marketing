@@ -271,7 +271,7 @@ export function CrmView() {
                         </div>
                       </td>
                       <td className="py-2.5">
-                        <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 h-7 w-7 p-0" onClick={() => deleteMutation.mutate(d.id)}>
+                        <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 h-7 w-7 p-0" onClick={() => { if (confirm(`Delete deal "${d.title}"?`)) deleteMutation.mutate(d.id) }}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </td>

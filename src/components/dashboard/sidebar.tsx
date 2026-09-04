@@ -72,6 +72,15 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { LogOut } from 'lucide-react'
 import { useI18n } from '@/i18n/provider'
 import { useAuth } from '@/components/auth/session-provider'
 
@@ -85,7 +94,7 @@ interface SidebarProps {
 export function Sidebar({ view, onViewChange }: SidebarProps) {
   const { sidebarOpen, setSidebarOpen, activeTenantId, setActiveTenant } = useAppStore()
   const { t } = useI18n()
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     'overview': true,
     'acquire': true,
@@ -164,7 +173,13 @@ export function Sidebar({ view, onViewChange }: SidebarProps) {
         { id: 'negotiation', label: t('nav.negotiation'), icon: HandshakeIcon, hint: 'NEG' },
         { id: 'virtual-assistants', label: 'Virtual Assistants', icon: HeadsetIcon, hint: 'VA' },
         { id: 'support-plans', label: 'Support Plans', icon: LifeBuoyIcon, hint: 'SLA' },
-        { id: 'payroll', label: 'Payroll & Salary', icon: WalletIcon, hint: '$$' },
+        // Platform-operator-only: pays the SaaS's own staff out of platform
+        // revenue, not a tenant's own business feature — and already
+        // server-side gated to platform staff, so every other tenant role
+        // clicking it was a guaranteed dead-end 403.
+        ...((user?.internalPlatformRole || user?.isSuperAdmin)
+          ? [{ id: 'payroll' as const, label: 'Payroll & Salary', icon: WalletIcon, hint: '$$' }]
+          : []),
       ],
     },
     {
@@ -180,7 +195,12 @@ export function Sidebar({ view, onViewChange }: SidebarProps) {
         { id: 'white-label', label: t('nav.whiteLabel'), icon: Palette, hint: 'WL' },
         { id: 'finance', label: t('nav.finance'), icon: DollarSignIcon, hint: '$' },
         { id: 'financial-reports', label: 'Financial Reports', icon: BarChart3, hint: '📊' },
-        { id: 'platform', label: t('nav.platform'), icon: MegaphoneIcon, hint: '📣' },
+        // Platform-operator-only: markets THIS SaaS product itself (its own
+        // referral program, its own financial dashboard), not the tenant's
+        // business — see SITEMAP.md §4.1.
+        ...((user?.internalPlatformRole || user?.isSuperAdmin)
+          ? [{ id: 'platform' as const, label: t('nav.platform'), icon: MegaphoneIcon, hint: '📣' }]
+          : []),
         { id: 'promo-links', label: t('nav.promoLinks'), icon: Link2Icon, hint: '🔗' },
         { id: 'team', label: t('nav.team'), icon: UsersIcon, hint: '👥' },
         { id: 'approvals', label: 'Approval Queue', icon: ClipboardCheckIcon, hint: 'OK' },
@@ -340,15 +360,34 @@ export function Sidebar({ view, onViewChange }: SidebarProps) {
 
           {/* Footer */}
           <div className="border-t border-sidebar-border p-3">
-            <div className="flex items-center gap-2 rounded-lg bg-sidebar-accent/40 p-2.5 text-xs">
-              <div className="grid place-items-center h-7 w-7 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
-                <Users2 className="h-3.5 w-3.5" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-medium truncate">{user?.name || user?.email || '—'}</p>
-                <p className="text-muted-foreground truncate text-[11px]">{user?.role ?? ''}</p>
-              </div>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 rounded-lg bg-sidebar-accent/40 p-2.5 text-xs text-left hover:bg-sidebar-accent/70 transition-colors"
+                >
+                  <div className="grid place-items-center h-7 w-7 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <Users2 className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">{user?.name || user?.email || '—'}</p>
+                    <p className="text-muted-foreground truncate text-[11px]">{user?.role ?? ''}</p>
+                  </div>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="top" className="w-56">
+                <DropdownMenuLabel className="truncate">{user?.email ?? ''}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => onViewChange('settings')}>
+                  <Settings className="h-4 w-4" />
+                  {t('nav.settings') || 'Settings'}
+                </DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onClick={() => logout()}>
+                  <LogOut className="h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </aside>

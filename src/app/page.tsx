@@ -259,7 +259,7 @@ export default function Home() {
 function RenderView({ view, onNavigate }: { view: View; onNavigate?: (v: string) => void }) {
   switch (view) {
     case 'dashboard':
-      return <DashboardView />
+      return <DashboardView onNavigate={onNavigate} />
     case 'agent-hub':
       return <AgentHubView onNavigate={onNavigate ? (v) => onNavigate(v) : undefined} />
     case 'unified':

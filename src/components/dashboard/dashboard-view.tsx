@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { Button } from '@/components/ui/button'
 import {
   Users,
   Target,
@@ -12,6 +13,7 @@ import {
   TrendingUp,
   Activity as ActivityIcon,
   Clock,
+  Sparkles,
 } from 'lucide-react'
 import {
   Bar,
@@ -35,7 +37,7 @@ const STATUS_COLORS: Record<string, string> = {
   lost: '#ef4444',
 }
 
-export function DashboardView() {
+export function DashboardView({ onNavigate }: { onNavigate?: (view: string) => void } = {}) {
   const { t } = useI18n()
 
   const STATUS_LABELS: Record<string, string> = {
@@ -150,8 +152,14 @@ export function DashboardView() {
           </CardHeader>
           <CardContent>
             {pieData.length === 0 ? (
-              <div className="h-48 grid place-items-center text-sm text-muted-foreground">
-                {t('dashboard.noLeadsYet')}
+              <div className="h-48 grid place-items-center gap-3 text-sm text-muted-foreground">
+                <p>{t('dashboard.noLeadsYet')}</p>
+                {onNavigate && (
+                  <Button size="sm" className="gap-1.5" onClick={() => onNavigate('generator')}>
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Generate your first leads
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="flex flex-col md:flex-row items-center gap-4">

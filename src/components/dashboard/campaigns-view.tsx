@@ -40,6 +40,7 @@ import {
   FileText,
 } from 'lucide-react'
 import { useI18n } from '@/i18n/provider'
+import { useAuth } from '@/components/auth/session-provider'
 
 const STATUS_COLORS: Record<string, string> = {
   draft: '#64748b',
@@ -52,6 +53,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function CampaignsView() {
   const { t } = useI18n()
+  const { user } = useAuth()
+  const canWrite = user?.role !== 'viewer'
   const qc = useQueryClient()
   const [open, setOpen] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
@@ -170,6 +173,7 @@ export function CampaignsView() {
             Create, send, and track email marketing campaigns
           </p>
         </div>
+        {canWrite && (
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -279,6 +283,7 @@ export function CampaignsView() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {/* Campaign list */}
@@ -342,7 +347,7 @@ export function CampaignsView() {
                   <FileText className="h-3.5 w-3.5" />
                   Details
                 </Button>
-                {c.status === 'draft' && (
+                {c.status === 'draft' && canWrite && (
                   <Button
                     size="sm"
                     variant="default"
@@ -370,16 +375,18 @@ export function CampaignsView() {
                     {c.sentCount} sent
                   </Badge>
                 )}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-destructive hover:bg-destructive/10 h-7 w-7 p-0"
-                  onClick={() => {
-                    if (confirm('Delete this campaign?')) deleteMutation.mutate(c.id)
-                  }}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                {canWrite && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:bg-destructive/10 h-7 w-7 p-0"
+                    onClick={() => {
+                      if (confirm('Delete this campaign?')) deleteMutation.mutate(c.id)
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

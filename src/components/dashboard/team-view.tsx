@@ -379,7 +379,7 @@ export function TeamView() {
                             </Button>
                             <Button
                               size="icon" variant="ghost" className="h-7 w-7 text-destructive"
-                              onClick={() => deleteRoleMutation.mutate(role.id)}
+                              onClick={() => { if (confirm(`Delete the role "${role.displayName}"? ${role._count?.users || 0} user(s) currently have this role.`)) deleteRoleMutation.mutate(role.id) }}
                               disabled={deleteRoleMutation.isPending}
                             >
                               <Trash2 className="h-3.5 w-3.5" />

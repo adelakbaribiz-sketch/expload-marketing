@@ -211,7 +211,7 @@ export function PayrollView() {
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">{p.status}</Badge>
                     {p.status === 'calculated' && (
-                      <Button size="sm" className="bg-emerald-600 text-white btn-3d" onClick={() => approve.mutate(p.id)}>
+                      <Button size="sm" className="bg-emerald-600 text-white btn-3d" onClick={() => { if (confirm(`Approve and pay out $${p.staffPool.toLocaleString()} for ${p.periodLabel}? This triggers real salary payments and cannot be undone.`)) approve.mutate(p.id) }}>
                         <CheckCircle className="h-3 w-3 mr-1" /> Approve & Pay
                       </Button>
                     )}

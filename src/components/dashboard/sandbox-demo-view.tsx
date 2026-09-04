@@ -51,16 +51,31 @@ export function SandboxDemoView() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId: session.sessionId, actionType: `view_${module}`, module }),
       })
-      if (!res.ok) throw new Error('Failed')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'failed')
+      }
       return res.json()
     },
     onSuccess: (data) => {
       setSession({ ...session, actionsUsed: data.actionsUsed, actionsRemaining: data.actionsRemaining })
       if (data.showUpgradePrompt) {
-        toast.info('Running low on demo actions. Sign up for unlimited access!')
+        toast.info('Running low on demo actions — create a real account below to keep going with no limit.')
       }
     },
-    onError: () => toast.error('Action failed'),
+    onError: (err: Error) => {
+      // Distinguish the two real causes (previously both showed a generic
+      // "Action failed" and — per the API's own upgradeUrl:'/signup' — would
+      // have pointed at a route that doesn't exist anywhere in this app.
+      if (err.message === 'action_limit_reached') {
+        toast.error("You've used all your demo actions — create a real account below to keep exploring with no limit.")
+      } else if (err.message === 'session_expired') {
+        toast.error('This demo session has expired. Start a new one below.')
+        setSession(null)
+      } else {
+        toast.error('Action failed. Please try again.')
+      }
+    },
   })
 
   const convert = useMutation({

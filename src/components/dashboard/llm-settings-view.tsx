@@ -194,7 +194,7 @@ export function LlmSettingsView() {
                       {p.hasApiKey && (
                         <Button
                           size="sm" variant="ghost" className="h-7 gap-1 text-xs text-destructive"
-                          onClick={() => resetProvider.mutate(p.id)}
+                          onClick={() => { if (confirm(`Reset ${p.displayName}? This wipes its saved API key and configuration.`)) resetProvider.mutate(p.id) }}
                           disabled={resetProvider.isPending}
                         >
                           <RotateCcw className="h-3 w-3" /> Reset

@@ -228,7 +228,7 @@ export function InternalPortalView() {
                     {e.status !== 'terminated' && (
                       <Button
                         size="icon" variant="ghost" className="h-7 w-7 text-destructive"
-                        onClick={() => terminateEmployee.mutate(e.id)}
+                        onClick={() => { if (confirm(`Terminate ${e.user?.name || e.workEmail || 'this employee'}? This ends their employment record.`)) terminateEmployee.mutate(e.id) }}
                         disabled={terminateEmployee.isPending}
                       >
                         <UserX className="h-3.5 w-3.5" />

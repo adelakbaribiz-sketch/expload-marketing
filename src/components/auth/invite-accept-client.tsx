@@ -21,7 +21,7 @@ interface InvitationInfo {
 
 export function InviteAcceptClient({ token }: { token: string }) {
   const router = useRouter()
-  const { login, refresh } = useAuth()
+  const { login } = useAuth()
   const [invitation, setInvitation] = useState<InvitationInfo | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -58,9 +58,19 @@ export function InviteAcceptClient({ token }: { token: string }) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to accept invitation')
       setAccepted(true)
-      toast.success('Invitation accepted! Please sign in to continue.')
-      await refresh()
-      setTimeout(() => router.push('/'), 1500)
+      // The server already verified this exact password against the
+      // account — reuse it to actually log the browser in, the same way
+      // the brand-new-account branch below does, rather than relying on
+      // refresh() to notice a pre-existing session cookie (which only
+      // works if this browser happened to already be logged in).
+      const loginResult = await login(invitation!.email, password)
+      if (loginResult.success) {
+        toast.success('Invitation accepted! Welcome aboard.')
+        setTimeout(() => router.push('/'), 800)
+      } else {
+        toast.success('Invitation accepted — please sign in to continue.')
+        setTimeout(() => router.push('/'), 1500)
+      }
     } catch (err: any) {
       toast.error(String(err?.message ?? err))
     } finally {
