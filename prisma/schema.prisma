@@ -144,6 +144,8 @@ model User {
   projectMembers   ProjectMember[]
   superAdmin       SuperAdmin?
   internalEmployee InternalEmployee?
+
+  @@index([tenantId])
 }
 
 model Project {
@@ -158,6 +160,8 @@ model Project {
 
   leads   Lead[]
   members ProjectMember[]
+
+  @@index([tenantId])
 }
 
 model Company {
@@ -176,6 +180,8 @@ model Company {
   leads    Lead[]
   contacts Contact[]
   deals    Deal[]
+
+  @@index([tenantId])
 }
 
 model Lead {
@@ -205,6 +211,9 @@ model Lead {
   activities Activity[]
   emailLogs  EmailLog[]
   deals      Deal[]
+
+  @@index([tenantId, status])
+  @@index([email])
 }
 
 model Contact {
@@ -221,6 +230,9 @@ model Contact {
   updatedAt DateTime @updatedAt
 
   deals Deal[]
+
+  @@index([tenantId])
+  @@index([email])
 }
 
 model Activity {
@@ -233,6 +245,8 @@ model Activity {
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   lead      Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 // ============================================================================
@@ -529,6 +543,7 @@ model ContentCalendar {
 
   @@index([scheduledAt])
   @@index([status])
+  @@index([tenantId])
 }
 
 // ============================================================================
@@ -571,6 +586,7 @@ model SocialPost {
 
   @@index([status])
   @@index([scheduledAt])
+  @@index([tenantId])
 }
 
 // ============================================================================
@@ -615,6 +631,7 @@ model AdCampaign {
   updatedAt   DateTime  @updatedAt
 
   @@index([status])
+  @@index([tenantId])
 }
 
 // ============================================================================
@@ -689,6 +706,7 @@ model AiTask {
   createdAt   DateTime  @default(now())
 
   @@index([status])
+  @@index([tenantId])
 }
 
 model AiRecommendation {
@@ -708,6 +726,7 @@ model AiRecommendation {
 
   @@index([status])
   @@index([priority])
+  @@index([tenantId])
 }
 
 // ============================================================================
@@ -728,6 +747,8 @@ model Workflow {
   updatedAt     DateTime @updatedAt
 
   runs WorkflowRun[]
+
+  @@index([tenantId])
 }
 
 model WorkflowRun {
@@ -745,6 +766,7 @@ model WorkflowRun {
   createdAt   DateTime  @default(now())
 
   @@index([status])
+  @@index([tenantId])
 }
 
 // ============================================================================
@@ -794,6 +816,7 @@ model BacklinkOutreach {
   createdAt     DateTime            @default(now())
 
   @@index([status])
+  @@index([tenantId])
 }
 
 model AuthorityTracker {
@@ -1132,6 +1155,7 @@ model Review {
 
   @@index([reviewMonitorId])
   @@index([rating])
+  @@index([tenantId])
 }
 
 // ============================================================================
@@ -1394,6 +1418,7 @@ model Invoice {
 
   @@index([tenantId])
   @@index([status])
+  @@index([tenantId, status])
 }
 
 // ============================================================================
@@ -2199,7 +2224,7 @@ model MarketingFunnel {
 }
 
 model CustomerJourney {
-  id             String   @id @unique @default(cuid())
+  id             String   @id @default(cuid())
   name           String
   description    String?
   steps          String // JSON
@@ -2523,6 +2548,7 @@ model Payment {
   @@index([status])
   @@index([type])
   @@index([createdAt])
+  @@index([tenantId, status])
 }
 
 model PaymentMethod {
@@ -3290,6 +3316,7 @@ model CryptoPayment {
   @@index([status])
   @@index([cryptoCurrency])
   @@index([createdAt])
+  @@index([tenantId, status])
 }
 
 model CryptoWallet {
@@ -4144,6 +4171,7 @@ model SupportTicketItem {
   @@index([status])
   @@index([priority])
   @@index([subscriptionId])
+  @@index([tenantId, status])
 }
 
 // ============================================================================

@@ -1,11 +1,11 @@
 # ADR-0006: Adopt Prisma migration history instead of `db push` for schema evolution
 
-**Status**: Proposed
+**Status**: Proposed — confirmed and expanded by the Phase 04 database audit (2026-09-04), see `DATABASE-AUDIT.md` §10 / `DATABASE-TARGET.md` DB-09. Not implemented this pass; needs its own dedicated pass with a real staging environment (DB-10, automated backups, is a prerequisite and is itself still deferred).
 **Date**: 2026-09-04
 
 ## Current
 
-No `prisma/migrations/` directory exists anywhere in the repo. Development uses `prisma db push` (schema-sync, no history). The production deploy script (`scripts/deploy.sh`) runs `prisma migrate deploy`, which has nothing to apply against a fresh database (`KNOWN-ISSUES.md` #16) — `scripts/deploy-vps.sh` independently discovered this and hedges with a `db push` fallback that `deploy.sh` lacks.
+No `prisma/migrations/` directory exists anywhere in the repo. Development uses `prisma db push` (schema-sync, no history). **Three**, not two, deploy-time scripts independently and inconsistently handle this: `scripts/deploy.sh` runs `prisma migrate deploy`, which has nothing to apply against a fresh database (`KNOWN-ISSUES.md` #16); `scripts/deploy-vps.sh` independently discovered this and hedges with a `db push` fallback that `deploy.sh` lacks; `scripts/migrate-prod.sh` (found in the Phase 04 audit) branches on `DATABASE_URL` itself — Postgres gets `migrate deploy`, SQLite gets `db push` — with its own independent logic, unaware of the other two scripts.
 
 ## Problem
 

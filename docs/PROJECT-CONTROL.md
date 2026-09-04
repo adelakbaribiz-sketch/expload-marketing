@@ -12,6 +12,7 @@ Per `docs/PROJECT-PHASE-MATRIX.md`: phases 00-03 (Product Discovery, Existing Pr
 - **01 Existing Project Audit** — `PROJECT-INVENTORY.md`, `ARCHITECTURE-CURRENT.md`, `DEPENDENCY-AUDIT.md`, `DEAD-CODE.md`, `TODO-INVENTORY.md`
 - **02 Requirements** — `PRD.md`, `USER-STORIES.md`, `USE-CASES.md`, `BUSINESS-RULES.md`, `ACCEPTANCE-CRITERIA.md`, `REQUIREMENTS-TRACEABILITY.md`
 - **03 Architecture** — `ARCHITECTURE-TARGET.md`, `SYSTEM-DIAGRAM.md`, `MODULE-BOUNDARIES.md`, `DEPENDENCY-RULES.md`, `adr/0001`-`0007`
+- **04 Database (audit + P0 fixes)** — `DATABASE-AUDIT.md`, `DATABASE-TARGET.md`, `adr/0010`-`0011`, `scripts/db-integrity-check.ts`. Not fully COMPLETE (see phase matrix) — real migrations (`adr/0006`) still deferred.
 
 *(Also, prior to this documentation-recovery effort, real feature work already shipped and is reflected in the above: role-aware dashboards, a working team-invite flow, custom role UI, real Funnel/Journey builders, a Webhooks manager, an Approval Queue, Push/SMS UI, a job-queue/semantic-search admin panel, an LLM-provider reset action, and a financial-report archive — see git log `63fccd6`..`85f962f` for the exact commits. This work is KEEP, not something this recovery pass second-guesses.)*
 
@@ -19,8 +20,8 @@ Per `docs/PROJECT-PHASE-MATRIX.md`: phases 00-03 (Product Discovery, Existing Pr
 
 | Phase | Status | Top gap |
 |---|---|---|
-| 04 Database | Partial | No migration history — `db push` only, production-unsafe |
-| 05 Security | **Broken** | 2 Critical + 6 High findings, some reachable with zero auth |
+| 04 Database | Partial (audited 2026-09-04, P0 fixes applied) | No migration history — `db push` only, production-unsafe (`adr/0006`, deferred — needs its own staging pass) |
+| 05 Security | Partially Complete | 2 Critical + 4 of 6 High findings fixed 2026-09-04; 2 High (payment/analyzer stubs) BLOCKED on external resources |
 | 06 UX | Partial | RTL only on landing/auth, not the ~55 authenticated views |
 | 07 Design System | Partial | Duplicate toast systems, 5 dead UI-kit wrappers |
 | 08 Backend | Partial | 11/15 payment gateways stub; 4 analyzer endpoints fabricate data; 2 dead lib modules |
@@ -53,23 +54,29 @@ Per `docs/PROJECT-PHASE-MATRIX.md`: phases 00-03 (Product Discovery, Existing Pr
 - **ADR-0001 (Accepted)**: stay a modular monolith, no microservice extraction — the existing module graph is already a clean, low-coupling DAG.
 - **ADR-0002 (Proposed)**: consolidate the two AI stacks into `llm/aggregator.ts`.
 - **ADR-0003 (Proposed)**: add optional `validate`/`beforeWrite` hooks to the CRUD factory.
-- **ADR-0004 (Proposed, highest priority)**: harden tenant-context resolution — remove or credential-gate the header/cookie fallback.
+- **ADR-0004 (Implemented 2026-09-04)**: harden tenant-context resolution — header fallback removed, cookie fallback kept but gated to SuperAdmin only.
 - **ADR-0005 (Proposed)**: consolidate the two autonomous-agent implementations.
-- **ADR-0006 (Proposed)**: adopt real Prisma migration history.
-- **ADR-0007 (Proposed)**: add session expiry and a minimal revocation path.
+- **ADR-0006 (Proposed, confirmed by Phase 04 audit — 3 self-contradicting deploy scripts, not 2)**: adopt real Prisma migration history.
+- **ADR-0007 (Step 1 implemented 2026-09-04)**: session expiry enforced server-side; step 2 (revocation list) still Proposed.
+- **ADR-0010 (Proposed)**: introduce real Prisma `enum` types for the 226 fields currently documented only via comment.
+- **ADR-0011 (Proposed)**: consolidate 9 duplicate/overlapping model clusters (`User.role`/`roleId` highest-risk, audit-log/alert clusters lowest-risk).
 
 ## Pending decisions (need the product owner, not an engineering call)
 
 1. Does the internal HR/payroll/support-SLA/internal-portal cluster belong in the same customer-facing product shell, or should it be split into a separate internal tool? (`docs/PRODUCT-BASELINE.md` §"Out of scope")
 2. What is the `Cohort` model actually meant to track? (No code references it anywhere — needs a purpose before any implementation.)
 3. Is `agent/run` (the rule-based autonomous-agent implementation) still in active use by any real workflow, or is it safe to retire in favor of `graph/orchestrator.ts`? (`adr/0005` migration step 1 — needs someone who can check live usage, not just code.)
-4. Does any real external integration depend on the `X-Tenant-ID` header fallback today? (`adr/0004` migration step 1 — same kind of "needs live-traffic knowledge" check.)
+4. ~~Does any real external integration depend on the `X-Tenant-ID` header fallback today?~~ **Resolved 2026-09-04**: zero real callers found via repo-wide grep before removal; header fallback removed outright in `adr/0004`'s implementation, cookie fallback kept (SuperAdmin-only) since it's the live tenant-switcher feature.
 5. What's the actual investment level wanted for testing/CI/observability (phases 15/16/18/19) — accepted gap for now, or next priority after security? This shapes sequencing more than anything else on this list.
+6. Is `User.role` (plain string) or `User.roleId` → `Role` (RBAC) the intended long-term authorization model? (`adr/0011` item #1 — highest-risk consolidation item in that ADR; already confirmed the custom-role UI has zero real effect today, so this isn't just a schema question, it's "which access-control model does this product actually want.")
+7. Should the 5 duplicate audit-log models, the 2 anonymous-visitor-tracking systems, and the other `adr/0011` clusters be consolidated now or left as-is until they cause a real bug? Lower urgency than #6 but same underlying question of ownership.
 
 ## Technical debt (non-security, catalogued not yet actioned)
 
-Full list in `DEAD-CODE.md` and `MODULE-BOUNDARIES.md`'s violations section. Highlights: 2 fully dead `src/lib/` modules; 8 dead/unused npm dependencies; duplicate toast system; a prompt catalog 15/17 of whose entries are bypassed; business logic embedded directly in 4+ route handlers with no service module; a distributor-payout amount that's caller-supplied with no formula; a license-purchase amount-recording bug that doesn't scale with quantity purchased.
+Full list in `DEAD-CODE.md` and `MODULE-BOUNDARIES.md`'s violations section. Highlights: 2 fully dead `src/lib/` modules; 8 dead/unused npm dependencies; duplicate toast system; a prompt catalog 15/17 of whose entries are bypassed; business logic embedded directly in 4+ route handlers with no service module; a distributor-payout amount that's caller-supplied with no formula; a license-purchase amount-recording bug that doesn't scale with quantity purchased. **Database-specific technical debt** (full detail in `DATABASE-TARGET.md`'s deferred table): no `$transaction` wrapping on 8 more multi-step writes including 2 genuine TOCTOU races (club points/ad-credits); 45 more models missing a `[tenantId,status]` composite index; 226 string fields with no real enum enforcement; 9 duplicate model clusters; no backup automation.
 
 ## Next action
 
-**Update 2026-09-04**: the two Critical findings, and 4 of the 6 High findings, are now fixed and verified live (`docs/IMPLEMENTATION-PLAN.md`). The next execution point is **`adr/0003`** (add optional `validate`/`beforeWrite` hooks to the CRUD factory) — small, foundational, fully backward-compatible, and unblocks the Funnel/Journey validation gap and the distributor-payout-formula gap noted in `BUSINESS-RULES.md`. After that: a product decision is needed (not an engineering task) on the 2 blocked High findings (payment gateways, analyzer data) — see "Pending decisions" above, item 5 is now the most relevant one to resolve next.
+**Update 2026-09-04 (Phase 04 — Database Engineering)**: a full database audit ran this pass (`DATABASE-AUDIT.md`) covering tables/relations/indexes/constraints/transactions/migrations/duplicates/nullability/data-integrity/performance/security. Applied: 28 missing `tenantId` indexes, 6 composite `[tenantId,status]` indexes, a live-verified fix for a real double-payment-record bug in the crypto webhook handler (now transactional), cleanup of 7 confirmed-orphaned dev rows, and a new data-integrity test tool (`scripts/db-integrity-check.ts`, 24 checks, run via `bun run db:integrity-check`) — all documented with Migration/Rollback/Data Migration/Validation in `DATABASE-TARGET.md`. Phase 05 (security) status was also corrected in this pass — the "Incomplete/broken phases" table above still said Security was Broken despite the fixes already being live; that inconsistency is now fixed to match `docs/PROJECT-PHASE-MATRIX.md`.
+
+**Still deferred, ranked**: (1) `adr/0009`-equivalent — DB-08 in `DATABASE-TARGET.md`: 8 more unwrapped multi-step writes including 2 genuine TOCTOU races (payroll, license purchase, club points/ad-credits) — same severity class as the crypto fix just shipped, same fix pattern to reuse, deferred only for scope/time. (2) `adr/0003` (CRUD factory validation hooks) — still not started, still small/foundational/backward-compatible. (3) `adr/0006`/DB-09 (real Prisma migrations) — the longest-standing documented gap, deliberately not attempted this pass since it needs a real staging environment and backup tooling (DB-10) as prerequisites. (4) A product decision is still needed on the 2 blocked High security findings (payment gateways, analyzer data) — see "Pending decisions" above.

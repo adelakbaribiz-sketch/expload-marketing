@@ -156,42 +156,50 @@ export async function updateCryptoPaymentStatus(
   confirmations: number,
   rawPayload: any,
 ): Promise<void> {
-  const payment = await db.cryptoPayment.findUnique({ where: { gatewayPaymentId } })
-  if (!payment) return
-
   const statusMap: Record<string, string> = {
     waiting: 'pending', confirming: 'confirming', confirmed: 'confirmed',
     sending: 'confirming', partially_paid: 'confirming', finished: 'completed',
     failed: 'failed', expired: 'expired', refunded: 'refunded',
   }
   const mappedStatus = statusMap[status] ?? status
-  const updateData: any = {
-    status: mappedStatus, confirmations, rawPayload: JSON.stringify(rawPayload),
-  }
 
-  if (mappedStatus === 'completed' && !payment.completedAt) {
-    updateData.completedAt = new Date()
-    const newPayment = await db.payment.create({
-      data: {
-        tenantId: payment.tenantId ?? 'platform',
-        amount: payment.amount,
-        currency: payment.fiatCurrency,
-        type: 'subscription',
-        status: 'completed',
-        paymentMethod: 'crypto',
-        paymentMethodId: payment.id,
-        description: `Crypto ${payment.cryptoCurrency} via ${payment.gateway}`,
-        completedAt: new Date(),
-      },
-    })
-    updateData.paymentId = newPayment.id
-  } else if (mappedStatus === 'expired' && !payment.expiredAt) {
-    updateData.expiredAt = new Date()
-  } else if (mappedStatus === 'confirming' && !payment.detectedAt) {
-    updateData.detectedAt = new Date()
-  }
+  // Read-check-write must be one transaction: NOWPayments retries this webhook on
+  // any non-200/timeout, and the create+update used to run as two separate awaits —
+  // a crash or slow response between them left completedAt unset, so the retry passed
+  // the `!payment.completedAt` guard again and created a second Payment row for the
+  // same crypto payment (double-booked revenue). See DATABASE-AUDIT.md "Transactions".
+  await db.$transaction(async (tx) => {
+    const payment = await tx.cryptoPayment.findUnique({ where: { gatewayPaymentId } })
+    if (!payment) return
 
-  await db.cryptoPayment.update({ where: { id: payment.id }, data: updateData })
+    const updateData: any = {
+      status: mappedStatus, confirmations, rawPayload: JSON.stringify(rawPayload),
+    }
+
+    if (mappedStatus === 'completed' && !payment.completedAt) {
+      updateData.completedAt = new Date()
+      const newPayment = await tx.payment.create({
+        data: {
+          tenantId: payment.tenantId ?? 'platform',
+          amount: payment.amount,
+          currency: payment.fiatCurrency,
+          type: 'subscription',
+          status: 'completed',
+          paymentMethod: 'crypto',
+          paymentMethodId: payment.id,
+          description: `Crypto ${payment.cryptoCurrency} via ${payment.gateway}`,
+          completedAt: new Date(),
+        },
+      })
+      updateData.paymentId = newPayment.id
+    } else if (mappedStatus === 'expired' && !payment.expiredAt) {
+      updateData.expiredAt = new Date()
+    } else if (mappedStatus === 'confirming' && !payment.detectedAt) {
+      updateData.detectedAt = new Date()
+    }
+
+    await tx.cryptoPayment.update({ where: { id: payment.id }, data: updateData })
+  })
 }
 
 export async function getCryptoRates(): Promise<Record<string, number>> {

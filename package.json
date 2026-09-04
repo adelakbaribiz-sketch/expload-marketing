@@ -17,6 +17,7 @@
     "db:migrate:prod": "prisma migrate deploy",
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
+    "db:integrity-check": "bun run scripts/db-integrity-check.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
