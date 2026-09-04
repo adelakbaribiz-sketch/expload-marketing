@@ -27,27 +27,33 @@ async function handler(req: NextRequest) {
   const crypto = await import('crypto')
   const token = crypto.randomBytes(32).toString('hex')
 
-  const invitation = await db.teamInvitation.create({
-    data: {
-      email,
-      role: parsed.data.roleName,
-      token,
-      tenantId,
-      invitedBy: invitedBy || 'unknown',
-      expiresAt: new Date(Date.now() + 7 * 86400000), // 7 days
-    },
-  })
+  // Invitation + audit-log entry must land together — a failure between the
+  // two used to leave an invitation with no audit trail. See
+  // BACKEND-ARCHITECTURE.md "Transactions".
+  const invitation = await db.$transaction(async (tx) => {
+    const invitation = await tx.teamInvitation.create({
+      data: {
+        email,
+        role: parsed.data.roleName,
+        token,
+        tenantId,
+        invitedBy: invitedBy || 'unknown',
+        expiresAt: new Date(Date.now() + 7 * 86400000), // 7 days
+      },
+    })
 
-  // Log
-  await db.auditLogEntry.create({
-    data: {
-      userId: invitedBy ?? undefined,
-      action: 'invite',
-      entityType: 'user',
-      entityName: email,
-      description: `Invited ${email} as ${parsed.data.roleName}`,
-      tenantId,
-    },
+    await tx.auditLogEntry.create({
+      data: {
+        userId: invitedBy ?? undefined,
+        action: 'invite',
+        entityType: 'user',
+        entityName: email,
+        description: `Invited ${email} as ${parsed.data.roleName}`,
+        tenantId,
+      },
+    })
+
+    return invitation
   })
 
   return NextResponse.json({ invitation, inviteUrl: `/invite/${token}` }, { status: 201 })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireTenantId } from '@/lib/tenant'
 import { withProtection } from '@/lib/security/with-protection'
+import { ApiError } from '@/lib/api/errors'
 
 export async function GET() {
   const tenantId = await requireTenantId()
@@ -127,27 +128,36 @@ async function postHandler(req: NextRequest) {
       return NextResponse.json({ error: 'Insufficient ad credits. Earn more by upgrading your tier.' }, { status: 400 })
     }
 
-    const ad = await db.clubAdvertisement.create({
-      data: {
-        membershipId: membership.id,
-        tenantId,
-        title: String(body.title || '').slice(0, 200),
-        description: String(body.description || '').slice(0, 1000),
-        imageUrl: body.imageUrl || null,
-        targetUrl: body.targetUrl || '',
-        placement: body.placement || 'dashboard_sidebar',
-        endDate: body.endDate ? new Date(body.endDate) : null,
-        status: 'pending',
-        creditsUsed: 1,
-      },
-    })
+    // Same check-then-act race as club/rewards/[id]/redeem: guard the credit
+    // decrement with a `gte` condition inside the transaction so a second
+    // concurrent create_ad request that already spent the credit fails the
+    // guard instead of driving the balance negative.
+    const ad = await db.$transaction(async (tx) => {
+      const decremented = await tx.clubMembership.updateMany({
+        where: { id: membership.id, adCreditsBalance: { gte: 1 } },
+        data: {
+          adCreditsBalance: { decrement: 1 },
+          adCreditsUsed: { increment: 1 },
+        },
+      })
+      if (decremented.count === 0) {
+        throw new ApiError(400, 'Insufficient ad credits. Earn more by upgrading your tier.')
+      }
 
-    await db.clubMembership.update({
-      where: { id: membership.id },
-      data: {
-        adCreditsBalance: { decrement: 1 },
-        adCreditsUsed: { increment: 1 },
-      },
+      return tx.clubAdvertisement.create({
+        data: {
+          membershipId: membership.id,
+          tenantId,
+          title: String(body.title || '').slice(0, 200),
+          description: String(body.description || '').slice(0, 1000),
+          imageUrl: body.imageUrl || null,
+          targetUrl: body.targetUrl || '',
+          placement: body.placement || 'dashboard_sidebar',
+          endDate: body.endDate ? new Date(body.endDate) : null,
+          status: 'pending',
+          creditsUsed: 1,
+        },
+      })
     })
 
     return NextResponse.json({ ad }, { status: 201 })

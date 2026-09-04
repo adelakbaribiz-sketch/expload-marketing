@@ -1,7 +1,9 @@
 # ADR-0003: Give the CRUD factory an optional validation hook instead of special-casing it
 
-**Status**: Proposed
+**Status**: **Accepted and implemented** (2026-09-04, Phase 08 — Backend Engineering)
 **Date**: 2026-09-04
+
+**Implementation note**: shipped exactly as designed below — `validate` and `beforeWrite` are now optional fields on `DomainConfig` (`src/lib/crud/domain-handler.ts`), wired into `postItem`/`patchItem`, backward compatible with all existing call sites. Phase 08 also extended the factory beyond this ADR's original scope with `filterableFields`/`sortableFields` (list-endpoint filtering and sorting) and real offset pagination (`?page=`/`?limit=`), and wrapped the previously-unprotected GET handlers in `withProtection`. See `BACKEND-ARCHITECTURE.md` "Pagination, Filtering, Sorting" and "Business Logic placement" for the full picture; retrofitting `validate`/`beforeWrite` onto the ~91 existing factory domains (Funnel/Journey per the original migration plan below, and others as they need a rule) remains a deferred, per-domain follow-up — this ADR only unblocked *where* such logic can live.
 
 ## Current
 

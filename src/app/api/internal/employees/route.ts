@@ -41,6 +41,8 @@ async function handler(req: NextRequest) {
     // Create new internal employee (expandable by admin/super_admin)
     const body = await req.json()
 
+    if (!body.email) return NextResponse.json({ error: 'email required' }, { status: 400 })
+
     // Only an existing super_admin may grant super_admin platformRole — an
     // admin-level internal employee could otherwise mint themselves/others
     // a super_admin account.
@@ -48,54 +50,58 @@ async function handler(req: NextRequest) {
       return NextResponse.json({ error: 'Only a super admin can grant the super_admin platform role' }, { status: 403 })
     }
 
-    // Find or create user
-    let linkedUser = await db.user.findUnique({ where: { email: body.email.toLowerCase() } })
-    if (!linkedUser) {
-      // Provisional user — must be onboarded via existing signup flow
-      const tenant = await db.tenant.findUnique({ where: { domain: 'platform.internal' } })
-      if (!tenant) {
-        const newTenant = await db.tenant.create({
-          data: { name: 'Platform Internal', domain: 'platform.internal', plan: 'enterprise' },
-        })
-        linkedUser = await db.user.create({
-          data: { email: body.email.toLowerCase(), name: body.name, tenantId: newTenant.id, role: 'admin' },
-        })
-      } else {
-        linkedUser = await db.user.create({
-          data: { email: body.email.toLowerCase(), name: body.name, tenantId: tenant.id, role: 'admin' },
+    // Up to 3 sequential writes (tenant + user, employee, activity log) must
+    // land together — a failure partway through used to leave a linked user
+    // with no employee record, or an employee with no activity trail. See
+    // BACKEND-ARCHITECTURE.md "Transactions".
+    const employee = await db.$transaction(async (tx) => {
+      const email = body.email.toLowerCase()
+      let linkedUser = await tx.user.findUnique({ where: { email } })
+      if (!linkedUser) {
+        // Provisional user — must be onboarded via existing signup flow
+        let tenant = await tx.tenant.findUnique({ where: { domain: 'platform.internal' } })
+        if (!tenant) {
+          tenant = await tx.tenant.create({
+            data: { name: 'Platform Internal', domain: 'platform.internal', plan: 'enterprise' },
+          })
+        }
+        linkedUser = await tx.user.create({
+          data: { email, name: body.name, tenantId: tenant.id, role: 'admin' },
         })
       }
-    }
 
-    const employee = await db.internalEmployee.create({
-      data: {
-        userId: linkedUser.id,
-        departmentId: body.departmentId,
-        employeeRole: body.employeeRole ?? 'staff',
-        platformRole: body.platformRole ?? 'employee',
-        permissions: JSON.stringify(body.permissions ?? []),
-        jobTitle: body.jobTitle,
-        employmentType: body.employmentType ?? 'full_time',
-        managerId: body.managerId,
-        assignedRegion: body.assignedRegion,
-        salary: body.salary,
-        salaryCurrency: body.salaryCurrency ?? 'USD',
-        bonusEligible: body.bonusEligible ?? false,
-        workPhone: body.workPhone,
-        workEmail: body.workEmail ?? body.email,
-        location: body.location,
-      },
-    })
+      const employee = await tx.internalEmployee.create({
+        data: {
+          userId: linkedUser.id,
+          departmentId: body.departmentId,
+          employeeRole: body.employeeRole ?? 'staff',
+          platformRole: body.platformRole ?? 'employee',
+          permissions: JSON.stringify(body.permissions ?? []),
+          jobTitle: body.jobTitle,
+          employmentType: body.employmentType ?? 'full_time',
+          managerId: body.managerId,
+          assignedRegion: body.assignedRegion,
+          salary: body.salary,
+          salaryCurrency: body.salaryCurrency ?? 'USD',
+          bonusEligible: body.bonusEligible ?? false,
+          workPhone: body.workPhone,
+          workEmail: body.workEmail ?? email,
+          location: body.location,
+        },
+      })
 
-    await db.internalEmployeeActivity.create({
-      data: {
-        employeeId: employee.id,
-        action: 'employee_created',
-        entityType: 'internal_employee',
-        entityId: employee.id,
-        description: `Employee ${linkedUser.email} created as ${employee.employeeRole}`,
-        metadata: JSON.stringify({ createdBy: user.id }),
-      },
+      await tx.internalEmployeeActivity.create({
+        data: {
+          employeeId: employee.id,
+          action: 'employee_created',
+          entityType: 'internal_employee',
+          entityId: employee.id,
+          description: `Employee ${linkedUser.email} created as ${employee.employeeRole}`,
+          metadata: JSON.stringify({ createdBy: user.id }),
+        },
+      })
+
+      return employee
     })
 
     return NextResponse.json({ employee }, { status: 201 })

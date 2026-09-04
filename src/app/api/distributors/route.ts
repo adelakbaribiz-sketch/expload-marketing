@@ -34,27 +34,33 @@ async function handler(req: NextRequest) {
   if (req.method === 'POST') {
     if (!superAdmin) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
     const body = await req.json()
-    // Create distributor tenant + record
-    const newTenant = await db.tenant.create({
-      data: { name: body.companyName, domain: body.domain ?? `dist-${Date.now()}.local`, plan: 'distributor' },
-    })
-    const distributor = await db.distributor.create({
-      data: {
-        tenantId: newTenant.id,
-        companyName: body.companyName,
-        legalName: body.legalName,
-        taxId: body.taxId,
-        country: body.country,
-        region: body.region,
-        city: body.city,
-        address: body.address,
-        contactName: body.contactName,
-        contactEmail: body.contactEmail,
-        contactPhone: body.contactPhone,
-        tier: body.tier ?? 'standard',
-        internalOwnerId: body.internalOwnerId,
-        notes: body.notes,
-      },
+    if (!body.companyName) return NextResponse.json({ error: 'companyName required' }, { status: 400 })
+
+    // Tenant + distributor record must land together — a failure between the
+    // two used to leave an orphaned Tenant with no owning business record.
+    // See BACKEND-ARCHITECTURE.md "Transactions".
+    const distributor = await db.$transaction(async (tx) => {
+      const newTenant = await tx.tenant.create({
+        data: { name: body.companyName, domain: body.domain ?? `dist-${Date.now()}.local`, plan: 'distributor' },
+      })
+      return tx.distributor.create({
+        data: {
+          tenantId: newTenant.id,
+          companyName: body.companyName,
+          legalName: body.legalName,
+          taxId: body.taxId,
+          country: body.country,
+          region: body.region,
+          city: body.city,
+          address: body.address,
+          contactName: body.contactName,
+          contactEmail: body.contactEmail,
+          contactPhone: body.contactPhone,
+          tier: body.tier ?? 'standard',
+          internalOwnerId: body.internalOwnerId,
+          notes: body.notes,
+        },
+      })
     })
     return NextResponse.json({ distributor }, { status: 201 })
   }

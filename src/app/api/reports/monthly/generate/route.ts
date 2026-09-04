@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { requireTenantId } from '@/lib/tenant'
 import { withProtection } from '@/lib/security/with-protection'
 import { audit } from '@/lib/security/audit'
+import { parseJsonResponse } from '@/lib/llm/parse-json'
 import ZAI from 'z-ai-web-dev-sdk'
 
 /**
@@ -78,12 +79,8 @@ async function handler(req: NextRequest) {
 
     const content = completion.choices?.[0]?.message?.content ?? ''
     try {
-      const start = content.indexOf('{')
-      const end = content.lastIndexOf('}')
-      if (start >= 0 && end > start) {
-        aiAnalysis = JSON.parse(content.slice(start, end + 1)) as Record<string, any>
-        if (aiAnalysis && aiAnalysis.executiveSummary) executiveSummary = String(aiAnalysis.executiveSummary)
-      }
+      aiAnalysis = parseJsonResponse<Record<string, any>>(content)
+      if (aiAnalysis?.executiveSummary) executiveSummary = String(aiAnalysis.executiveSummary)
     } catch {
       // keep default summary
     }

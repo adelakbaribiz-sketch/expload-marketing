@@ -24,6 +24,7 @@ async function handler(req: NextRequest) {
   const advertisingCost = Number(body.advertisingCost || 100)
   const otherCosts = Number(body.otherCosts || 50)
   const initialInvestment = Number(body.initialInvestment || 500)
+  const competitionLevel = body.competitionLevel ? String(body.competitionLevel) : null
 
   const feeConfig = PLATFORM_FEES[platform] ?? PLATFORM_FEES.amazon
   const platformFee = Math.round(productPrice * feeConfig.referralPct * 100) / 100
@@ -74,7 +75,5 @@ async function handler(req: NextRequest) {
     },
   })
 }
-
-let competitionLevel: string | null = null
 
 export const POST = withProtection(handler, { rateLimit: 'read' })

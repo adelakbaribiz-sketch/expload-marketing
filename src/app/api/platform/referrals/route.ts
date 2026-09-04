@@ -7,12 +7,16 @@ export async function GET() {
   const tenantId = await requireTenantId()
   // Get active referral programs
   const programs = await db.referralProgram.findMany({ where: { isActive: true } })
-  // Get user's referrals
+  // Get user's referrals — include the program so paid rewards are summed
+  // using each program's own configured referrerReward, not a flat guess.
   const referrals = await db.referral.findMany({
     where: { referrerTenantId: tenantId },
     orderBy: { invitedAt: 'desc' },
+    include: { program: { select: { referrerReward: true } } },
   })
-  const totalEarned = referrals.filter(r => r.referrerRewardPaid).length * 50 // $50 per qualified referral
+  const totalEarned = referrals
+    .filter(r => r.referrerRewardPaid)
+    .reduce((sum, r) => sum + r.program.referrerReward, 0)
   return NextResponse.json({ programs, referrals, totalEarned })
 }
 

@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit, getClientId, RATE_LIMITS } from '@/lib/security/rate-limit'
 import { applySecurityHeaders } from '@/lib/security/headers'
 import { audit } from '@/lib/security/audit'
+import { ApiError } from '@/lib/api/errors'
 
 type Handler<Ctx = any> = (req: NextRequest, ctx: Ctx) => Promise<NextResponse | Response>
 
@@ -56,8 +57,21 @@ export function withProtection<Ctx = any>(
       return res
     }
 
-    // 2. Run the actual handler
-    const result = await handler(req, ctx)
+    // 2. Run the actual handler — no route relied on an uncaught exception
+    // reaching Next.js's default handler on purpose; catching here gives
+    // every protected route the same fallback: a logged error and a
+    // consistent { error } JSON shape instead of an unstyled 500 with no
+    // security headers, no rate-limit headers, and (for GET-only routes)
+    // previously no protection layer at all to even reach this catch.
+    let result: NextResponse | Response
+    try {
+      result = await handler(req, ctx)
+    } catch (err) {
+      console.error('[api] unhandled error:', err)
+      const status = err instanceof ApiError ? err.status : 500
+      const message = err instanceof ApiError ? err.message : 'internal_error'
+      result = NextResponse.json({ error: message }, { status })
+    }
 
     // 3. Apply security headers to the response
     if (result instanceof NextResponse) {

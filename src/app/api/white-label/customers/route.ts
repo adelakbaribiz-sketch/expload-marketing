@@ -40,25 +40,32 @@ export async function GET() {
 async function postHandler(req: NextRequest) {
   const tenantId = await requireTenantId()
   const body = await req.json().catch(() => ({}))
-  // Create a new sub-tenant for the reseller's customer
-  const newTenant = await db.tenant.create({
-    data: {
-      name: body.customerName,
-      domain: body.customerDomain || `${Date.now()}.reseller.expload.io`,
-      plan: body.plan || 'starter',
-    },
+  if (!body.customerName) return NextResponse.json({ error: 'customerName required' }, { status: 400 })
+
+  // Sub-tenant + resellerCustomer record must land together — same
+  // orphaned-tenant risk as distributors/route.ts POST. See
+  // BACKEND-ARCHITECTURE.md "Transactions".
+  const { customer, tenant } = await db.$transaction(async (tx) => {
+    const newTenant = await tx.tenant.create({
+      data: {
+        name: body.customerName,
+        domain: body.customerDomain || `${Date.now()}.reseller.expload.io`,
+        plan: body.plan || 'starter',
+      },
+    })
+    const customer = await tx.resellerCustomer.create({
+      data: {
+        resellerTenantId: tenantId,
+        customerTenantId: newTenant.id,
+        monthlyFee: Number(body.monthlyFee || 49),
+        commissionRate: Number(body.commissionRate || 20),
+        status: body.status || 'trial',
+        trialEndsAt: body.trialDays ? new Date(Date.now() + Number(body.trialDays) * 86400000) : null,
+      },
+    })
+    return { customer, tenant: newTenant }
   })
-  const customer = await db.resellerCustomer.create({
-    data: {
-      resellerTenantId: tenantId,
-      customerTenantId: newTenant.id,
-      monthlyFee: Number(body.monthlyFee || 49),
-      commissionRate: Number(body.commissionRate || 20),
-      status: body.status || 'trial',
-      trialEndsAt: body.trialDays ? new Date(Date.now() + Number(body.trialDays) * 86400000) : null,
-    },
-  })
-  return NextResponse.json({ customer, tenant: newTenant }, { status: 201 })
+  return NextResponse.json({ customer, tenant }, { status: 201 })
 }
 
 export const POST = withProtection(postHandler, { rateLimit: 'write' })

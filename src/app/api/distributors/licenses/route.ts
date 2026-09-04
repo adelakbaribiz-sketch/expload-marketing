@@ -53,8 +53,14 @@ async function handler(req: NextRequest) {
       return NextResponse.json({ error: 'tier_not_allowed' }, { status: 403 })
     }
 
-    // Generate license keys
-    const count = body.count ?? pkg.licenseCount
+    // Generate license keys — count is client-supplied, so bound it: an
+    // unchecked value here let a caller request an arbitrary (or negative)
+    // number of rows in the createMany below.
+    const rawCount = body.count ?? pkg.licenseCount
+    if (!Number.isInteger(rawCount) || rawCount < 1 || rawCount > 1000) {
+      return NextResponse.json({ error: 'count must be an integer between 1 and 1000' }, { status: 400 })
+    }
+    const count = rawCount
     const expiresAt = new Date()
     expiresAt.setMonth(expiresAt.getMonth() + pkg.validityMonths)
 
@@ -68,36 +74,40 @@ async function handler(req: NextRequest) {
         expiresAt,
       })
     }
-    await db.licenseAllocation.createMany({ data: allocations })
+    // License-key rows, the distributor's/package's running financial
+    // totals, and the audit log entry must all land together — a failure
+    // partway through used to leave issued keys with no matching revenue
+    // record (or vice versa). See BACKEND-ARCHITECTURE.md "Transactions".
+    await db.$transaction(async (tx) => {
+      await tx.licenseAllocation.createMany({ data: allocations })
 
-    // Update stats
-    await db.distributor.update({
-      where: { id: dist.id },
-      data: {
-        totalLicensesPurchased: { increment: count },
-        totalPaidToPlatform: { increment: pkg.wholesalePrice },
-      },
-    })
-    await db.licensePackage.update({
-      where: { id: pkg.id },
-      data: {
-        totalSold: { increment: count },
-        totalRevenue: { increment: pkg.wholesalePrice },
-      },
-    })
+      await tx.distributor.update({
+        where: { id: dist.id },
+        data: {
+          totalLicensesPurchased: { increment: count },
+          totalPaidToPlatform: { increment: pkg.wholesalePrice },
+        },
+      })
+      await tx.licensePackage.update({
+        where: { id: pkg.id },
+        data: {
+          totalSold: { increment: count },
+          totalRevenue: { increment: pkg.wholesalePrice },
+        },
+      })
 
-    // Audit log
-    await db.distributorAuditLog.create({
-      data: {
-        distributorId: dist.id,
-        action: 'license_issued',
-        entityType: 'license_package',
-        entityId: pkg.id,
-        description: `Issued ${count} license keys for package ${pkg.sku}`,
-        actorType: superAdmin ? 'platform_admin' : 'distributor_user',
-        actorId: user.id,
-        actorName: user.email,
-      },
+      await tx.distributorAuditLog.create({
+        data: {
+          distributorId: dist.id,
+          action: 'license_issued',
+          entityType: 'license_package',
+          entityId: pkg.id,
+          description: `Issued ${count} license keys for package ${pkg.sku}`,
+          actorType: superAdmin ? 'platform_admin' : 'distributor_user',
+          actorId: user.id,
+          actorName: user.email,
+        },
+      })
     })
 
     return NextResponse.json({ issued: count }, { status: 201 })

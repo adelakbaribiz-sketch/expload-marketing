@@ -19,6 +19,7 @@
     "db:studio": "prisma studio",
     "db:integrity-check": "bun run scripts/db-integrity-check.ts",
     "security-check": "bun run scripts/security-checks.ts",
+    "test": "bun test",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",

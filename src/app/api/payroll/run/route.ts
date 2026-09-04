@@ -112,43 +112,49 @@ async function handler(req: NextRequest) {
     }
   })
 
-  // Create payroll period
-  const period = await db.payrollPeriod.create({
-    data: {
-      periodStart: new Date(periodStart),
-      periodEnd: new Date(periodEnd),
-      periodLabel: `${new Date(periodStart).toLocaleDateString()} - ${new Date(periodEnd).toLocaleDateString()}`,
-      totalRevenue,
-      ownerShare,
-      staffPool,
-      reinvestmentAmount,
-      bonusPool,
-      distributions: JSON.stringify(distributions),
-      status: 'calculated',
-      calculatedAt: new Date(),
-    },
-  })
+  // Period + one salary payment per employee must land together: a failure
+  // partway through the payment loop used to leave a payroll period with
+  // only some employees paid and no way to tell which. See
+  // BACKEND-ARCHITECTURE.md "Transactions".
+  const period = await db.$transaction(async (tx) => {
+    const period = await tx.payrollPeriod.create({
+      data: {
+        periodStart: new Date(periodStart),
+        periodEnd: new Date(periodEnd),
+        periodLabel: `${new Date(periodStart).toLocaleDateString()} - ${new Date(periodEnd).toLocaleDateString()}`,
+        totalRevenue,
+        ownerShare,
+        staffPool,
+        reinvestmentAmount,
+        bonusPool,
+        distributions: JSON.stringify(distributions),
+        status: 'calculated',
+        calculatedAt: new Date(),
+      },
+    })
 
-  // Create salary payments
-  for (const dist of distributions) {
-    if (dist.netAmount > 0) {
-      await db.salaryPayment.create({
-        data: {
-          periodId: period.id,
-          employeeId: dist.employeeId,
-          employeeName: dist.employeeName,
-          baseShare: dist.baseShare,
-          bonusAmount: dist.bonusAmount,
-          grossAmount: dist.grossAmount,
-          taxAmount: dist.taxAmount,
-          netAmount: dist.netAmount,
-          currency: 'USD',
-          paymentMethod: 'bank_transfer',
-          status: 'pending',
-        },
-      })
+    for (const dist of distributions) {
+      if (dist.netAmount > 0) {
+        await tx.salaryPayment.create({
+          data: {
+            periodId: period.id,
+            employeeId: dist.employeeId,
+            employeeName: dist.employeeName,
+            baseShare: dist.baseShare,
+            bonusAmount: dist.bonusAmount,
+            grossAmount: dist.grossAmount,
+            taxAmount: dist.taxAmount,
+            netAmount: dist.netAmount,
+            currency: 'USD',
+            paymentMethod: 'bank_transfer',
+            status: 'pending',
+          },
+        })
+      }
     }
-  }
+
+    return period
+  })
 
   // Notify
   await emitNotificationEvent({
