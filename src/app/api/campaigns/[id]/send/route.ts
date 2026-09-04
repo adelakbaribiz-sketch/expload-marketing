@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { enqueue } from '@/lib/queue'
-import { withProtection, getTenantIdFromRequest } from '@/lib/security/with-protection'
+import { withProtection } from '@/lib/security/with-protection'
+import { getCurrentUser } from '@/lib/auth/simple-session'
 
 /**
  * Queue a campaign for sending via the background job queue.
  * Returns immediately with the job id — the actual sending happens
  * asynchronously.
+ *
+ * Requires auth + tenant ownership — previously had no auth check at all,
+ * so any signed-up user could trigger a send on any other tenant's
+ * campaign by id. See KNOWN-ISSUES.md #6.
  */
 async function handler(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
   const { id } = await ctx.params
 
   const campaign = await db.emailCampaign.findUnique({ where: { id } })
-  if (!campaign) {
+  if (!campaign || campaign.tenantId !== user.tenantId) {
     return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
   }
 
@@ -45,6 +53,5 @@ export const POST = withProtection(handler, {
   audit: {
     type: 'email_sent',
     message: (req) => `Campaign send triggered: ${new URL(req.url).pathname}`,
-    tenantId: (req) => getTenantIdFromRequest(req),
   },
 })

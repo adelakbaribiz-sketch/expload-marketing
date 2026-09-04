@@ -1,7 +1,9 @@
 # ADR-0007: Add session token expiry and a revocation path
 
-**Status**: Proposed
+**Status**: **Step 1 implemented** (2026-09-04); step 2 (revocation list) and step 3 (full session store) remain Proposed
 **Date**: 2026-09-04
+
+**Implementation note (step 1)**: `createSessionToken`/`verifySessionToken` (`src/lib/auth/simple-session.ts`) now use a 3-part token (`userId.issuedAtMs.signature`) and reject anything older than `SESSION_MAX_AGE` (30 days) server-side. `src/proxy.ts`'s independent Edge-runtime mirror of this check was updated to match (it can't import the shared lib — same documented exception as always). This intentionally invalidates every session token issued before this change shipped — verified live that a fresh signup/login/session-check cycle works correctly with the new format. Step 2 (per-user revocation) not implemented this pass — see `docs/IMPLEMENTATION-PLAN.md`.
 
 ## Current
 

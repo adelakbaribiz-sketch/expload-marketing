@@ -30,19 +30,27 @@ function sign(payload: string): string {
   return createHmac('sha256', SECRET).update(payload).digest('hex')
 }
 
-/** Verify session token format — full DB lookup happens in handler. */
+const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000 // must match simple-session.ts's SESSION_MAX_AGE
+
+/**
+ * Verify session token format + expiry — full DB lookup happens in handler.
+ * Token format (must match simple-session.ts): userId.issuedAtMs.signature.
+ */
 function isValidSessionFormat(token: string): boolean {
   const parts = token.split('.')
-  if (parts.length !== 2) return false
-  const [userId, signature] = parts
-  if (!userId || !signature) return false
-  const expected = sign(userId)
+  if (parts.length !== 3) return false
+  const [userId, issuedAtStr, signature] = parts
+  if (!userId || !issuedAtStr || !signature) return false
+  const issuedAt = Number(issuedAtStr)
+  if (!Number.isFinite(issuedAt)) return false
+  const expected = sign(`${userId}.${issuedAtStr}`)
   if (expected.length !== signature.length) return false
   try {
-    return timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
+    if (!timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) return false
   } catch {
     return false
   }
+  return Date.now() - issuedAt <= SESSION_MAX_AGE_MS
 }
 
 // Public API routes — no auth required
@@ -53,7 +61,6 @@ const PUBLIC_API_ROUTES = [
   '/api/auth/logout',
   '/api/public/',
   '/api/webhooks/',
-  '/api/seed',
   '/api/team/invite/',
   '/api/sandbox/start',
   '/api/sandbox/action',

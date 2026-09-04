@@ -2,12 +2,21 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { hashPassword } from '@/lib/auth/password'
 import { audit } from '@/lib/security/audit'
+import { getCurrentUser } from '@/lib/auth/simple-session'
+import { withProtection } from '@/lib/security/with-protection'
 
 /**
  * Seeds a demo tenant + project + user (with password) + sample leads.
  * Idempotent — safe to call multiple times.
+ *
+ * Requires authentication: the only real caller (src/app/page.tsx's
+ * auto-bootstrap effect) already only fires once a session exists, and
+ * this must not be reachable by an anonymous caller — see KNOWN-ISSUES.md #1.
  */
-export async function POST() {
+async function handler() {
+  const caller = await getCurrentUser()
+  if (!caller) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
   let tenant = await db.tenant.findFirst({ where: { domain: 'demo.expload.io' } })
   if (!tenant) {
     tenant = await db.tenant.create({
@@ -110,14 +119,15 @@ The Expload Team`,
     userId: user.id,
   })
 
+  // Note: this used to also return the demo account's plaintext password —
+  // removed (KNOWN-ISSUES.md #1). No caller ever read that field; the demo
+  // login is documented separately for whoever needs to sign in as it.
   return NextResponse.json({
     tenantId: tenant.id,
     projectId: project.id,
     templateId: template.id,
     seeded: existing === 0,
-    credentials: {
-      email: 'admin@expload.io',
-      password: 'demo12345',
-    },
   })
 }
+
+export const POST = withProtection(handler, { rateLimit: 'write' })

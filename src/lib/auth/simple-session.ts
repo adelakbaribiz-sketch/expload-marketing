@@ -27,24 +27,35 @@ function sign(payload: string): string {
   return createHmac('sha256', SECRET).update(payload).digest('hex')
 }
 
-/** Create a session token for a user. */
+/**
+ * Create a session token for a user.
+ * Format: userId.issuedAtMs.hmac(userId.issuedAtMs). The issuedAt claim is
+ * what lets verifySessionToken enforce real server-side expiry — see
+ * adr/0007 step 1. (Tokens issued before this change have no issuedAt
+ * segment and are rejected by verifySessionToken below, so this change
+ * logs out every existing session the moment it ships — expected, not a bug.)
+ */
 export function createSessionToken(userId: string): string {
-  return `${userId}.${sign(userId)}`
+  const issuedAt = Date.now()
+  return `${userId}.${issuedAt}.${sign(`${userId}.${issuedAt}`)}`
 }
 
-/** Verify a session token and return the userId. Constant-time comparison. */
+/** Verify a session token and return the userId. Constant-time comparison, checks expiry. */
 export function verifySessionToken(token: string): string | null {
   const parts = token.split('.')
-  if (parts.length !== 2) return null
-  const [userId, signature] = parts
-  const expected = sign(userId)
+  if (parts.length !== 3) return null
+  const [userId, issuedAtStr, signature] = parts
+  const issuedAt = Number(issuedAtStr)
+  if (!Number.isFinite(issuedAt)) return null
+  const expected = sign(`${userId}.${issuedAtStr}`)
   if (expected.length !== signature.length) return null
   try {
     if (!timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) return null
-    return userId
   } catch {
     return null
   }
+  if (Date.now() - issuedAt > SESSION_MAX_AGE * 1000) return null
+  return userId
 }
 
 /** Set the session cookie. */

@@ -1,7 +1,9 @@
 # ADR-0004: Harden tenant-context resolution — stop trusting unauthenticated headers/cookies
 
-**Status**: Proposed (blocks safe multi-customer production use — treat as highest priority of all Phase 3 ADRs)
+**Status**: **Accepted and implemented** (2026-09-04)
 **Date**: 2026-09-04
+
+**Implementation note**: shipped with a refinement discovered during the dependency check this ADR's own migration step 1 called for — the `tenant-id` cookie fallback turned out to be a real, live feature (the sidebar's SuperAdmin tenant-switcher, via `src/components/providers.tsx`'s `TenantSync`), not dead weight. So instead of Option A (remove both fallbacks outright), the shipped fix removed the `X-Tenant-ID` header fallback entirely (confirmed zero legitimate callers) and kept the `tenant-id` cookie override, but gated it to only be honored when `getCurrentUser().isSuperAdmin` is true. Verified live: a non-superadmin's forged cookie is now ignored; a genuine superadmin's tenant-switch still works. See `docs/IMPLEMENTATION-PLAN.md` #4 for the full dependency-check and test evidence.
 
 ## Current
 

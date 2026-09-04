@@ -21,7 +21,7 @@
 - Custom role/permission editor in the UI has **zero actual effect** on access control — `roleId` is never populated on the session, so the permission check it's supposed to feed never runs.
 - Zero automated tests anywhere. No CI/CD. No APM/observability tooling.
 
-Full, evidence-cited list: `KNOWN-ISSUES.md` (20 items, ranked) and `SECURITY-BASELINE.md` (security-specific, with severity tags).
+Full, evidence-cited list: `KNOWN-ISSUES.md` (20 items, ranked) and `SECURITY-BASELINE.md` (security-specific, with severity tags). **Update 2026-09-04**: both Critical findings (`/api/seed` credential disclosure, support-plans cross-tenant IDOR) and 4 of 6 High findings (tenant-context spoofing, `/api/tenants` disclosure, marketplace mass-assignment, leads/campaigns ownership) are now fixed and verified live — see `docs/IMPLEMENTATION-PLAN.md`. Still genuinely open: payment-gateway stubs and fabricated analyzer data (both BLOCKED on external resources, not engineering gaps), session revocation (expiry itself is fixed), input validation, CSP hardening.
 
 ## Architecture (verified, not designed-on-paper)
 
@@ -45,6 +45,6 @@ Two coexisting patterns: the generic CRUD factory (list/create via `requireTenan
 
 ## Current phase / next action
 
-See `docs/PROJECT-CONTROL.md` for the full phase matrix and risk list. **The single next execution point, as of this document's writing, is fixing the two Critical security findings in `KNOWN-ISSUES.md` #1-#2** (the public `/api/seed` credential-disclosure route, and the unscoped cross-tenant IDOR in the two `support-plans` PATCH handlers) — both small, contained, high-leverage fixes, and the reason phase 20 (Production Hardening) is currently marked BROKEN rather than merely incomplete. After that: `adr/0004` (tenant-context hardening) and `adr/0007` step 1 (session expiry), per the sequencing recommendation in `ARCHITECTURE-TARGET.md`.
+See `docs/PROJECT-CONTROL.md` for the full phase matrix and risk list. **As of 2026-09-04, the P0/P1 security remediation pass is done**: `KNOWN-ISSUES.md` #1-#6 fixed and verified live, `adr/0004` and `adr/0007` (step 1) implemented — phase 05 moved from BROKEN to PARTIALLY COMPLETE. **The next execution point is `adr/0003`** (CRUD factory `validate`/`beforeWrite` hooks) — small, foundational, fully backward-compatible, unblocks the Funnel/Journey and distributor-payout validation gaps in `BUSINESS-RULES.md`. After that, the highest-leverage remaining item is a product decision (not engineering work): what to do about the 2 BLOCKED High findings (payment-gateway stubs, fabricated analyzer data) — both need real external resources this environment doesn't have.
 
 **Before starting any of the above, or any other task in this repo: update `docs/PROJECT-CONTROL.md`'s "Current phase" / "Next action" sections when you finish, so the next agent doesn't have to re-derive where things stand.**

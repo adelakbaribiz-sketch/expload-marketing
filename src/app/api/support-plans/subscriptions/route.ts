@@ -64,6 +64,12 @@ async function handler(req: NextRequest) {
   if (req.method === 'PATCH') {
     const body = await req.json()
     if (body.action === 'cancel') {
+      // Ownership check — see KNOWN-ISSUES.md #2 (Critical): this route
+      // previously cancelled any subscription by id with no tenant check.
+      const existing = await db.supportSubscription.findUnique({ where: { id: body.id } })
+      if (!existing || existing.tenantId !== user.tenantId) {
+        return NextResponse.json({ error: 'not_found' }, { status: 404 })
+      }
       const sub = await db.supportSubscription.update({
         where: { id: body.id },
         data: { status: 'cancelled', autoRenew: false, cancelledAt: new Date() },

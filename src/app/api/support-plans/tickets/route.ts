@@ -67,6 +67,14 @@ async function handler(req: NextRequest) {
   if (req.method === 'PATCH') {
     // Update ticket (assign, respond, resolve)
     const body = await req.json()
+
+    // Ownership check — see KNOWN-ISSUES.md #2 (Critical): this route
+    // previously updated any ticket by id with no tenant check at all.
+    const existing = await db.supportTicketItem.findUnique({ where: { id: body.id } })
+    if (!existing || existing.tenantId !== user.tenantId) {
+      return NextResponse.json({ error: 'not_found' }, { status: 404 })
+    }
+
     const update: any = {}
     if (body.status) update.status = body.status
     if (body.assignedToId) update.assignedToId = body.assignedToId
@@ -78,11 +86,10 @@ async function handler(req: NextRequest) {
     if (body.customerRating) update.customerRating = body.customerRating
     // Append message
     if (body.newMessage) {
-      const existing = await db.supportTicketItem.findUnique({ where: { id: body.id } })
-      const msgs = existing?.messages ? JSON.parse(existing.messages) : []
+      const msgs = existing.messages ? JSON.parse(existing.messages) : []
       msgs.push({ from: body.messageFrom ?? 'customer', message: body.newMessage, timestamp: new Date().toISOString() })
       update.messages = JSON.stringify(msgs)
-      if (body.messageFrom === 'agent' && !existing?.firstRespondedAt) {
+      if (body.messageFrom === 'agent' && !existing.firstRespondedAt) {
         update.firstRespondedAt = new Date()
       }
     }

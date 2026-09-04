@@ -39,11 +39,14 @@ Per `docs/PROJECT-PHASE-MATRIX.md`: phases 00-03 (Product Discovery, Existing Pr
 
 ## Known risks (highest severity first — full detail in `SECURITY-BASELINE.md`/`KNOWN-ISSUES.md`)
 
-1. **Critical**: `POST /api/seed` is public, unrated-limited, and discloses a real account's plaintext password.
-2. **Critical**: `support-plans/{tickets,subscriptions}` PATCH handlers have zero tenant-ownership check — cross-tenant read/write for any signed-up user.
-3. **High**: `getTenantId()`'s header/cookie fallback is the architectural root cause enabling further cross-tenant access, affecting ~46 CRUD-factory domains.
-4. **High**: `GET /api/tenants`, `marketplace/products/[id]`, `leads/[id]/enrich`, `campaigns/[id]/send` each have their own missing-ownership-check variant of the same problem class.
-5. **Medium-and-below**: session non-expiry, CSP `unsafe-inline`, ~96% of routes unvalidated, unrate-limited public endpoints — see `KNOWN-ISSUES.md` for the complete, prioritized list (20 items).
+**Update 2026-09-04**: items 1-4 below (both Criticals, and the tenant-isolation High cluster) are **FIXED and verified live** — see `docs/IMPLEMENTATION-PLAN.md`. Kept in this list, marked, so the fix is traceable against the original risk.
+
+1. ~~**Critical**: `POST /api/seed`...~~ **FIXED**.
+2. ~~**Critical**: `support-plans/{tickets,subscriptions}` PATCH...~~ **FIXED**.
+3. ~~**High**: `getTenantId()`'s header/cookie fallback...~~ **FIXED** (revised design — cookie override kept but SuperAdmin-only; header removed outright — see `adr/0004`).
+4. ~~**High**: `GET /api/tenants`, `marketplace/products/[id]`, `leads/[id]/enrich`, `campaigns/[id]/send`...~~ **FIXED**, all four.
+5. **Still open, High**: 11/15 payment gateways are non-functional stubs; 4 analyzer endpoints fabricate data. **BLOCKED** — need real third-party credentials/subscriptions and a business decision on priority, not implementable from this environment (see "Pending decisions" below).
+6. **Still open, Medium-and-below**: session revocation (expiry itself is now fixed, revocation list is not), CSP `unsafe-inline`, ~96% of routes unvalidated, unrate-limited public sandbox endpoints — see `KNOWN-ISSUES.md` for the complete, current, prioritized list.
 
 ## Architecture decisions (accepted or proposed — see `adr/`)
 
@@ -69,4 +72,4 @@ Full list in `DEAD-CODE.md` and `MODULE-BOUNDARIES.md`'s violations section. Hig
 
 ## Next action
 
-See `docs/AGENT-CONTEXT.md` for the full onboarding context, and the "RESUME POINT" stated at the end of this migration's response — the single next execution point is fixing the two Critical security findings (`KNOWN-ISSUES.md` #1-#2), since they're small, contained, high-leverage, and are what makes phase 20 (Production Hardening) currently BROKEN rather than merely incomplete.
+**Update 2026-09-04**: the two Critical findings, and 4 of the 6 High findings, are now fixed and verified live (`docs/IMPLEMENTATION-PLAN.md`). The next execution point is **`adr/0003`** (add optional `validate`/`beforeWrite` hooks to the CRUD factory) — small, foundational, fully backward-compatible, and unblocks the Funnel/Journey validation gap and the distributor-payout-formula gap noted in `BUSINESS-RULES.md`. After that: a product decision is needed (not an engineering task) on the 2 blocked High findings (payment gateways, analyzer data) — see "Pending decisions" above, item 5 is now the most relevant one to resolve next.
