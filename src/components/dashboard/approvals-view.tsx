@@ -199,7 +199,7 @@ export function ApprovalsView() {
                       </Button>
                     </>
                   ) : (
-                    <Button size="icon" variant="ghost" className="text-destructive" onClick={() => { if (confirm('Delete this approval request?')) deleteRequest.mutate(r.id) }} disabled={deleteRequest.isPending}>
+                    <Button size="icon" variant="ghost" className="text-destructive" onClick={() => { if (confirm('Delete this approval request?')) deleteRequest.mutate(r.id) }} disabled={deleteRequest.isPending} aria-label="Delete approval request">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   )}

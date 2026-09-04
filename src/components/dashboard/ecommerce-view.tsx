@@ -21,6 +21,7 @@ import {
   Loader2, AlertTriangle, Check, Clock, Target, BarChart3, ShoppingBag,
 } from 'lucide-react'
 import { useState } from 'react'
+import { RISK_COLORS } from '@/lib/design/status-colors'
 
 const PLATFORM_INFO: Record<string, { name: string; color: string; emoji: string }> = {
   amazon: { name: 'Amazon', color: '#FF9900', emoji: '📦' },
@@ -30,8 +31,6 @@ const PLATFORM_INFO: Record<string, { name: string; color: string; emoji: string
   shopify: { name: 'Shopify', color: '#96BF48', emoji: '🏪' },
   etsy: { name: 'Etsy', color: '#F16432', emoji: '🎨' },
 }
-
-const RISK_COLORS: Record<string, string> = { low: '#22c55e', medium: '#f59e0b', high: '#ef4444', very_high: '#dc2626' }
 
 export function EcommerceView() {
   const qc = useQueryClient()

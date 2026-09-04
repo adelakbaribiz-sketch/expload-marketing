@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/dashboard/empty-state'
 import {
   Dialog,
   DialogContent,
@@ -141,7 +142,7 @@ export function ContentView() {
           {isLoading ? (
             <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
           ) : ideas.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">No content ideas yet. Generate some with AI or create manually.</p>
+            <EmptyState message="No content ideas yet. Generate some with AI or create manually." />
           ) : (
             <div className="grid gap-2 md:grid-cols-2">
               {ideas.map((idea: any) => (
@@ -177,7 +178,7 @@ export function ContentView() {
         </CardHeader>
         <CardContent>
           {pieces.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">No content pieces created yet.</p>
+            <EmptyState message="No content pieces created yet." />
           ) : (
             <div className="space-y-2">
               {pieces.map((p: any) => (

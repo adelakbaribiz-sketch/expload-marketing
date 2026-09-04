@@ -183,7 +183,7 @@ export function PromoLinkView() {
             </div>
             <div className="flex items-center gap-2">
               <code className="flex-1 rounded-md bg-muted p-2 text-xs font-mono break-all" dir="ltr">{result.link.shortUrl}</code>
-              <Button size="sm" variant="outline" onClick={() => copyToClipboard(result.link.shortUrl)}><Copy className="h-3.5 w-3.5" /></Button>
+              <Button size="sm" variant="outline" onClick={() => copyToClipboard(result.link.shortUrl)} aria-label="Copy link"><Copy className="h-3.5 w-3.5" /></Button>
             </div>
             {result.qrCodeData && (
               <div className="flex gap-4 items-center">
@@ -235,9 +235,9 @@ export function PromoLinkView() {
                       <p className="text-sm font-bold">{link.totalClicks}</p>
                       <p className="text-[9px] text-muted-foreground">clicks</p>
                     </div>
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => copyToClipboard(link.shortUrl)}><Copy className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setSelectedLink(link)}><Eye className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => { if (confirm(`Delete promo link "${link.name}"? Any already-shared link will stop working.`)) deleteMutation.mutate(link.id) }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => copyToClipboard(link.shortUrl)} aria-label="Copy link"><Copy className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setSelectedLink(link)} aria-label="View link details"><Eye className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => { if (confirm(`Delete promo link "${link.name}"? Any already-shared link will stop working.`)) deleteMutation.mutate(link.id) }} aria-label="Delete promo link"><Trash2 className="h-3.5 w-3.5" /></Button>
                   </div>
                 </div>
               </CardContent>

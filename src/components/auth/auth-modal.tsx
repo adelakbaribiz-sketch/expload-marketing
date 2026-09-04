@@ -135,14 +135,14 @@ export function AuthModal() {
               <div>
                 <Label htmlFor="login-email">{t('auth.email')}</Label>
                 <div className="relative">
-                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="login-email"
                     type="email"
                     placeholder={t('auth.emailPlaceholder')}
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    className="pr-9"
+                    className="pl-9"
                     dir="ltr"
                     autoComplete="email"
                   />
@@ -151,14 +151,14 @@ export function AuthModal() {
               <div>
                 <Label htmlFor="login-password">{t('auth.password')}</Label>
                 <div className="relative">
-                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="login-password"
                     type="password"
                     placeholder={t('auth.passwordPlaceholder')}
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    className="pr-9"
+                    className="pl-9"
                     dir="ltr"
                     autoComplete="current-password"
                   />
@@ -183,25 +183,25 @@ export function AuthModal() {
               <div>
                 <Label>{t('auth.yourName')}</Label>
                 <div className="relative">
-                  <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <User className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder={t('auth.namePlaceholder')}
                     value={signupName}
                     onChange={(e) => setSignupName(e.target.value)}
-                    className="pr-9"
+                    className="ps-9"
                   />
                 </div>
               </div>
               <div>
                 <Label>{t('auth.email')}</Label>
                 <div className="relative">
-                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="email"
                     placeholder={t('auth.emailPlaceholder')}
                     value={signupEmail}
                     onChange={(e) => setSignupEmail(e.target.value)}
-                    className="pr-9"
+                    className="pl-9"
                     dir="ltr"
                   />
                 </div>
@@ -209,13 +209,13 @@ export function AuthModal() {
               <div>
                 <Label>{t('auth.passwordMin')}</Label>
                 <div className="relative">
-                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="password"
                     placeholder={t('auth.passwordPlaceholder')}
                     value={signupPassword}
                     onChange={(e) => setSignupPassword(e.target.value)}
-                    className="pr-9"
+                    className="pl-9"
                     dir="ltr"
                   />
                 </div>
@@ -224,24 +224,24 @@ export function AuthModal() {
                 <div>
                   <Label>{t('auth.orgName')}</Label>
                   <div className="relative">
-                    <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Building2 className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder={t('auth.orgPlaceholder')}
                       value={tenantName}
                       onChange={(e) => setTenantName(e.target.value)}
-                      className="pr-9"
+                      className="ps-9"
                     />
                   </div>
                 </div>
                 <div>
                   <Label>{t('auth.domain')}</Label>
                   <div className="relative">
-                    <Globe className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder={t('auth.domainPlaceholder')}
                       value={tenantDomain}
                       onChange={(e) => setTenantDomain(e.target.value)}
-                      className="pr-9"
+                      className="pl-9"
                       dir="ltr"
                     />
                   </div>

@@ -196,6 +196,7 @@ export function WebhooksView() {
                       size="icon" variant="ghost" className="text-destructive"
                       onClick={() => { if (confirm(`Delete webhook "${w.url}"? Any integration relying on it will stop receiving events.`)) deleteWebhook.mutate(w.id) }}
                       disabled={deleteWebhook.isPending}
+                      aria-label="Delete webhook"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

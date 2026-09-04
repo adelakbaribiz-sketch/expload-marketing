@@ -42,6 +42,13 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
+  /* Micro type tier — the codebase reaches for this via text-[10px]/[9px]/[11px]
+     311+ times across 56 files with no named step below Tailwind's own
+     text-xs (12px). Named here so new code has a real token instead of
+     another arbitrary value; see DESIGN-SYSTEM.md §2. */
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 0.875rem;
+
   /* Brand identity — Pure Black / Dark Gray neutrals, Neon Orange +
      Metallic Silver accents. Kept as named tokens so utility classes
      below (.text-brand-*, .bg-brand-*) don't hardcode hex directly. */
@@ -211,7 +218,15 @@ html[dir='rtl'] body {
 }
 .text-brand-primary { color: #0A0A0B; }
 .dark .text-brand-primary { color: #F2F2F3; }
-.text-brand-accent { color: #FF6A00; }
+/* Raw #FF6A00 as TEXT (not a button background) fails WCAG AA (~2.87:1 on
+   white/#FAFAFA) — confirmed by design-system audit, DESIGN-SYSTEM.md §1/
+   Accessibility. Reuses the already-contrast-checked --accent-foreground
+   value instead of a new arbitrary shade: ~5.4:1 in light mode, ~7.1:1 in
+   dark mode (both pass AA). Icons/backgrounds can still use #FF6A00 (via
+   --primary/--color-brand-accent) since WCAG's non-text 3:1 threshold is
+   more lenient and the brand color needs to read clearly as a swatch. */
+.text-brand-accent { color: #C2410C; }
+.dark .text-brand-accent { color: #FF8A3D; }
 .text-brand-light { color: #C9CDD3; }
 .text-brand-muted { color: #6B6B70; }
 .text-brand-dark { color: #1F1F23; }

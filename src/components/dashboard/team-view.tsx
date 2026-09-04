@@ -243,7 +243,7 @@ export function TeamView() {
                 </p>
                 <div className="flex items-center gap-2">
                   <Input value={inviteLink} readOnly dir="ltr" className="text-xs" />
-                  <Button size="icon" variant="outline" onClick={copyInviteLink}><Copy className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="outline" onClick={copyInviteLink} aria-label="Copy invite link"><Copy className="h-4 w-4" /></Button>
                 </div>
               </div>
             ) : (
@@ -374,13 +374,14 @@ export function TeamView() {
                           <Badge variant="outline" className="text-[9px]">System</Badge>
                         ) : (
                           <div className="flex items-center gap-1 shrink-0">
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditRole(role)}>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditRole(role)} aria-label={`Edit role ${role.displayName}`}>
                               <Settings2 className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               size="icon" variant="ghost" className="h-7 w-7 text-destructive"
                               onClick={() => { if (confirm(`Delete the role "${role.displayName}"? ${role._count?.users || 0} user(s) currently have this role.`)) deleteRoleMutation.mutate(role.id) }}
                               disabled={deleteRoleMutation.isPending}
+                              aria-label={`Delete role ${role.displayName}`}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>

@@ -231,7 +231,7 @@ export function CompetitorAnalysisView() {
                       </div>
                       <Card className="border-[#FF6A00]/20 bg-[#FF6A00]/5">
                         <CardContent className="p-3">
-                          <p className="text-xs font-medium text-[#FF6A00] mb-2 flex items-center gap-1"><Lightbulb className="h-3 w-3" /> Your Improvement Opportunities</p>
+                          <p className="text-xs font-medium text-brand-accent mb-2 flex items-center gap-1"><Lightbulb className="h-3 w-3" /> Your Improvement Opportunities</p>
                           <div className="grid grid-cols-2 gap-1">
                             {opportunities.map((o: string, i: number) => (
                               <div key={i} className="text-xs flex items-start gap-1.5"><Zap className="h-2.5 w-2.5 text-[#FF6A00] mt-0.5 shrink-0" />{o}</div>

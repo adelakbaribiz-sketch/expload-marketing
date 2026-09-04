@@ -222,7 +222,7 @@ export function InternalPortalView() {
                 <div className="flex flex-col items-end gap-2">
                   <Badge variant={e.status === 'terminated' ? 'secondary' : 'outline'}>{e.status}</Badge>
                   <div className="flex items-center gap-1">
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditEmployee(e)}>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditEmployee(e)} aria-label="Edit employee">
                       <Settings2 className="h-3.5 w-3.5" />
                     </Button>
                     {e.status !== 'terminated' && (
@@ -230,6 +230,7 @@ export function InternalPortalView() {
                         size="icon" variant="ghost" className="h-7 w-7 text-destructive"
                         onClick={() => { if (confirm(`Terminate ${e.user?.name || e.workEmail || 'this employee'}? This ends their employment record.`)) terminateEmployee.mutate(e.id) }}
                         disabled={terminateEmployee.isPending}
+                        aria-label="Terminate employee"
                       >
                         <UserX className="h-3.5 w-3.5" />
                       </Button>

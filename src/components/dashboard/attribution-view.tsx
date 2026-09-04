@@ -482,6 +482,7 @@ export function AttributionView() {
                             size="icon" variant="ghost" className="h-6 w-6 text-destructive"
                             onClick={() => { if (confirm(`Delete fraud rule "${r.name}"?`)) deleteRule.mutate(r.id) }}
                             disabled={deleteRule.isPending}
+                            aria-label="Delete fraud rule"
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
@@ -571,6 +572,7 @@ export function AttributionView() {
                                 size="icon" variant="ghost" className="h-8 w-8 shrink-0"
                                 onClick={() => setFunnelForm({ ...funnelForm, stages: funnelForm.stages.filter((_, si) => si !== i) })}
                                 disabled={funnelForm.stages.length <= 2}
+                                aria-label="Remove stage"
                               >
                                 <X className="h-3.5 w-3.5" />
                               </Button>
@@ -607,6 +609,7 @@ export function AttributionView() {
                       size="icon" variant="ghost" className="h-7 w-7 text-destructive"
                       onClick={() => { if (confirm(`Delete funnel "${selectedFunnel.name}"?`)) deleteFunnel.mutate(selectedFunnel.id) }}
                       disabled={deleteFunnel.isPending}
+                      aria-label="Delete funnel"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -726,6 +729,7 @@ export function AttributionView() {
                                 size="icon" variant="ghost" className="h-8 w-8 shrink-0"
                                 onClick={() => setJourneyForm({ ...journeyForm, steps: journeyForm.steps.filter((_, si) => si !== i) })}
                                 disabled={journeyForm.steps.length <= 1}
+                                aria-label="Remove step"
                               >
                                 <X className="h-3.5 w-3.5" />
                               </Button>
@@ -777,6 +781,7 @@ export function AttributionView() {
                         size="icon" variant="ghost" className="h-7 w-7 text-destructive"
                         onClick={() => { if (confirm(`Delete journey "${selectedJourney.name}"?`)) deleteJourney.mutate(selectedJourney.id) }}
                         disabled={deleteJourney.isPending}
+                        aria-label="Delete journey"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>

@@ -74,7 +74,7 @@ export function BlogSection() {
                     <Badge variant="outline" className="text-[10px]" style={{ borderColor: CATEGORY_COLORS[post.category] ?? '#0A0A0B', color: CATEGORY_COLORS[post.category] ?? '#0A0A0B' }}>{post.category}</Badge>
                     <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="h-2.5 w-2.5" /> {post.readTime} min</span>
                   </div>
-                  <h3 className="font-semibold text-base mb-2 line-clamp-2 group-hover:text-[#FF6A00] transition-colors">{post.title}</h3>
+                  <h3 className="font-semibold text-base mb-2 line-clamp-2 group-hover:text-brand-accent transition-colors">{post.title}</h3>
                   <p className="text-sm text-muted-foreground line-clamp-3 mb-4">{post.excerpt}</p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span className="flex items-center gap-1.5">

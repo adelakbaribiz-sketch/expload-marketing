@@ -260,6 +260,7 @@ export function Sidebar({ view, onViewChange }: SidebarProps) {
               size="icon"
               className="h-8 w-8 md:hidden"
               onClick={() => setSidebarOpen(false)}
+              aria-label="Close menu"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -338,7 +339,7 @@ export function Sidebar({ view, onViewChange }: SidebarProps) {
                                   active ? 'text-primary' : 'text-muted-foreground',
                                 )}
                               />
-                              <span className="flex-1 text-right truncate">{item.label}</span>
+                              <span className="flex-1 text-start truncate">{item.label}</span>
                               {item.hint && (
                                 <Badge
                                   variant="secondary"

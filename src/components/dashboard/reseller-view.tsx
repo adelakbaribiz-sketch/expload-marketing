@@ -21,8 +21,7 @@ import {
   Star, Zap, Target, ChevronRight, Award, Megaphone,
 } from 'lucide-react'
 import { useState } from 'react'
-
-const RISK_COLORS: Record<string, string> = { low: '#22c55e', medium: '#f59e0b', high: '#ef4444', very_high: '#dc2626' }
+import { RISK_COLORS } from '@/lib/design/status-colors'
 
 export function ResellerView() {
   const qc = useQueryClient()
@@ -108,7 +107,7 @@ export function ResellerView() {
                   <div className="flex items-center gap-3">
                     <div className="grid place-items-center h-12 w-12 rounded-xl text-2xl shadow-md" style={{ background: opp.color + '22' }}>{opp.icon}</div>
                     <div className="min-w-0">
-                      <p className="font-medium text-sm group-hover:text-[#FF6A00] transition-colors">{opp.title}</p>
+                      <p className="font-medium text-sm group-hover:text-brand-accent transition-colors">{opp.title}</p>
                       <Badge variant="outline" className="text-[9px] capitalize mt-0.5">{opp.type.replace('_', ' ')}</Badge>
                     </div>
                   </div>
