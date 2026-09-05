@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { requireTenantId, getTenantIdOrNull } from '@/lib/tenant'
 import { withProtection, getTenantIdFromRequest } from '@/lib/security/with-protection'
 import { sanitizeText, sanitizeEmail, sanitizeUrl, sanitizePhone, sanitizeStringList, sanitizeMultiline } from '@/lib/security/sanitize'
+import { requireNonViewer } from '@/lib/auth/rbac'
 import { z } from 'zod'
 
 const LeadCreate = z.object({
@@ -55,6 +56,8 @@ export async function GET(req: NextRequest) {
 
 async function postHandler(req: NextRequest) {
   const tenantId = await requireTenantId()
+  const access = await requireNonViewer()
+  if (!access.allowed) return NextResponse.json({ error: access.reason }, { status: 403 })
   const body = await req.json().catch(() => null)
   const parsed = LeadCreate.safeParse(body)
   if (!parsed.success) {

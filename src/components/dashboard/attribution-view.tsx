@@ -18,7 +18,7 @@ import {
   BarChart3, Shield, MessageSquare, GitBranch,
   TrendingUp, AlertTriangle, Loader2, Zap, Target, Users, Plus, Trash2, X, Power,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 const FRAUD_RULE_TYPES = ['click_injection', 'sdk_spoofing', 'click_spamming', 'ip_anomaly', 'device_farm']
 const STAGE_COLORS = ['#0A0A0B', '#C9CDD3', '#4FC3F7', '#FF6A00', '#FF8A3D', '#22c55e', '#7C4DFF', '#f59e0b']
@@ -315,12 +315,15 @@ export function AttributionView() {
   const journeySteps: { type: string; label: string }[] = selectedJourney
     ? (() => { try { return (JSON.parse(selectedJourney.steps) as any[]).map(normalizeStep) } catch { return [] } })()
     : []
-  const fraudEvents = events.filter((e: any) => e.isFraud)
-  const sourceBreakdown = events.reduce((acc: Record<string, number>, e: any) => {
+  // events can be a few hundred rows and this 822-line component re-renders
+  // on every keystroke in any of its several dialog forms — memoize the
+  // three full passes over it so they only recompute when events changes.
+  const fraudEvents = useMemo(() => events.filter((e: any) => e.isFraud), [events])
+  const sourceBreakdown = useMemo(() => events.reduce((acc: Record<string, number>, e: any) => {
     acc[e.source] = (acc[e.source] || 0) + 1
     return acc
-  }, {})
-  const totalRevenue = events.reduce((s: number, e: any) => s + (e.revenue || 0), 0)
+  }, {}), [events])
+  const totalRevenue = useMemo(() => events.reduce((s: number, e: any) => s + (e.revenue || 0), 0), [events])
 
   return (
     <div className="space-y-4 p-4 md:p-6 animate-fade-in-up">

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
+import { onActivateKey } from '@/lib/a11y'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -157,7 +158,7 @@ export function SandboxDemoView() {
               <strong>Demo limits:</strong> 20 actions · 24 hours · Mock data only · No real payments processed
             </div>
             <Button
-              className="bg-brand-accent-gradient text-white btn-3d"
+              className="bg-brand-accent-gradient btn-3d"
               disabled={startSession.isPending}
               onClick={() => startSession.mutate()}
             >
@@ -207,8 +208,11 @@ export function SandboxDemoView() {
                 return (
                   <Card
                     key={mod.id}
-                    className="card-3d cursor-pointer hover:border-brand-accent transition-all"
+                    role="button"
+                    tabIndex={0}
+                    className="card-3d cursor-pointer hover:border-brand-accent transition-all focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     onClick={() => logAction.mutate(mod.id)}
+                    onKeyDown={onActivateKey(() => logAction.mutate(mod.id))}
                   >
                     <CardContent className="p-4 text-center">
                       <div
@@ -281,7 +285,7 @@ export function SandboxDemoView() {
                 </div>
               </div>
               <Button
-                className="mt-3 bg-brand-accent-gradient text-white btn-3d"
+                className="mt-3 bg-brand-accent-gradient btn-3d"
                 disabled={!conversionForm.email || !conversionForm.password || convert.isPending}
                 onClick={() => convert.mutate()}
               >

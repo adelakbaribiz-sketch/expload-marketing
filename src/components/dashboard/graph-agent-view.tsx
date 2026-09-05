@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { onActivateKey } from '@/lib/a11y'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -116,7 +117,7 @@ export function GraphAgentView() {
           />
           <div className="flex items-center gap-3">
             <Button
-              className="bg-brand-accent-gradient text-white btn-3d"
+              className="bg-brand-accent-gradient btn-3d"
               disabled={!goal || generatePlanMutation.isPending}
               onClick={() => generatePlanMutation.mutate(goal)}
             >
@@ -137,8 +138,11 @@ export function GraphAgentView() {
           {templates.map(t => (
             <Card
               key={t.id}
-              className="card-3d-flat cursor-pointer hover:border-brand-accent transition-all"
+              role="button"
+              tabIndex={0}
+              className="card-3d-flat cursor-pointer hover:border-brand-accent transition-all focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
               onClick={() => useTemplate.mutate(t.id)}
+              onKeyDown={onActivateKey(() => useTemplate.mutate(t.id))}
             >
               <CardContent className="p-4">
                 <div className="font-semibold text-sm">{t.name}</div>

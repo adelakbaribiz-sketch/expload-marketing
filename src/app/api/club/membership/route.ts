@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { requireTenantId } from '@/lib/tenant'
 import { withProtection } from '@/lib/security/with-protection'
 import { ApiError } from '@/lib/api/errors'
+import { isPlatformStaffAdmin } from '@/lib/auth/rbac'
 
 export async function GET() {
   const tenantId = await requireTenantId()
@@ -92,19 +93,36 @@ async function postHandler(req: NextRequest) {
   const tenantId = await requireTenantId()
   const body = await req.json().catch(() => ({}))
 
-  // Earn points (e.g., after purchase)
+  // Earn points (e.g., after purchase) — this is a system/staff-triggered
+  // side-effect of a real payment, not a tenant self-service action. Until
+  // Phase 09's frontend audit flagged it, this branch had no permission
+  // check and no bound on the caller-supplied points/spendAmount: any
+  // authenticated tenant user could POST arbitrary values here, then redeem
+  // them for real discounts/ad-credits via the (correctly-guarded) redeem
+  // endpoint. See BACKEND-ARCHITECTURE.md "Authorization".
   if (body.action === 'earn_points') {
+    if (!(await isPlatformStaffAdmin())) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+    }
+    const points = Number(body.points)
+    const spendAmount = Number(body.spendAmount || 0)
+    if (!Number.isFinite(points) || points <= 0 || points > 100000) {
+      return NextResponse.json({ error: 'points must be a positive number up to 100000' }, { status: 400 })
+    }
+    if (!Number.isFinite(spendAmount) || spendAmount < 0) {
+      return NextResponse.json({ error: 'spendAmount must be a non-negative number' }, { status: 400 })
+    }
+
     let membership = await db.clubMembership.findUnique({ where: { tenantId } })
     if (!membership) return NextResponse.json({ error: 'No membership' }, { status: 404 })
 
-    const points = Number(body.points || 0)
     membership = await db.clubMembership.update({
       where: { id: membership.id },
       data: {
         totalPoints: { increment: points },
         availablePoints: { increment: points },
         lifetimePoints: { increment: points },
-        totalSpend: { increment: Number(body.spendAmount || 0) },
+        totalSpend: { increment: spendAmount },
       },
     })
     await db.clubPoint.create({

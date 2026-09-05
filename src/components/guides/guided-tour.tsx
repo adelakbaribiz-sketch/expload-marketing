@@ -139,11 +139,11 @@ export function GuidedTour({ sectionId, open, onClose }: GuidedTourProps) {
                   </div>
 
                   {isLast ? (
-                    <Button size="sm" className="bg-brand-accent-gradient text-white btn-3d" onClick={onClose}>
+                    <Button size="sm" className="bg-brand-accent-gradient btn-3d" onClick={onClose}>
                       Done <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   ) : (
-                    <Button size="sm" className="bg-brand-accent-gradient text-white btn-3d" onClick={() => setStep(s => s + 1)}>
+                    <Button size="sm" className="bg-brand-accent-gradient btn-3d" onClick={() => setStep(s => s + 1)}>
                       Next <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   )}

@@ -27,6 +27,7 @@ import {
 import { toast } from 'sonner'
 import { Plus, Trash2, TrendingUp, DollarSign, Target, Calendar } from 'lucide-react'
 import { useState } from 'react'
+import { apiGet, apiPost, apiDelete } from '@/lib/api-client'
 
 const STAGE_COLORS: Record<string, string> = {
   lead: '#64748b',
@@ -44,32 +45,23 @@ export function CrmView() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['deals'],
-    queryFn: async () => {
-      const res = await fetch('/api/crm/deals')
-      if (!res.ok) throw new Error('failed')
-      return res.json()
-    },
+    queryFn: () => apiGet('/api/crm/deals'),
   })
 
   const { data: tasksData } = useQuery({
     queryKey: ['tasks'],
     queryFn: async () => {
-      const res = await fetch('/api/crm/tasks')
-      if (!res.ok) return { items: [] }
-      return res.json()
+      try {
+        return await apiGet('/api/crm/tasks')
+      } catch {
+        return { items: [] }
+      }
     },
   })
 
   const createMutation = useMutation({
-    mutationFn: async (payload: any) => {
-      const res = await fetch('/api/crm/deals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...payload, value: Number(payload.value), probability: Number(payload.probability) }),
-      })
-      if (!res.ok) throw new Error('create failed')
-      return res.json()
-    },
+    mutationFn: (payload: any) =>
+      apiPost('/api/crm/deals', { ...payload, value: Number(payload.value), probability: Number(payload.probability) }),
     onSuccess: () => {
       toast.success('Deal created')
       qc.invalidateQueries({ queryKey: ['deals'] })
@@ -79,11 +71,7 @@ export function CrmView() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/crm/deals/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('delete failed')
-      return res.json()
-    },
+    mutationFn: (id: string) => apiDelete(`/api/crm/deals/${id}`),
     onSuccess: () => {
       toast.success('Deal deleted')
       qc.invalidateQueries({ queryKey: ['deals'] })

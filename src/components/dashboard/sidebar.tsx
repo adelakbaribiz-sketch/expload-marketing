@@ -229,6 +229,19 @@ export function Sidebar({ view, onViewChange }: SidebarProps) {
     }
   }, [activeTenantId, tenantsData, setActiveTenant])
 
+  // The mobile drawer overlay is a plain div (not a Radix Dialog), so it
+  // gets no Escape-to-close for free — add it explicitly. Scoped to
+  // below-md viewports only: on desktop `sidebarOpen` also means "the
+  // persistent sidebar is visible," and Escape shouldn't collapse that.
+  useEffect(() => {
+    if (!sidebarOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && window.innerWidth < 768) setSidebarOpen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [sidebarOpen, setSidebarOpen])
+
   return (
     <>
       {sidebarOpen && (
@@ -324,7 +337,14 @@ export function Sidebar({ view, onViewChange }: SidebarProps) {
                               key={item.id}
                               onClick={() => {
                                 onViewChange(item.id)
-                                setSidebarOpen(false)
+                                // Only close the mobile drawer — `sidebarOpen` also
+                                // controls the persistent desktop sidebar's
+                                // visibility, so calling this unconditionally used
+                                // to hide the whole sidebar after every single nav
+                                // click on desktop too, with no way to reopen it
+                                // short of a page reload. Caught by the Phase 09 E2E
+                                // "create and view a CRM deal" journey.
+                                if (window.innerWidth < 768) setSidebarOpen(false)
                               }}
                               className={cn(
                                 'group flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-sm transition-all',

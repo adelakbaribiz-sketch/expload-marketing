@@ -189,7 +189,18 @@ export function proxy(req: NextRequest) {
   // not a complete guarantee.
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     const origin = req.headers.get('origin')
-    if (origin && origin !== req.nextUrl.origin) {
+    // `req.nextUrl.origin` reflects the server's own bind address (e.g.
+    // `http://0.0.0.0:3000` for the standalone Docker server), not the host
+    // the browser actually addressed — comparing against it made this check
+    // reject every authenticated write in that deployment mode, since a
+    // real browser's Origin header can never equal `http://0.0.0.0:PORT`.
+    // Build the expected origin from the Host header instead (set by the
+    // client for a direct connection, forwarded by Caddy in production),
+    // falling back to nextUrl only if Host is somehow absent.
+    const host = req.headers.get('host')
+    const proto = req.headers.get('x-forwarded-proto') || req.nextUrl.protocol.replace(':', '')
+    const expectedOrigin = host ? `${proto}://${host}` : req.nextUrl.origin
+    if (origin && origin !== expectedOrigin) {
       return addHeaders(NextResponse.json(
         { error: 'cross_origin_request_denied', message: 'Request origin does not match this site' },
         { status: 403 },

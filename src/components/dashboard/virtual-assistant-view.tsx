@@ -143,7 +143,7 @@ export function VirtualAssistantView() {
                   </div>
                   <div className="flex flex-col gap-2">
                     <Button
-                      className="bg-brand-accent-gradient text-white btn-3d"
+                      className="bg-brand-accent-gradient btn-3d"
                       disabled={!a.isAvailable || hire.isPending}
                       onClick={() => hire.mutate(a)}
                     >

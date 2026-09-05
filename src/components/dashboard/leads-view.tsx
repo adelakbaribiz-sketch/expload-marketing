@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { onActivateKey } from '@/lib/a11y'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -224,8 +225,11 @@ export function LeadsView() {
                   (data?.leads ?? []).map((l: any) => (
                     <tr
                       key={l.id}
-                      className="border-b last:border-0 hover:bg-muted/40 cursor-pointer transition-colors"
+                      role="button"
+                      tabIndex={0}
+                      className="border-b last:border-0 hover:bg-muted/40 cursor-pointer transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                       onClick={() => setSelectedId(l.id)}
+                      onKeyDown={onActivateKey(() => setSelectedId(l.id))}
                     >
                       <td className="py-2.5 pr-2 font-medium truncate max-w-[220px]">
                         {l.name}

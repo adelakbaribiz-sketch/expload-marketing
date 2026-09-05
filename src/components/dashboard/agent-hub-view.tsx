@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
+import { onActivateKey } from '@/lib/a11y'
 import {
   Zap, Search, ArrowRight, Sparkles, TrendingUp, Send, BarChart3,
   Target, Mail, MessageCircle, Bot, Workflow, Calendar, Brain,
@@ -195,8 +196,11 @@ export function AgentHubView({ onNavigate }: AgentHubProps) {
             return (
               <Card
                 key={action.id}
-                className="cursor-pointer hover:shadow-lg hover:border-primary/40 transition-all group"
+                role="button"
+                tabIndex={0}
+                className="cursor-pointer hover:shadow-lg hover:border-primary/40 transition-all group focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 onClick={() => handleAction(action)}
+                onKeyDown={onActivateKey(() => handleAction(action))}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">

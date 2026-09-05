@@ -200,8 +200,9 @@ export function FinancialReportsView() {
                     <p className="text-sm text-muted-foreground">No daily data for this period.</p>
                   ) : (
                     <div className="space-y-1">
-                      {Object.entries(revenue.byDay).sort().map(([day, amount]) => {
-                        const max = Math.max(...Object.values(revenue.byDay) as number[])
+                      {(() => {
+                        const max = Math.max(...(Object.values(revenue.byDay) as number[]))
+                        return Object.entries(revenue.byDay).sort().map(([day, amount]) => {
                         const pct = max > 0 ? (amount as number / max) * 100 : 0
                         return (
                           <div key={day} className="flex items-center gap-3 text-xs">
@@ -215,7 +216,8 @@ export function FinancialReportsView() {
                             <div className="w-20 text-right font-medium">${(amount as number).toLocaleString()}</div>
                           </div>
                         )
-                      })}
+                        })
+                      })()}
                     </div>
                   )}
                 </CardContent>

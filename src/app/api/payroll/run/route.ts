@@ -31,6 +31,19 @@ async function handler(req: NextRequest) {
   if (!periodStart || !periodEnd || totalRevenue == null) {
     return NextResponse.json({ error: 'periodStart, periodEnd, totalRevenue required' }, { status: 400 })
   }
+  // Only presence was checked before — a negative or absurd totalRevenue
+  // flowed straight into ownerShare/staffPool/bonusPool and got persisted as
+  // negative salary payments. The UI's own number input has no min/max
+  // either (Phase 09 frontend audit) — enforce it here since this is the
+  // only layer that can't be bypassed.
+  if (typeof totalRevenue !== 'number' || !Number.isFinite(totalRevenue) || totalRevenue < 0) {
+    return NextResponse.json({ error: 'totalRevenue must be a non-negative number' }, { status: 400 })
+  }
+  const startDate = new Date(periodStart)
+  const endDate = new Date(periodEnd)
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || startDate > endDate) {
+    return NextResponse.json({ error: 'periodStart must be a valid date on or before periodEnd' }, { status: 400 })
+  }
 
   // Get config
   const config = await db.payrollConfig.findFirst({ where: { isActive: true } })

@@ -21,6 +21,13 @@ export const useAuthStore = create<AuthState>()(
       closeAuthModal: () => set({ authModalOpen: false }),
       setAuthModalMode: (mode) => set({ authModalMode: mode }),
     }),
-    { name: 'marketing-saas-auth' },
+    {
+      name: 'marketing-saas-auth',
+      // Modal open/mode is transient UI state, not something that should
+      // survive a reload — without this, closing the tab mid-login left
+      // `authModalOpen: true` in localStorage and the modal reopened
+      // unprompted on the next visit (Phase 09 frontend audit).
+      partialize: () => ({}),
+    },
   ),
 )

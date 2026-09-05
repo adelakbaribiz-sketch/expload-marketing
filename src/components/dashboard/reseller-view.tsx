@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { onActivateKey } from '@/lib/a11y'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -100,7 +101,14 @@ export function ResellerView() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {opportunities.map((opp: any) => (
-            <Card key={opp.id} className="hover:shadow-xl transition-all cursor-pointer group" onClick={() => setSelectedOpp(opp)}>
+            <Card
+              key={opp.id}
+              role="button"
+              tabIndex={0}
+              className="hover:shadow-xl transition-all cursor-pointer group focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              onClick={() => setSelectedOpp(opp)}
+              onKeyDown={onActivateKey(() => setSelectedOpp(opp))}
+            >
               <CardContent className="p-4">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-2 mb-3">

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireTenantId } from '@/lib/tenant'
+import { requireNonViewer } from '@/lib/auth/rbac'
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const tenantId = await requireTenantId()
@@ -19,6 +20,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const tenantId = await requireTenantId()
+  const access = await requireNonViewer()
+  if (!access.allowed) return NextResponse.json({ error: access.reason }, { status: 403 })
   const { id } = await ctx.params
   const existing = await db.emailCampaign.findFirst({ where: { id, tenantId } })
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -37,6 +40,8 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
 export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const tenantId = await requireTenantId()
+  const access = await requireNonViewer()
+  if (!access.allowed) return NextResponse.json({ error: access.reason }, { status: 403 })
   const { id } = await ctx.params
   const existing = await db.emailCampaign.findFirst({ where: { id, tenantId } })
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })

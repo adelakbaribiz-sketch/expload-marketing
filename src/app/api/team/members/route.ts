@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireTenantId } from '@/lib/tenant'
-import { getAuthUserId } from '@/lib/auth/simple-session'
-import { hasPermission } from '@/lib/auth/rbac'
+import { getAuthUserId, getCurrentUser } from '@/lib/auth/simple-session'
+import { hasPermission, isSuperAdmin } from '@/lib/auth/rbac'
 
 export async function GET() {
   const tenantId = await requireTenantId()
@@ -32,6 +32,22 @@ export async function POST(req: NextRequest) {
     if (!target || target.tenantId !== tenantId) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 })
     }
+
+    // team.manage can be delegated to a custom role short of full ownership
+    // (see rbac.ts's role hierarchy comment) — but this handler used to let
+    // any team.manage holder set the literal `role: 'owner'` string on any
+    // user, which hasPermission() treats as blanket access to everything,
+    // not just team management. That let a delegated, non-owner team.manage
+    // holder grant themselves full ownership. Only an existing owner or
+    // super admin may hand out the 'owner' role. See
+    // FRONTEND-ARCHITECTURE.md "Authorization" (Phase 09).
+    if (body.roleName === 'owner') {
+      const actingUser = await getCurrentUser()
+      if (actingUser?.role !== 'owner' && !(await isSuperAdmin())) {
+        return NextResponse.json({ error: 'Only an existing owner can grant the owner role' }, { status: 403 })
+      }
+    }
+
     const updated = await db.user.update({
       where: { id: body.userId },
       data: { roleId: body.roleId, role: body.roleName || 'member' },

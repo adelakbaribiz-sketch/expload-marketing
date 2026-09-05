@@ -208,7 +208,7 @@ export function EventsCalendarView() {
             </div>
           </div>
           <Button
-            className="bg-brand-accent-gradient text-white btn-3d"
+            className="bg-brand-accent-gradient btn-3d"
             disabled={suggest.isPending}
             onClick={() => suggest.mutate()}
           >

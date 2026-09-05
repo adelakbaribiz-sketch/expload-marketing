@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { requireTenantId } from '@/lib/tenant'
 import { withProtection, getTenantIdFromRequest } from '@/lib/security/with-protection'
 import { sanitizeText, sanitizeMultiline } from '@/lib/security/sanitize'
+import { requireNonViewer } from '@/lib/auth/rbac'
 import { z } from 'zod'
 
 const CampaignCreate = z.object({
@@ -37,6 +38,8 @@ export async function GET() {
 
 async function postHandler(req: NextRequest) {
   const tenantId = await requireTenantId()
+  const access = await requireNonViewer()
+  if (!access.allowed) return NextResponse.json({ error: access.reason }, { status: 403 })
   const body = await req.json().catch(() => null)
   const parsed = CampaignCreate.safeParse(body)
   if (!parsed.success) {

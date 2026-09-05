@@ -60,6 +60,26 @@ export async function requirePermission(permission: string): Promise<void> {
   }
 }
 
+/**
+ * Blocks the 'viewer' role from write operations. `leads-view.tsx`/
+ * `campaigns-view.tsx` already hide their write affordances for this role
+ * client-side (`canWrite = user?.role !== 'viewer'`) on the assumption the
+ * backend enforces the same rule — Phase 09's frontend audit found it
+ * didn't, so a viewer calling the API directly could create/edit/delete
+ * leads and campaigns despite being documented as read-only (see the
+ * role-hierarchy comment at the top of this file). Deliberately narrow:
+ * only blocks the literal 'viewer' role string rather than routing through
+ * `hasPermission()`, since the custom-role `Permission` table isn't seeded
+ * yet (see AGENT-CONTEXT.md) and `hasPermission()` would incorrectly deny
+ * legitimate 'manager'/'editor' users who have no custom role assigned.
+ */
+export async function requireNonViewer(): Promise<PermissionCheck> {
+  const user = await getCurrentUser()
+  if (!user) return { allowed: false, reason: 'Not authenticated' }
+  if (user.role === 'viewer') return { allowed: false, reason: 'Viewer role is read-only' }
+  return { allowed: true }
+}
+
 /** Check if user is super admin. */
 export async function isSuperAdmin(): Promise<boolean> {
   const user = await getCurrentUser()

@@ -20,6 +20,13 @@ export function PayrollView() {
     periodEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().slice(0, 10),
     totalRevenue: '10000',
   })
+  const revenueValue = parseFloat(runForm.totalRevenue)
+  const isRunFormValid =
+    Number.isFinite(revenueValue) &&
+    revenueValue >= 0 &&
+    !!runForm.periodStart &&
+    !!runForm.periodEnd &&
+    runForm.periodStart <= runForm.periodEnd
 
   const { data: configData, isLoading } = useQuery({
     queryKey: ['payroll-config'],
@@ -151,12 +158,12 @@ export function PayrollView() {
                 </div>
                 <div>
                   <Label>Total Revenue (USD)</Label>
-                  <Input type="number" value={runForm.totalRevenue} onChange={e => setRunForm({ ...runForm, totalRevenue: e.target.value })} />
+                  <Input type="number" min={0} value={runForm.totalRevenue} onChange={e => setRunForm({ ...runForm, totalRevenue: e.target.value })} />
                 </div>
               </div>
               <Button
-                className="bg-brand-accent-gradient text-white btn-3d"
-                disabled={runPayroll.isPending}
+                className="bg-brand-accent-gradient btn-3d"
+                disabled={runPayroll.isPending || !isRunFormValid}
                 onClick={() => runPayroll.mutate()}
               >
                 <Play className="h-4 w-4 mr-1" /> Calculate Payroll

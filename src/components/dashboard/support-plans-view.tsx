@@ -148,7 +148,7 @@ export function SupportPlansView() {
                 })}
               </div>
               <Button
-                className="w-full bg-brand-accent-gradient text-white btn-3d"
+                className="w-full bg-brand-accent-gradient btn-3d"
                 disabled={subs.some(s => s.planId === plan.id && s.status === 'active')}
                 onClick={() => subscribe.mutate({ planId: plan.id, billingCycle: 'monthly' })}
               >
@@ -234,7 +234,7 @@ export function SupportPlansView() {
                     </Select>
                   </div>
                 </div>
-                <Button type="submit" className="bg-brand-accent-gradient text-white btn-3d">Submit Ticket</Button>
+                <Button type="submit" className="bg-brand-accent-gradient btn-3d">Submit Ticket</Button>
               </form>
             </CardContent>
           </Card>

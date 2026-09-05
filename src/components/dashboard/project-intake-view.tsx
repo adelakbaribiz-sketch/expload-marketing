@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,6 +29,17 @@ export function ProjectIntakeView() {
   })
   const [analyzingBriefId, setAnalyzingBriefId] = useState<string | null>(null)
   const [paymentFlow, setPaymentFlow] = useState<{ tier: any; option: 'full' | 'phased' } | null>(null)
+
+  // This modal is hand-rolled (not the Radix-backed ui/dialog.tsx), so it
+  // gets no Escape-to-close or focus trap for free — add Escape explicitly.
+  useEffect(() => {
+    if (!paymentFlow) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPaymentFlow(null)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [paymentFlow])
 
   const { data: briefsData } = useQuery({
     queryKey: ['project-briefs'],
@@ -152,7 +163,7 @@ export function ProjectIntakeView() {
             <Input value={form.goals} onChange={e => setForm({ ...form, goals: e.target.value })} placeholder="increase sales, brand awareness, lead generation..." />
           </div>
           <Button
-            className="bg-brand-accent-gradient text-white btn-3d"
+            className="bg-brand-accent-gradient btn-3d"
             disabled={!form.businessName || !form.description || createBrief.isPending}
             onClick={() => createBrief.mutate({
               businessName: form.businessName,
@@ -293,7 +304,7 @@ export function ProjectIntakeView() {
                         {/* Payment options */}
                         <div className="space-y-2 pt-2 border-t">
                           <Button
-                            className="w-full bg-brand-accent-gradient text-white btn-3d"
+                            className="w-full bg-brand-accent-gradient btn-3d"
                             onClick={() => setPaymentFlow({ tier, option: 'full' })}
                           >
                             <CreditCard className="h-4 w-4 mr-1" />
@@ -327,7 +338,12 @@ export function ProjectIntakeView() {
 
       {/* Payment modal */}
       {paymentFlow && (
-        <Card className="fixed inset-0 z-50 grid place-items-center bg-black/40 backdrop-blur-sm p-4">
+        <Card
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${paymentFlow.option === 'full' ? 'Pay in Full' : 'Phased Payment'} — ${paymentFlow.tier.name}`}
+        >
           <Card className="w-full max-w-md card-3d animate-scale-in">
             <CardContent className="p-6 space-y-3">
               <h3 className="font-bold text-lg">
@@ -338,7 +354,7 @@ export function ProjectIntakeView() {
                   <div className="text-3xl font-bold">${paymentFlow.tier.payment_options.full_payment.price.toLocaleString()}</div>
                   <div className="text-xs text-emerald-600">You save ${(paymentFlow.tier.price - paymentFlow.tier.payment_options.full_payment.price).toLocaleString()} (10% off)</div>
                   <Button
-                    className="w-full bg-brand-accent-gradient text-white btn-3d mt-3"
+                    className="w-full bg-brand-accent-gradient btn-3d mt-3"
                     disabled={pay.isPending}
                     onClick={() => pay.mutate({
                       amount: paymentFlow.tier.payment_options.full_payment.price,
@@ -363,7 +379,7 @@ export function ProjectIntakeView() {
                     </div>
                   ))}
                   <Button
-                    className="w-full bg-brand-accent-gradient text-white btn-3d mt-3"
+                    className="w-full bg-brand-accent-gradient btn-3d mt-3"
                     disabled={pay.isPending}
                     onClick={() => pay.mutate({
                       amount: paymentFlow.tier.payment_options.phased[0].amount,

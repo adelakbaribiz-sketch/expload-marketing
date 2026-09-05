@@ -1,0 +1,6 @@
+[test]
+# Restrict bun's test discovery to tests/ (unit + integration, bun:test).
+# e2e/ holds Playwright specs (@playwright/test) run via `bun run test:e2e` —
+# bun's own test runner would otherwise pick up *.spec.ts there too and
+# fail, since Playwright's `test`/`describe` aren't bun:test's.
+root = "tests"

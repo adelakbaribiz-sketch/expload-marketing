@@ -1,71 +1,9 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { Sidebar, type View } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
-import { DashboardView } from '@/components/dashboard/dashboard-view'
-import { LeadsView } from '@/components/dashboard/leads-view'
-import { GeneratorView } from '@/components/dashboard/generator-view'
-import { CampaignsView } from '@/components/dashboard/campaigns-view'
-import { CrmView } from '@/components/dashboard/crm-view'
-import { SeoView } from '@/components/dashboard/seo-view'
-import { ContentView } from '@/components/dashboard/content-view'
-import { SocialView } from '@/components/dashboard/social-view'
-import { AdsView } from '@/components/dashboard/ads-view'
-import { AnalyticsView } from '@/components/dashboard/analytics-view'
-import { AiAgentsView } from '@/components/dashboard/ai-agents-view'
-import { WorkflowView } from '@/components/dashboard/workflow-view'
-import { BacklinksView } from '@/components/dashboard/backlinks-view'
-import { SocialAnalyzerView } from '@/components/dashboard/social-analyzer-view'
-import { ExportAnalyzerView } from '@/components/dashboard/export-analyzer-view'
-import { UnifiedDashboardView } from '@/components/dashboard/unified-dashboard-view'
-import { EngagementHubView } from '@/components/dashboard/engagement-hub-view'
-import { GrowthView } from '@/components/dashboard/growth-view'
-import { AiAdvisorHubView } from '@/components/dashboard/ai-advisor-hub-view'
-import { AutonomousAgentView } from '@/components/dashboard/autonomous-agent-view'
-import { PricingView } from '@/components/dashboard/pricing-view'
-import { GoalsView } from '@/components/dashboard/goals-view'
-import { CalendarView } from '@/components/dashboard/calendar-view'
-import { SocialListeningView } from '@/components/dashboard/social-listening-view'
-import { LandingPage } from '@/components/dashboard/landing-page'
-import { ProgressiveRoadmapView } from '@/components/dashboard/progressive-roadmap-view'
-import { MarketplaceView } from '@/components/dashboard/marketplace-view'
-import { ClubView } from '@/components/dashboard/club-view'
-import { EcommerceView } from '@/components/dashboard/ecommerce-view'
-import { ResellerView } from '@/components/dashboard/reseller-view'
-import { AttributionView } from '@/components/dashboard/attribution-view'
-import { QuickSetupView } from '@/components/dashboard/quick-setup-view'
-import { TeamView } from '@/components/dashboard/team-view'
-import { SuperAdminView } from '@/components/dashboard/super-admin-view'
-import { WhiteLabelView } from '@/components/dashboard/white-label-view'
-import { FinanceView } from '@/components/dashboard/finance-view'
-import { PlatformPromotionView } from '@/components/dashboard/platform-promotion-view'
-import { PromoLinkView } from '@/components/dashboard/promo-link-view'
-import { CompetitorAnalysisView } from '@/components/dashboard/competitor-analysis-view'
-import { InvestorHubView } from '@/components/dashboard/investor-hub-view'
-import { TenantsView } from '@/components/dashboard/tenants-view'
-import { ProjectsView } from '@/components/dashboard/projects-view'
-import { ActivityView } from '@/components/dashboard/activity-view'
-import { SettingsView } from '@/components/dashboard/settings-view'
-import { DistributorView } from '@/components/dashboard/distributor-view'
-import { InternalPortalView } from '@/components/dashboard/internal-portal-view'
-import { PaymentGatewaysView } from '@/components/dashboard/payment-gateways-view'
-import { LlmSettingsView } from '@/components/dashboard/llm-settings-view'
-import { OnboardingWizardView } from '@/components/dashboard/onboarding-wizard-view'
-import { NegotiationView } from '@/components/dashboard/negotiation-view'
-import { NotificationCenterView } from '@/components/dashboard/notification-center-view'
-import { AiDecisionsView } from '@/components/dashboard/ai-decisions-view'
-import { AgentHubView } from '@/components/dashboard/agent-hub-view'
-import { VirtualAssistantView } from '@/components/dashboard/virtual-assistant-view'
-import { PayrollView } from '@/components/dashboard/payroll-view'
-import { SupportPlansView } from '@/components/dashboard/support-plans-view'
-import { GraphAgentView } from '@/components/dashboard/graph-agent-view'
-import { FinancialReportsView } from '@/components/dashboard/financial-reports-view'
-import { ProjectIntakeView } from '@/components/dashboard/project-intake-view'
-import { EventsCalendarView } from '@/components/dashboard/events-calendar-view'
-import { SandboxDemoView } from '@/components/dashboard/sandbox-demo-view'
-import { WebhooksView } from '@/components/dashboard/webhooks-view'
-import { ApprovalsView } from '@/components/dashboard/approvals-view'
 import { CommandPalette } from '@/components/i18n/command-palette'
 import { AuthModal } from '@/components/auth/auth-modal'
 import { useAuth } from '@/components/auth/session-provider'
@@ -77,6 +15,86 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Rocket, LogIn, Loader2 } from 'lucide-react'
 import { useI18n } from '@/i18n/provider'
 import { LanguageSwitcher } from '@/components/i18n/language-switcher'
+
+// All 63 dashboard views (+ the marketing landing page) are code-split via
+// next/dynamic instead of statically imported: previously every one of
+// them — and everything they import, e.g. recharts — shipped in the initial
+// bundle for every user regardless of which single view they actually
+// opened. Each now loads only when its `case` in RenderView is first
+// reached. See FRONTEND-ARCHITECTURE.md "Performance".
+function ViewLoading() {
+  return (
+    <div className="p-6 space-y-3">
+      <div className="h-6 w-48 rounded bg-muted animate-pulse" />
+      <div className="h-32 w-full rounded bg-muted animate-pulse" />
+      <div className="h-32 w-full rounded bg-muted animate-pulse" />
+    </div>
+  )
+}
+
+const DashboardView = dynamic(() => import('@/components/dashboard/dashboard-view').then(m => m.DashboardView), { loading: () => <ViewLoading /> })
+const LeadsView = dynamic(() => import('@/components/dashboard/leads-view').then(m => m.LeadsView), { loading: () => <ViewLoading /> })
+const GeneratorView = dynamic(() => import('@/components/dashboard/generator-view').then(m => m.GeneratorView), { loading: () => <ViewLoading /> })
+const CampaignsView = dynamic(() => import('@/components/dashboard/campaigns-view').then(m => m.CampaignsView), { loading: () => <ViewLoading /> })
+const CrmView = dynamic(() => import('@/components/dashboard/crm-view').then(m => m.CrmView), { loading: () => <ViewLoading /> })
+const SeoView = dynamic(() => import('@/components/dashboard/seo-view').then(m => m.SeoView), { loading: () => <ViewLoading /> })
+const ContentView = dynamic(() => import('@/components/dashboard/content-view').then(m => m.ContentView), { loading: () => <ViewLoading /> })
+const SocialView = dynamic(() => import('@/components/dashboard/social-view').then(m => m.SocialView), { loading: () => <ViewLoading /> })
+const AdsView = dynamic(() => import('@/components/dashboard/ads-view').then(m => m.AdsView), { loading: () => <ViewLoading /> })
+const AnalyticsView = dynamic(() => import('@/components/dashboard/analytics-view').then(m => m.AnalyticsView), { loading: () => <ViewLoading /> })
+const AiAgentsView = dynamic(() => import('@/components/dashboard/ai-agents-view').then(m => m.AiAgentsView), { loading: () => <ViewLoading /> })
+const WorkflowView = dynamic(() => import('@/components/dashboard/workflow-view').then(m => m.WorkflowView), { loading: () => <ViewLoading /> })
+const BacklinksView = dynamic(() => import('@/components/dashboard/backlinks-view').then(m => m.BacklinksView), { loading: () => <ViewLoading /> })
+const SocialAnalyzerView = dynamic(() => import('@/components/dashboard/social-analyzer-view').then(m => m.SocialAnalyzerView), { loading: () => <ViewLoading /> })
+const ExportAnalyzerView = dynamic(() => import('@/components/dashboard/export-analyzer-view').then(m => m.ExportAnalyzerView), { loading: () => <ViewLoading /> })
+const UnifiedDashboardView = dynamic(() => import('@/components/dashboard/unified-dashboard-view').then(m => m.UnifiedDashboardView), { loading: () => <ViewLoading /> })
+const EngagementHubView = dynamic(() => import('@/components/dashboard/engagement-hub-view').then(m => m.EngagementHubView), { loading: () => <ViewLoading /> })
+const GrowthView = dynamic(() => import('@/components/dashboard/growth-view').then(m => m.GrowthView), { loading: () => <ViewLoading /> })
+const AiAdvisorHubView = dynamic(() => import('@/components/dashboard/ai-advisor-hub-view').then(m => m.AiAdvisorHubView), { loading: () => <ViewLoading /> })
+const AutonomousAgentView = dynamic(() => import('@/components/dashboard/autonomous-agent-view').then(m => m.AutonomousAgentView), { loading: () => <ViewLoading /> })
+const PricingView = dynamic(() => import('@/components/dashboard/pricing-view').then(m => m.PricingView), { loading: () => <ViewLoading /> })
+const GoalsView = dynamic(() => import('@/components/dashboard/goals-view').then(m => m.GoalsView), { loading: () => <ViewLoading /> })
+const CalendarView = dynamic(() => import('@/components/dashboard/calendar-view').then(m => m.CalendarView), { loading: () => <ViewLoading /> })
+const SocialListeningView = dynamic(() => import('@/components/dashboard/social-listening-view').then(m => m.SocialListeningView), { loading: () => <ViewLoading /> })
+const LandingPage = dynamic(() => import('@/components/dashboard/landing-page').then(m => m.LandingPage), { loading: () => <ViewLoading /> })
+const ProgressiveRoadmapView = dynamic(() => import('@/components/dashboard/progressive-roadmap-view').then(m => m.ProgressiveRoadmapView), { loading: () => <ViewLoading /> })
+const MarketplaceView = dynamic(() => import('@/components/dashboard/marketplace-view').then(m => m.MarketplaceView), { loading: () => <ViewLoading /> })
+const ClubView = dynamic(() => import('@/components/dashboard/club-view').then(m => m.ClubView), { loading: () => <ViewLoading /> })
+const EcommerceView = dynamic(() => import('@/components/dashboard/ecommerce-view').then(m => m.EcommerceView), { loading: () => <ViewLoading /> })
+const ResellerView = dynamic(() => import('@/components/dashboard/reseller-view').then(m => m.ResellerView), { loading: () => <ViewLoading /> })
+const AttributionView = dynamic(() => import('@/components/dashboard/attribution-view').then(m => m.AttributionView), { loading: () => <ViewLoading /> })
+const QuickSetupView = dynamic(() => import('@/components/dashboard/quick-setup-view').then(m => m.QuickSetupView), { loading: () => <ViewLoading /> })
+const TeamView = dynamic(() => import('@/components/dashboard/team-view').then(m => m.TeamView), { loading: () => <ViewLoading /> })
+const SuperAdminView = dynamic(() => import('@/components/dashboard/super-admin-view').then(m => m.SuperAdminView), { loading: () => <ViewLoading /> })
+const WhiteLabelView = dynamic(() => import('@/components/dashboard/white-label-view').then(m => m.WhiteLabelView), { loading: () => <ViewLoading /> })
+const FinanceView = dynamic(() => import('@/components/dashboard/finance-view').then(m => m.FinanceView), { loading: () => <ViewLoading /> })
+const PlatformPromotionView = dynamic(() => import('@/components/dashboard/platform-promotion-view').then(m => m.PlatformPromotionView), { loading: () => <ViewLoading /> })
+const PromoLinkView = dynamic(() => import('@/components/dashboard/promo-link-view').then(m => m.PromoLinkView), { loading: () => <ViewLoading /> })
+const CompetitorAnalysisView = dynamic(() => import('@/components/dashboard/competitor-analysis-view').then(m => m.CompetitorAnalysisView), { loading: () => <ViewLoading /> })
+const InvestorHubView = dynamic(() => import('@/components/dashboard/investor-hub-view').then(m => m.InvestorHubView), { loading: () => <ViewLoading /> })
+const TenantsView = dynamic(() => import('@/components/dashboard/tenants-view').then(m => m.TenantsView), { loading: () => <ViewLoading /> })
+const ProjectsView = dynamic(() => import('@/components/dashboard/projects-view').then(m => m.ProjectsView), { loading: () => <ViewLoading /> })
+const ActivityView = dynamic(() => import('@/components/dashboard/activity-view').then(m => m.ActivityView), { loading: () => <ViewLoading /> })
+const SettingsView = dynamic(() => import('@/components/dashboard/settings-view').then(m => m.SettingsView), { loading: () => <ViewLoading /> })
+const DistributorView = dynamic(() => import('@/components/dashboard/distributor-view').then(m => m.DistributorView), { loading: () => <ViewLoading /> })
+const InternalPortalView = dynamic(() => import('@/components/dashboard/internal-portal-view').then(m => m.InternalPortalView), { loading: () => <ViewLoading /> })
+const PaymentGatewaysView = dynamic(() => import('@/components/dashboard/payment-gateways-view').then(m => m.PaymentGatewaysView), { loading: () => <ViewLoading /> })
+const LlmSettingsView = dynamic(() => import('@/components/dashboard/llm-settings-view').then(m => m.LlmSettingsView), { loading: () => <ViewLoading /> })
+const OnboardingWizardView = dynamic(() => import('@/components/dashboard/onboarding-wizard-view').then(m => m.OnboardingWizardView), { loading: () => <ViewLoading /> })
+const NegotiationView = dynamic(() => import('@/components/dashboard/negotiation-view').then(m => m.NegotiationView), { loading: () => <ViewLoading /> })
+const NotificationCenterView = dynamic(() => import('@/components/dashboard/notification-center-view').then(m => m.NotificationCenterView), { loading: () => <ViewLoading /> })
+const AiDecisionsView = dynamic(() => import('@/components/dashboard/ai-decisions-view').then(m => m.AiDecisionsView), { loading: () => <ViewLoading /> })
+const AgentHubView = dynamic(() => import('@/components/dashboard/agent-hub-view').then(m => m.AgentHubView), { loading: () => <ViewLoading /> })
+const VirtualAssistantView = dynamic(() => import('@/components/dashboard/virtual-assistant-view').then(m => m.VirtualAssistantView), { loading: () => <ViewLoading /> })
+const PayrollView = dynamic(() => import('@/components/dashboard/payroll-view').then(m => m.PayrollView), { loading: () => <ViewLoading /> })
+const SupportPlansView = dynamic(() => import('@/components/dashboard/support-plans-view').then(m => m.SupportPlansView), { loading: () => <ViewLoading /> })
+const GraphAgentView = dynamic(() => import('@/components/dashboard/graph-agent-view').then(m => m.GraphAgentView), { loading: () => <ViewLoading /> })
+const FinancialReportsView = dynamic(() => import('@/components/dashboard/financial-reports-view').then(m => m.FinancialReportsView), { loading: () => <ViewLoading /> })
+const ProjectIntakeView = dynamic(() => import('@/components/dashboard/project-intake-view').then(m => m.ProjectIntakeView), { loading: () => <ViewLoading /> })
+const EventsCalendarView = dynamic(() => import('@/components/dashboard/events-calendar-view').then(m => m.EventsCalendarView), { loading: () => <ViewLoading /> })
+const SandboxDemoView = dynamic(() => import('@/components/dashboard/sandbox-demo-view').then(m => m.SandboxDemoView), { loading: () => <ViewLoading /> })
+const WebhooksView = dynamic(() => import('@/components/dashboard/webhooks-view').then(m => m.WebhooksView), { loading: () => <ViewLoading /> })
+const ApprovalsView = dynamic(() => import('@/components/dashboard/approvals-view').then(m => m.ApprovalsView), { loading: () => <ViewLoading /> })
 
 export default function Home() {
   const { t } = useI18n()
