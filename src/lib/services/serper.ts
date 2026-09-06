@@ -7,7 +7,10 @@
  * the sandbox environment.
  */
 
+import { withTimeout } from '@/lib/integrations/types'
+
 const SERPER_BASE = 'https://google.serper.dev'
+const REQUEST_TIMEOUT_MS = 8_000
 
 export interface SerperResult {
   title: string
@@ -47,15 +50,19 @@ export async function searchBusinesses(
   }
 
   try {
-    const res = await fetch(`${SERPER_BASE}/search`, {
-      method: 'POST',
-      headers: {
-        'X-API-KEY': apiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ q: fullQuery, num }),
-      cache: 'no-store',
-    })
+    const res = await withTimeout(
+      fetch(`${SERPER_BASE}/search`, {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ q: fullQuery, num }),
+        cache: 'no-store',
+      }),
+      REQUEST_TIMEOUT_MS,
+      'serper',
+    )
     if (!res.ok) {
       return { error: `Serper responded ${res.status}: ${await res.text()}` }
     }

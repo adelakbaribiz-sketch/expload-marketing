@@ -5,24 +5,18 @@
  *  - Customer country (e.g. SA → Moyasar, IN → Razorpay, NG → Paystack)
  *  - Currency (e.g. SAR → Moyasar/Tap, IDR → Midtrans)
  *  - Payment method (crypto → NOWPayments, card → Stripe/PayPal)
- *  - Amount (micro-payments → Paystack, large → wire)
  *
- * Supported gateways:
- *   - Stripe (global cards)
- *   - PayPal (global wallet)
- *   - Razorpay (India)
- *   - Moyasar (Saudi Arabia)
- *   - Paystack (Nigeria, Africa)
- *   - Flutterwave (Africa)
- *   - Tap / HyperPay (MENA)
- *   - Mollie (EU)
- *   - Midtrans (Indonesia)
- *   - Iyzico (Turkey)
- *   - NOWPayments / CoinPayments (crypto)
+ * Only NOWPayments (crypto) has a real SDK integration in this deployment
+ * — see `src/lib/integrations/payment-provider.ts`. Every other gateway
+ * previously returned a hardcoded-fake checkout URL/clientSecret with no
+ * real API call and no indication it wasn't real (see KNOWN-ISSUES.md).
+ * `routePayment()` now fails honestly for those instead of fabricating a
+ * checkout link a customer could pay into believing it's real.
  */
 
 import 'server-only'
 import { db } from '@/lib/db'
+import { getPaymentProvider, type PaymentCheckoutData } from '@/lib/integrations/payment-provider'
 
 export interface PaymentIntent {
   amount: number
@@ -35,14 +29,7 @@ export interface PaymentIntent {
   metadata?: Record<string, any>
 }
 
-export interface RoutedPayment {
-  gateway: string
-  intent: any
-  clientSecret?: string
-  redirectUrl?: string
-  checkoutUrl?: string
-  reference: string
-}
+export type RoutedPayment = PaymentCheckoutData
 
 /** Get active gateways sorted by priority. */
 async function getActiveGateways() {
@@ -50,17 +37,6 @@ async function getActiveGateways() {
     where: { isActive: true },
     orderBy: { priority: 'asc' },
   })
-}
-
-/** Pick the best gateway for a payment intent. */
-export async function routePayment(intent: PaymentIntent): Promise<RoutedPayment | null> {
-  const gateways = await getActiveGateways()
-  if (gateways.length === 0) return null
-
-  const candidates = gateways.filter(g => matchesGateway(g, intent))
-  if (candidates.length === 0) return null
-  const chosen = candidates[0]
-  return dispatchToGateway(chosen, intent)
 }
 
 /** Check if a gateway supports this intent. */
@@ -75,104 +51,36 @@ function matchesGateway(g: any, intent: PaymentIntent): boolean {
   return true
 }
 
-/** Dispatch to the appropriate gateway SDK. */
-async function dispatchToGateway(gateway: any, intent: PaymentIntent): Promise<RoutedPayment> {
-  const reference = `pay_${gateway.provider}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-  switch (gateway.provider) {
-    case 'stripe':
-      return createStripeIntent(intent, reference)
-    case 'paypal':
-      return createPayPalOrder(intent, reference)
-    case 'razorpay':
-      return createRazorpayOrder(intent, reference)
-    case 'moyasar':
-      return createMoyasarPayment(intent, reference)
-    case 'paystack':
-      return createPaystackPayment(intent, reference)
-    case 'flutterwave':
-      return createFlutterwavePayment(intent, reference)
-    case 'tap':
-    case 'hyperpay':
-      return createTapCheckout(intent, reference, gateway.provider)
-    case 'mollie':
-      return createMolliePayment(intent, reference)
-    case 'midtrans':
-      return createMidtransTransaction(intent, reference)
-    case 'iyzico':
-      return createIyzicoPayment(intent, reference)
-    case 'nowpayments':
-    case 'coinpayments':
-    case 'coinbase_commerce':
-    case 'bitpay':
-      return createCryptoCheckout(intent, reference, gateway.provider)
-    default:
-      throw new Error(`Unsupported gateway: ${gateway.provider}`)
+/**
+ * Pick the best gateway for a payment intent and create a checkout through
+ * it. Returns `null` only when no *configured* gateway matches the intent
+ * at all (not when a matching gateway exists but has no real integration —
+ * that's a thrown/rejected result from the provider itself, surfaced to
+ * the caller as a real failure, not silently swallowed into `null`).
+ */
+export async function routePayment(intent: PaymentIntent): Promise<RoutedPayment | null> {
+  const gateways = await getActiveGateways()
+  if (gateways.length === 0) return null
+
+  const candidates = gateways.filter(g => matchesGateway(g, intent))
+  if (candidates.length === 0) return null
+
+  const chosen = candidates[0]
+  const provider = getPaymentProvider(chosen.provider)
+  const result = await provider.createCheckout({
+    amount: intent.amount,
+    currency: intent.currency,
+    description: intent.description,
+    metadata: { ...intent.metadata, tenantId: intent.tenantId },
+  })
+
+  if (!result.ok || !result.data) {
+    throw new Error(result.error ?? `${chosen.provider} checkout failed`)
   }
+  return result.data
 }
 
-// ============================================================================
-// Gateway-specific adapters (stubs — wire to real SDKs in production)
-// ============================================================================
-
-async function createStripeIntent(intent: PaymentIntent, reference: string): Promise<RoutedPayment> {
-  // Production: use stripe SDK
-  // import Stripe from 'stripe'; const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-  return {
-    gateway: 'stripe', intent,
-    clientSecret: `pi_${reference}_secret_mock`,
-    reference,
-  }
-}
-
-async function createPayPalOrder(intent: PaymentIntent, reference: string): Promise<RoutedPayment> {
-  return { gateway: 'paypal', intent, redirectUrl: `https://paypal.com/checkout?ref=${reference}`, reference }
-}
-
-async function createRazorpayOrder(intent: PaymentIntent, reference: string): Promise<RoutedPayment> {
-  // India: UPI, cards, netbanking
-  return { gateway: 'razorpay', intent, reference, clientSecret: `rzp_${reference}` }
-}
-
-async function createMoyasarPayment(intent: PaymentIntent, reference: string): Promise<RoutedPayment> {
-  // Saudi Arabia: mada, Apple Pay, STC Pay
-  return { gateway: 'moyasar', intent, reference, checkoutUrl: `https://api.moyasar.com/v1/checkout?ref=${reference}` }
-}
-
-async function createPaystackPayment(intent: PaymentIntent, reference: string): Promise<RoutedPayment> {
-  // Nigeria/Ghana: cards, bank transfer, USSD, mobile money
-  return { gateway: 'paystack', intent, reference, checkoutUrl: `https://checkout.paystack.com/${reference}` }
-}
-
-async function createFlutterwavePayment(intent: PaymentIntent, reference: string): Promise<RoutedPayment> {
-  // Africa-wide
-  return { gateway: 'flutterwave', intent, reference, checkoutUrl: `https://checkout.flutterwave.com/v3/hosted/pay/${reference}` }
-}
-
-async function createTapCheckout(intent: PaymentIntent, reference: string, provider: string): Promise<RoutedPayment> {
-  // MENA: KNET, mada, Apple Pay, cards
-  return { gateway: provider, intent, reference, checkoutUrl: `https://checkout.${provider}.com/v1/checkout?ref=${reference}` }
-}
-
-async function createMolliePayment(intent: PaymentIntent, reference: string): Promise<RoutedPayment> {
-  // EU: iDEAL, Bancontact, SOFORT, cards
-  return { gateway: 'mollie', intent, reference, checkoutUrl: `https://mollie.com/checkout/select-method/${reference}` }
-}
-
-async function createMidtransTransaction(intent: PaymentIntent, reference: string): Promise<RoutedPayment> {
-  // Indonesia: QRIS, GoPay, ShopeePay, bank transfer
-  return { gateway: 'midtrans', intent, reference, checkoutUrl: `https://app.midtrans.com/snap/v3/redirection/${reference}` }
-}
-
-async function createIyzicoPayment(intent: PaymentIntent, reference: string): Promise<RoutedPayment> {
-  // Turkey: cards, bank transfer
-  return { gateway: 'iyzico', intent, reference, checkoutUrl: `https://checkout.iyzico.com/checkout/${reference}` }
-}
-
-async function createCryptoCheckout(intent: PaymentIntent, reference: string, provider: string): Promise<RoutedPayment> {
-  return { gateway: provider, intent, reference, checkoutUrl: `https://${provider}.com/checkout/${reference}` }
-}
-
-/** List of supported gateways with metadata. */
+/** List of supported gateways with metadata — for the settings UI to show which are real vs. unconfigured. */
 export const SUPPORTED_GATEWAYS = [
   { id: 'stripe', name: 'Stripe', countries: 'Global', methods: ['card', 'apple_pay', 'google_pay'] },
   { id: 'paypal', name: 'PayPal', countries: 'Global', methods: ['paypal'] },
@@ -189,4 +97,4 @@ export const SUPPORTED_GATEWAYS = [
   { id: 'coinpayments', name: 'CoinPayments', countries: 'Global', methods: ['crypto'] },
   { id: 'coinbase_commerce', name: 'Coinbase Commerce', countries: 'Global', methods: ['crypto'] },
   { id: 'bitpay', name: 'BitPay', countries: 'Global', methods: ['crypto'] },
-]
+].map(g => ({ ...g, configured: getPaymentProvider(g.id).configured }))

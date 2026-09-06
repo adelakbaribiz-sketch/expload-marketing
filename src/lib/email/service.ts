@@ -5,9 +5,15 @@
  * SMTP via environment variables. In development (no SMTP configured),
  * emails are "sent" to the console + persisted as EmailLog entries
  * with status "sent" so the campaign flow can be tested end-to-end.
+ *
+ * The actual "hand this to a vendor" call goes through
+ * `src/lib/integrations/email-provider.ts` (timeout + retry there) — this
+ * file owns the business logic: template interpolation, EmailLog
+ * persistence, batching, and campaign-level idempotency.
  */
 
 import { db } from '@/lib/db'
+import { SmtpEmailProvider, ConsoleEmailProvider, type EmailProvider } from '@/lib/integrations/email-provider'
 
 export interface SendEmailParams {
   to: string
@@ -25,30 +31,21 @@ export interface SendEmailResult {
   status: 'sent' | 'failed' | 'bounced'
 }
 
-let transporter: any = null
+let provider: EmailProvider | null = null
 
-async function getTransporter(): Promise<any | null> {
-  if (transporter) return transporter
-
+function getProvider(): EmailProvider {
+  if (provider) return provider
   const host = process.env.SMTP_HOST
   const port = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587
   const user = process.env.SMTP_USER
   const pass = process.env.SMTP_PASS
+  provider = host && user && pass ? new SmtpEmailProvider({ host, port, user, pass }) : new ConsoleEmailProvider()
+  return provider
+}
 
-  if (!host || !user || !pass) {
-    return null // Dev mode — no SMTP configured
-  }
-
-  // Lazy import to avoid loading nodemailer in dev mode
-  const nodemailer = await import('nodemailer')
-  transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-  })
-
-  return transporter
+/** Test-only hook — swap in a MockEmailProvider without touching env vars. */
+export function _setProviderForTesting(p: EmailProvider | null) {
+  provider = p
 }
 
 /** Replace {{variables}} in a string. */
@@ -84,76 +81,50 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
   const finalSubject = interpolateTemplate(subject, variables)
   const finalBody = interpolateTemplate(body, variables)
 
-  const transport = await getTransporter()
+  const result = await getProvider().send({
+    to,
+    from: process.env.SMTP_FROM || '"Expload Marketing" <noreply@expload.io>',
+    subject: finalSubject,
+    text: finalBody,
+    html: finalBody.replace(/\n/g, '<br>'),
+  })
 
-  // Dev mode: simulate sending
-  if (!transport) {
-    console.log('\n========== EMAIL (DEV MODE) ==========')
-    console.log(`To: ${to}`)
-    console.log(`Subject: ${finalSubject}`)
-    console.log(`Body:\n${finalBody.slice(0, 500)}${finalBody.length > 500 ? '...' : ''}`)
-    console.log('=======================================\n')
-
+  if (result.ok) {
     await db.emailLog.update({
       where: { id: log.id },
-      data: {
-        status: 'sent',
-        sentAt: new Date(),
-        deliveredAt: new Date(),
-      },
+      data: { status: 'sent', sentAt: new Date(), deliveredAt: new Date() },
     })
-
-    return { success: true, messageId: `dev-${log.id}`, status: 'sent' }
+    return { success: true, messageId: result.data?.messageId, status: 'sent' }
   }
 
-  // Production: send via SMTP
-  try {
-    const info = await transport.sendMail({
-      from: process.env.SMTP_FROM || '"Expload Marketing" <noreply@expload.io>',
-      to,
-      subject: finalSubject,
-      text: finalBody,
-      html: finalBody.replace(/\n/g, '<br>'),
-    })
+  const errorMsg = result.error ?? 'unknown error'
+  // Detect bounce vs. failure
+  const isBounce = /bounce|reject|invalid|does not exist/i.test(errorMsg)
+  const status = isBounce ? 'bounced' : 'failed'
 
-    await db.emailLog.update({
-      where: { id: log.id },
-      data: {
-        status: 'sent',
-        sentAt: new Date(),
-        deliveredAt: new Date(),
-      },
-    })
+  await db.emailLog.update({
+    where: { id: log.id },
+    data: { status, error: errorMsg.slice(0, 500) },
+  })
 
-    return { success: true, messageId: info.messageId, status: 'sent' }
-  } catch (err: any) {
-    const errorMsg = String(err?.message ?? err)
-
-    // Detect bounce vs. failure
-    const isBounce = /bounce|reject|invalid|does not exist/i.test(errorMsg)
-    const status = isBounce ? 'bounced' : 'failed'
-
-    await db.emailLog.update({
-      where: { id: log.id },
-      data: { status, error: errorMsg.slice(0, 500) },
-    })
-
-    return { success: false, error: errorMsg, status }
-  }
+  return { success: false, error: errorMsg, status }
 }
 
 /**
  * Send a campaign to all matching recipients.
  * Processes in batches to avoid overwhelming the SMTP server.
+ *
+ * Idempotent per (campaignId, lead email): a recipient who already has a
+ * non-failed EmailLog for this campaign is skipped. Without this, a second
+ * call to sendCampaign for the same campaign — a retry after a partial
+ * failure, a double-click, a queue redelivery — resent to everyone,
+ * including people who'd already received it.
  */
 export async function sendCampaign(
   campaignId: string,
   batchSize = 10,
-): Promise<{ sent: number; failed: number; bounced: number; total: number }> {
-  const campaign = await db.emailCampaign.findUnique({
-    where: { id: campaignId },
-    include: { logs: { where: { status: 'pending' } } },
-  })
+): Promise<{ sent: number; failed: number; bounced: number; skipped: number; total: number }> {
+  const campaign = await db.emailCampaign.findUnique({ where: { id: campaignId } })
 
   if (!campaign) {
     throw new Error('Campaign not found')
@@ -179,6 +150,16 @@ export async function sendCampaign(
     select: { id: true, name: true, email: true, industry: true, company: true },
   })
 
+  // Already-sent (or in-flight) recipients for this campaign — the
+  // idempotency check.
+  const alreadyHandled = await db.emailLog.findMany({
+    where: { campaignId, status: { in: ['sent', 'pending', 'bounced'] } },
+    select: { leadId: true },
+  })
+  const handledLeadIds = new Set(alreadyHandled.map((l) => l.leadId).filter(Boolean))
+  const pending = recipients.filter((r) => !handledLeadIds.has(r.id))
+  const skipped = recipients.length - pending.length
+
   // Update recipient count
   await db.emailCampaign.update({
     where: { id: campaignId },
@@ -190,8 +171,8 @@ export async function sendCampaign(
   let bounced = 0
 
   // Process in batches
-  for (let i = 0; i < recipients.length; i += batchSize) {
-    const batch = recipients.slice(i, i + batchSize)
+  for (let i = 0; i < pending.length; i += batchSize) {
+    const batch = pending.slice(i, i + batchSize)
 
     await Promise.all(
       batch.map(async (recipient) => {
@@ -234,7 +215,7 @@ export async function sendCampaign(
     },
   })
 
-  return { sent, failed, bounced, total: recipients.length }
+  return { sent, failed, bounced, skipped, total: recipients.length }
 }
 
 /** Check if SMTP is configured. */
