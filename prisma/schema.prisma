@@ -24,6 +24,7 @@ model Tenant {
   updatedAt DateTime @updatedAt
 
   users                       User[]
+  activities                  Activity[]
   projects                    Project[]
   leads                       Lead[]
   contacts                    Contact[]
@@ -244,6 +245,14 @@ model Activity {
   tenantId  String?
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   lead      Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  // The one tenantId in the schema with no @relation to Tenant, unlike its
+  // ~75 sibling models (and unlike this row's own userId/leadId fields
+  // above) — found via scripts/db-integrity-check.ts flagging 50 real
+  // orphaned rows in the live dev DB (dangling tenantId pointing at an
+  // already-deleted Tenant, since DELETE /api/tenants/[id] had nothing to
+  // cascade through here). See RELIABILITY-AUDIT.md's sibling finding
+  // class and QA-AUDIT.md for this one.
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@index([tenantId])
@@ -2552,6 +2561,8 @@ model Payment {
   refundedAt            DateTime?
   createdAt             DateTime  @default(now())
 
+  cryptoPayments        CryptoPayment[]
+
   @@index([tenantId])
   @@index([status])
   @@index([type])
@@ -3306,6 +3317,17 @@ model CryptoPayment {
   // Linked invoice/payment
   invoiceId             String?
   paymentId             String? // links to Payment record when completed
+  // Deliberately SetNull, not Cascade, matching this model's own
+  // tenant relation above: CryptoPayment is a financial/audit record this
+  // app keeps even after the Payment it produced (or the tenant that made
+  // it) is gone — it should never be silently destroyed, only lose its
+  // now-dangling pointer. Found via a Phase 18 regression test:
+  // Payment.tenant cascades on tenant deletion, but this field was a bare
+  // string with no relation at all, so a completed CryptoPayment survived
+  // tenant deletion (correctly) while pointing at a paymentId that no
+  // longer existed (a real dangling reference, caught by
+  // scripts/db-integrity-check.ts). See QA-AUDIT.md.
+  payment               Payment?  @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   // Timestamps
   initiatedAt           DateTime  @default(now())
   detectedAt            DateTime? // when first confirmation seen

@@ -112,6 +112,15 @@ export async function getCurrentUser() {
     email: user.email,
     name: user.name,
     role: user.role,
+    // `hasPermission()` (src/lib/auth/rbac.ts) has always looked up
+    // `(user as any).roleId` to enforce a custom role's granted
+    // permissions — but this function never included it on the object it
+    // returns, so that lookup was silent dead code: every custom-role
+    // permission check fell through to "not owner/admin, no roleId" and
+    // was denied, or (via requireNonViewer(), which never looked at
+    // roleId at all) was allowed outright. See ACCEPTANCE-CRITERIA.md
+    // AC-7 and QA-AUDIT.md.
+    roleId: user.roleId,
     tenantId: user.tenantId,
     isSuperAdmin,
     internalPlatformRole,
@@ -151,6 +160,7 @@ export async function authenticateUser(email: string, password: string) {
     email: user.email,
     name: user.name,
     role: user.role,
+    roleId: user.roleId,
     tenantId: user.tenantId,
     isSuperAdmin,
     internalPlatformRole,

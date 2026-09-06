@@ -13,6 +13,12 @@ export async function GET() {
       email: user.email,
       name: user.name,
       role: user.role,
+      // Found via a Phase 18 contract check: /api/auth/login already
+      // returns roleId (it forwards authenticateUser()'s full object),
+      // but this endpoint rebuilt the object by hand and had silently
+      // dropped it — an inconsistency between "who am I right after
+      // login" and "who am I on a later page load."
+      roleId: user.roleId,
       tenantId: user.tenantId,
       isSuperAdmin: user.isSuperAdmin,
       internalPlatformRole: user.internalPlatformRole,

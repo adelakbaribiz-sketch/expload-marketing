@@ -1,0 +1,151 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  DATABASE_URL: file:./db/custom.db
+  NEXTAUTH_SECRET: ci-only-secret-not-used-in-production-please-change-32chars
+  NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+jobs:
+  quality:
+    name: Typecheck, Lint, Unit/Integration Tests, DB Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate Prisma client + create schema
+        run: |
+          bun run db:generate
+          bun run db:push
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Unit + integration tests (bun test)
+        run: bun test
+
+      - name: Database integrity check
+        run: bun run db:integrity-check
+
+      - name: Security checks (static — no live server in this job)
+        run: bun run security-check
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate Prisma client + create schema
+        run: |
+          bun run db:generate
+          bun run db:push
+
+      - name: Production build
+        run: bun run build:webpack
+
+  api-and-security-live:
+    name: Live API integration + security checks
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate Prisma client + create schema
+        run: |
+          bun run db:generate
+          bun run db:push
+
+      - name: Build
+        run: bun run build:webpack
+
+      - name: Start production server
+        run: |
+          nohup bun run start:bun > server.log 2>&1 &
+          echo "Waiting for server..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/health/live > /dev/null; then
+              echo "Server is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Server failed to start in time"
+          cat server.log
+          exit 1
+
+      - name: Security checks (including live adversarial checks)
+        run: bun run security-check
+
+      - name: API integration checks (critical paths)
+        run: bun run scripts/api-integration-checks.ts
+
+      - name: Print server log on failure
+        if: failure()
+        run: cat server.log
+
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+
+      - name: Generate Prisma client + create schema
+        run: |
+          bun run db:generate
+          bun run db:push
+
+      - name: Build for E2E
+        run: bun run e2e:build
+
+      - name: Run E2E tests
+        run: bun run test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

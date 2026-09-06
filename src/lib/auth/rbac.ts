@@ -36,11 +36,12 @@ export async function hasPermission(permission: string): Promise<PermissionCheck
     return { allowed: true }
   }
 
-  // Check role-based permissions
-  const roleId = (user as any).roleId
-  if (roleId) {
+  // Check role-based permissions. Was dead code until getCurrentUser()
+  // started actually including roleId on its returned object — see that
+  // function's own comment and ACCEPTANCE-CRITERIA.md AC-7.
+  if (user.roleId) {
     const role = await db.role.findUnique({
-      where: { id: roleId },
+      where: { id: user.roleId },
       include: { permissions: { include: { permission: true } } },
     })
     if (role) {
@@ -77,6 +78,20 @@ export async function requireNonViewer(): Promise<PermissionCheck> {
   const user = await getCurrentUser()
   if (!user) return { allowed: false, reason: 'Not authenticated' }
   if (user.role === 'viewer') return { allowed: false, reason: 'Viewer role is read-only' }
+
+  // A custom role with zero granted permissions is unambiguously
+  // "read-only, no ability to do anything" by construction (there's no
+  // finer-grained write/read permission taxonomy in this app to check
+  // against). Previously this function never looked at roleId at all, so
+  // an owner assigning a locked-down custom role to a user had zero
+  // effect on that user's actual write access — confirmed live (fixed
+  // together with getCurrentUser() finally including roleId at all — see
+  // that function's own comment). See ACCEPTANCE-CRITERIA.md AC-7.
+  if (user.roleId) {
+    const permissionCount = await db.rolePermission.count({ where: { roleId: user.roleId } })
+    if (permissionCount === 0) return { allowed: false, reason: 'Assigned role has no granted permissions' }
+  }
+
   return { allowed: true }
 }
 
@@ -119,10 +134,9 @@ export async function getUserPermissions(): Promise<string[]> {
   if (user.role === 'owner') return ['*']
 
   // Role-based
-  const roleId = (user as any).roleId
-  if (roleId) {
+  if (user.roleId) {
     const role = await db.role.findUnique({
-      where: { id: roleId },
+      where: { id: user.roleId },
       include: { permissions: { include: { permission: true } } },
     })
     if (role) {
