@@ -15,8 +15,35 @@
 import { sendCampaign } from '@/lib/email/service'
 import { logger, getLogContext, runWithLogContext } from '@/lib/observability/logger'
 import { queueJobsTotal, queueJobDuration, registerQueueDepthSampler } from '@/lib/observability/metrics'
+import { alertCritical } from '@/lib/observability/alerts'
 
 export type JobType = 'email_campaign' | 'lead_generation' | 'lead_enrich' | 'document_extract'
+
+/**
+ * Thrown by `enqueue()` when the queue backend itself is unreachable (e.g.
+ * REDIS_URL configured but Redis down) — a distinct, catchable error so a
+ * route can tell "the queue is down" apart from "the job payload was bad"
+ * and answer with a clean 503 instead of a generic 500. See
+ * RELIABILITY-AUDIT.md — this was previously an uncaught ioredis error
+ * propagating raw through 2 call sites.
+ */
+export class QueueUnavailableError extends Error {
+  constructor(cause: unknown) {
+    super(`Queue backend unavailable: ${cause instanceof Error ? cause.message : String(cause)}`)
+    this.name = 'QueueUnavailableError'
+  }
+}
+
+// Job types safe to automatically retry on failure — i.e. re-running the
+// whole job from scratch doesn't do anything harmful or double-charge/
+// double-send. `email_campaign` is safe (sendCampaign() already skips
+// already-sent recipients). `document_extract` is deliberately excluded:
+// its own failure handler deletes the source upload before rethrowing
+// (RELIABILITY-AUDIT.md), so a second attempt would fail differently
+// (file not found) and try to delete an already-gone file — retrying it
+// generically would be actively harmful, not just redundant.
+const RETRYABLE_JOB_TYPES: ReadonlySet<JobType> = new Set(['email_campaign', 'lead_enrich'])
+const MAX_JOB_ATTEMPTS = 3
 
 export interface Job {
   id: string
@@ -31,6 +58,8 @@ export interface Job {
   completedAt?: Date
   /** Ties this job back to the request that enqueued it — see src/lib/observability/logger.ts. */
   correlationId?: string
+  /** Number of processing attempts so far — see RETRYABLE_JOB_TYPES/MAX_JOB_ATTEMPTS. */
+  attempts: number
 }
 
 interface QueueAdapter {
@@ -192,8 +221,19 @@ export async function enqueue(
     progress: 0,
     createdAt: new Date(),
     correlationId: getLogContext().correlationId,
+    attempts: 0,
   }
-  await getAdapter().enqueue(job)
+  try {
+    await getAdapter().enqueue(job)
+  } catch (err) {
+    logger.error('queue.enqueue_failed', { type, error: String(err) })
+    alertCritical({
+      title: 'Queue backend unavailable',
+      detail: `enqueue(${type}) failed: ${String(err)}`,
+      source: 'queue.enqueue',
+    }).catch(() => {})
+    throw new QueueUnavailableError(err)
+  }
   logger.info('queue.job_enqueued', { jobId: job.id, type })
   // Start worker if not running
   startWorker()
@@ -250,8 +290,28 @@ async function processJobQueue() {
         job.result = result
         job.completedAt = new Date()
       } catch (err: any) {
-        job.status = 'failed'
+        job.attempts += 1
         job.error = String(err?.message ?? err).slice(0, 500)
+
+        // Retry with backoff for job types where re-running from scratch
+        // is safe (see RETRYABLE_JOB_TYPES) — a job that failed on a
+        // transient error (a flaky SMTP connection, a momentarily-down
+        // LLM provider) shouldn't be permanently lost on the first try.
+        if (RETRYABLE_JOB_TYPES.has(job.type) && job.attempts < MAX_JOB_ATTEMPTS) {
+          job.status = 'queued'
+          job.startedAt = undefined
+          job.completedAt = undefined
+          logger.warn('queue.job_retry', { jobId: job.id, type: job.type, attempt: job.attempts, error: job.error, correlationId: job.correlationId })
+          await getAdapter().update(job)
+          const backoffMs = Math.min(1000 * 2 ** job.attempts, 15_000)
+          await new Promise((r) => setTimeout(r, backoffMs))
+          await getAdapter().enqueue(job).catch((enqueueErr) => {
+            logger.error('queue.retry_enqueue_failed', { jobId: job.id, error: String(enqueueErr) })
+          })
+          continue
+        }
+
+        job.status = 'failed'
         job.completedAt = new Date()
       }
 
@@ -262,9 +322,20 @@ async function processJobQueue() {
       if (durationSec !== undefined) queueJobDuration.labels(job.type).observe(durationSec)
 
       if (job.status === 'failed') {
-        logger.error('queue.job_failed', { jobId: job.id, type: job.type, durationMs: durationSec ? durationSec * 1000 : undefined, error: job.error, correlationId: job.correlationId })
+        logger.error('queue.job_failed', { jobId: job.id, type: job.type, attempts: job.attempts, durationMs: durationSec ? durationSec * 1000 : undefined, error: job.error, correlationId: job.correlationId })
+        // Dead-letter signal: this job will never be retried again (either
+        // its type isn't retryable, or it exhausted MAX_JOB_ATTEMPTS) —
+        // there's no separate DLQ table (would need a schema change for a
+        // queue that's otherwise deliberately ephemeral/in-memory-or-Redis
+        // today), so a critical alert is the durable record that this
+        // needs a human, not another silent `status: 'failed'` string.
+        alertCritical({
+          title: 'Queue job permanently failed',
+          detail: `${job.type} job ${job.id} failed after ${job.attempts} attempt(s): ${job.error}`,
+          source: `queue.${job.type}`,
+        }).catch(() => {})
       } else {
-        logger.info('queue.job_completed', { jobId: job.id, type: job.type, durationMs: durationSec ? durationSec * 1000 : undefined, correlationId: job.correlationId })
+        logger.info('queue.job_completed', { jobId: job.id, type: job.type, attempts: job.attempts, durationMs: durationSec ? durationSec * 1000 : undefined, correlationId: job.correlationId })
       }
 
       await getAdapter().update(job)

@@ -16,6 +16,13 @@
  */
 
 import type { SerperResult } from './serper'
+import { withTimeout } from '@/lib/integrations/types'
+
+// Had no timeout at all before this phase — an unresponsive Serper Places
+// endpoint would hang this call (and the leads/search request that
+// triggered it) indefinitely, unlike serper.ts's own organic-search call
+// which already had one. See RELIABILITY-AUDIT.md.
+const PLACES_TIMEOUT_MS = 8_000
 
 export interface MapsPlace {
   name: string
@@ -57,15 +64,19 @@ export async function scrapePlaces(
   // 2. Try Serper Places API
   if (apiKey) {
     try {
-      const res = await fetch('https://google.serper.dev/places', {
-        method: 'POST',
-        headers: {
-          'X-API-KEY': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ q: fullQuery }),
-        cache: 'no-store',
-      })
+      const res = await withTimeout(
+        fetch('https://google.serper.dev/places', {
+          method: 'POST',
+          headers: {
+            'X-API-KEY': apiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ q: fullQuery }),
+          cache: 'no-store',
+        }),
+        PLACES_TIMEOUT_MS,
+        'serper-places',
+      )
       if (!res.ok) return []
       const data = await res.json()
       const places: MapsPlace[] = (data.places ?? []).slice(0, maxResults).map((p: any) => ({

@@ -403,26 +403,48 @@ export async function generateProposalForSession(sessionId: string): Promise<{ p
   // Generate
   const generated = await handler.generateProposal(ctx)
 
-  // Persist
-  const proposal = await db.negotiationProposal.create({
-    data: {
-      sessionId: session.id,
-      round: handler.round,
-      type: handler.type,
-      title: generated.title,
-      description: generated.description,
-      features: JSON.stringify(generated.features),
-      excludedFeatures: generated.excludedFeatures ? JSON.stringify(generated.excludedFeatures) : null,
-      deliveryWeeks: generated.deliveryWeeks,
-      price: generated.price,
-      currency: generated.currency,
-      paymentSchedule: generated.paymentSchedule,
-      savingsPercent: generated.savingsPercent,
-      deliveryReductionPercent: generated.deliveryReductionPercent,
-      scopeReductionPercent: generated.scopeReductionPercent,
-      rationale: generated.rationale || null,
-      customerResponse: 'pending',
-    },
+  // Persist — proposal + its audit event as one atomic write. Previously
+  // two unguarded sequential awaits (DATABASE-AUDIT.md §9 item 5): a crash
+  // between them left a proposal with no audit trail entry for it. No
+  // money field is mutated here (unlike the payment/payroll cases already
+  // fixed in Phase 08), but the audit desync itself was the real,
+  // identified defect — recordDecision/emitNotificationEvent below are
+  // best-effort side effects (decision-log memory, a notification), not
+  // core state, so they stay outside the transaction rather than needing
+  // every downstream module threaded a `tx` client.
+  const proposal = await db.$transaction(async (tx) => {
+    const proposal = await tx.negotiationProposal.create({
+      data: {
+        sessionId: session.id,
+        round: handler.round,
+        type: handler.type,
+        title: generated.title,
+        description: generated.description,
+        features: JSON.stringify(generated.features),
+        excludedFeatures: generated.excludedFeatures ? JSON.stringify(generated.excludedFeatures) : null,
+        deliveryWeeks: generated.deliveryWeeks,
+        price: generated.price,
+        currency: generated.currency,
+        paymentSchedule: generated.paymentSchedule,
+        savingsPercent: generated.savingsPercent,
+        deliveryReductionPercent: generated.deliveryReductionPercent,
+        scopeReductionPercent: generated.scopeReductionPercent,
+        rationale: generated.rationale || null,
+        customerResponse: 'pending',
+      },
+    })
+
+    await tx.negotiationAuditEvent.create({
+      data: {
+        sessionId: session.id,
+        eventType: 'proposal_generated',
+        round: handler.round,
+        message: `Generated ${handler.type} proposal: ${generated.title} ($${generated.price})`,
+        metadata: JSON.stringify({ round: handler.round, type: handler.type, price: generated.price }),
+      },
+    })
+
+    return proposal
   })
 
   // Decision-engine memory: why this offer, at this round
@@ -446,17 +468,6 @@ export async function generateProposalForSession(sessionId: string): Promise<{ p
     linkedEntityId: proposal.id,
   })
 
-  // Audit
-  await db.negotiationAuditEvent.create({
-    data: {
-      sessionId: session.id,
-      eventType: 'proposal_generated',
-      round: handler.round,
-      message: `Generated ${handler.type} proposal: ${generated.title} ($${generated.price})`,
-      metadata: JSON.stringify({ round: handler.round, type: handler.type, price: generated.price }),
-    },
-  })
-
   // Notify
   await emitNotificationEvent({
     type: 'negotiation_proposal_ready',
@@ -472,6 +483,22 @@ export async function generateProposalForSession(sessionId: string): Promise<{ p
   return { proposal, state: currentState }
 }
 
+/**
+ * Close the self-improvement loop on the AI decision that produced a
+ * proposal: did its confidence match what the customer actually did?
+ * Best-effort bookkeeping, independent of the proposal/session state
+ * transition — not part of the transaction in respondToProposal.
+ */
+async function closeDecisionLoop(proposalId: string, response: 'accepted' | 'rejected'): Promise<void> {
+  const linkedDecision = await db.aiDecision.findFirst({
+    where: { linkedEntityType: 'NegotiationProposal', linkedEntityId: proposalId },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (!linkedDecision) return
+  const wasAccurate = response === 'accepted' ? linkedDecision.confidence >= 60 : linkedDecision.confidence < 60
+  await recordDecisionOutcome({ decisionId: linkedDecision.id, actualOutcome: response, wasAccurate })
+}
+
 /** Process customer response — accept or reject a proposal. */
 export async function respondToProposal(
   proposalId: string,
@@ -484,57 +511,41 @@ export async function respondToProposal(
   })
   if (!proposal) throw new Error('Proposal not found')
 
-  // Update proposal
-  await db.negotiationProposal.update({
-    where: { id: proposalId },
-    data: {
-      customerResponse: response,
-      customerFeedback: feedback,
-      respondedAt: new Date(),
-    },
-  })
-
-  // Close the self-improvement loop on the decision that produced this
-  // proposal: did the AI's confidence match what the customer actually did?
-  const linkedDecision = await db.aiDecision.findFirst({
-    where: { linkedEntityType: 'NegotiationProposal', linkedEntityId: proposalId },
-    orderBy: { createdAt: 'desc' },
-  })
-  if (linkedDecision) {
-    const wasAccurate =
-      response === 'accepted' ? linkedDecision.confidence >= 60 : linkedDecision.confidence < 60
-    await recordDecisionOutcome({
-      decisionId: linkedDecision.id,
-      actualOutcome: response,
-      wasAccurate,
-    })
-  }
-
   const session = proposal.session
   const currentState = session.currentState as NegotiationState
   const handler = STATE_HANDLERS[currentState]
 
+  // The proposal-response write and the resulting session state
+  // transition + audit event were previously 2-3 unguarded sequential
+  // awaits (DATABASE-AUDIT.md §9 item 5) — a crash between them could
+  // leave a proposal marked "accepted"/"rejected" while the session
+  // itself never moved off its prior state, a real inconsistent state
+  // (not just an audit-trail gap, for this pair). recordDecisionOutcome/
+  // emitNotificationEvent stay outside the transaction as best-effort
+  // side effects, same reasoning as generateProposalForSession above.
   if (response === 'accepted') {
-    // Move to accepted state
-    await db.negotiationSession.update({
-      where: { id: session.id },
-      data: {
-        currentState: 'accepted',
-        status: 'accepted',
-        acceptedProposalId: proposalId,
-      },
+    await db.$transaction(async (tx) => {
+      await tx.negotiationProposal.update({
+        where: { id: proposalId },
+        data: { customerResponse: response, customerFeedback: feedback, respondedAt: new Date() },
+      })
+      await tx.negotiationSession.update({
+        where: { id: session.id },
+        data: { currentState: 'accepted', status: 'accepted', acceptedProposalId: proposalId },
+      })
+      await tx.negotiationAuditEvent.create({
+        data: {
+          sessionId: session.id,
+          eventType: 'proposal_accepted',
+          round: proposal.round,
+          fromState: currentState,
+          toState: 'accepted',
+          message: `Proposal "${proposal.title}" accepted by customer`,
+        },
+      })
     })
 
-    await db.negotiationAuditEvent.create({
-      data: {
-        sessionId: session.id,
-        eventType: 'proposal_accepted',
-        round: proposal.round,
-        fromState: currentState,
-        toState: 'accepted',
-        message: `Proposal "${proposal.title}" accepted by customer`,
-      },
-    })
+    await closeDecisionLoop(proposalId, response)
 
     await emitNotificationEvent({
       type: 'negotiation_accepted',
@@ -556,25 +567,32 @@ export async function respondToProposal(
   const existingReasons = session.rejectionReasons ? JSON.parse(session.rejectionReasons) : []
   existingReasons.push({ round: proposal.round, type: proposal.type, reason: feedback ?? 'No reason given' })
 
-  await db.negotiationSession.update({
-    where: { id: session.id },
-    data: {
-      currentState: nextState,
-      status: nextState === 'rejected_all' ? 'rejected_all' : 'active',
-      rejectionReasons: JSON.stringify(existingReasons),
-    },
+  await db.$transaction(async (tx) => {
+    await tx.negotiationProposal.update({
+      where: { id: proposalId },
+      data: { customerResponse: response, customerFeedback: feedback, respondedAt: new Date() },
+    })
+    await tx.negotiationSession.update({
+      where: { id: session.id },
+      data: {
+        currentState: nextState,
+        status: nextState === 'rejected_all' ? 'rejected_all' : 'active',
+        rejectionReasons: JSON.stringify(existingReasons),
+      },
+    })
+    await tx.negotiationAuditEvent.create({
+      data: {
+        sessionId: session.id,
+        eventType: 'proposal_rejected',
+        round: proposal.round,
+        fromState: currentState,
+        toState: nextState,
+        message: `Proposal "${proposal.title}" rejected. Reason: ${feedback ?? 'none'}`,
+      },
+    })
   })
 
-  await db.negotiationAuditEvent.create({
-    data: {
-      sessionId: session.id,
-      eventType: 'proposal_rejected',
-      round: proposal.round,
-      fromState: currentState,
-      toState: nextState,
-      message: `Proposal "${proposal.title}" rejected. Reason: ${feedback ?? 'none'}`,
-    },
-  })
+  await closeDecisionLoop(proposalId, response)
 
   if (nextState === 'rejected_all') {
     await emitNotificationEvent({

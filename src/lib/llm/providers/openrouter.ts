@@ -8,8 +8,11 @@
  */
 
 import { LlmProviderStrategy, LlmRequest, LlmResponse, ProviderModel, estimateTokens } from '../types'
+import { withTimeout } from '@/lib/integrations/types'
 
 const BASE_URL = 'https://openrouter.ai/api/v1'
+// See groq.ts for why this exists (RELIABILITY-AUDIT.md).
+const COMPLETION_TIMEOUT_MS = 20_000
 
 const MODELS: ProviderModel[] = [
   { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B (Free)', contextWindow: 65536, isFree: true },
@@ -40,16 +43,20 @@ export class OpenRouterProvider implements LlmProviderStrategy {
     const key = apiKey ?? process.env.OPENROUTER_API_KEY
     const start = Date.now()
     const model = req.model ?? this.defaultModel
-    const res = await fetch(`${BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: this.headers(key),
-      body: JSON.stringify({
-        model,
-        messages: req.messages,
-        temperature: req.temperature ?? 0.7,
-        max_tokens: req.maxTokens ?? 2048,
+    const res = await withTimeout(
+      fetch(`${BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: this.headers(key),
+        body: JSON.stringify({
+          model,
+          messages: req.messages,
+          temperature: req.temperature ?? 0.7,
+          max_tokens: req.maxTokens ?? 2048,
+        }),
       }),
-    })
+      COMPLETION_TIMEOUT_MS,
+      'openrouter',
+    )
     if (!res.ok) {
       const errText = await res.text()
       if (res.status === 429) throw new RateLimitError(`OpenRouter rate-limited`)

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { enqueue } from '@/lib/queue'
+import { enqueue, QueueUnavailableError } from '@/lib/queue'
 import { withProtection } from '@/lib/security/with-protection'
 import { getCurrentUser } from '@/lib/auth/simple-session'
 
@@ -31,8 +31,22 @@ async function handler(req: NextRequest, ctx: { params: Promise<{ id: string }> 
     )
   }
 
-  // Enqueue the send job
-  const job = await enqueue('email_campaign', { campaignId: id })
+  // Enqueue the send job — previously an unguarded call: a Redis outage
+  // (REDIS_URL configured but unreachable) threw a raw ioredis error here,
+  // caught only by withProtection's generic handler as an opaque 500. See
+  // RELIABILITY-AUDIT.md.
+  let job
+  try {
+    job = await enqueue('email_campaign', { campaignId: id })
+  } catch (err) {
+    if (err instanceof QueueUnavailableError) {
+      return NextResponse.json(
+        { error: 'queue_unavailable', message: 'Campaign sending is temporarily unavailable. Please try again shortly.' },
+        { status: 503 },
+      )
+    }
+    throw err
+  }
 
   // Update campaign status
   await db.emailCampaign.update({

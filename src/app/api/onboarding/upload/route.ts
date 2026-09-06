@@ -3,8 +3,8 @@ import { db } from '@/lib/db'
 import { requireTenantId } from '@/lib/tenant'
 import { withProtection } from '@/lib/security/with-protection'
 import { validateUpload, MAX_FILE_SIZE_BYTES } from '@/lib/storage/validate'
-import { generateStorageKey, getStorage } from '@/lib/storage'
-import { enqueue } from '@/lib/queue'
+import { generateStorageKey, getStorage, StorageError } from '@/lib/storage'
+import { enqueue, QueueUnavailableError } from '@/lib/queue'
 
 /**
  * Upload a document for an onboarding session (business brief, requirements
@@ -35,7 +35,17 @@ async function handler(req: NextRequest) {
   }
 
   const storageKey = generateStorageKey(tenantId, validation.extension!)
-  await getStorage().save(storageKey, buffer)
+  try {
+    await getStorage().save(storageKey, buffer)
+  } catch (err) {
+    if (err instanceof StorageError) {
+      return NextResponse.json(
+        { error: 'storage_unavailable', message: 'File storage is temporarily unavailable. Please try uploading again shortly.' },
+        { status: 503 },
+      )
+    }
+    throw err
+  }
 
   const doc = await db.onboardingDocument.create({
     data: {
@@ -48,7 +58,29 @@ async function handler(req: NextRequest) {
     },
   })
 
-  await enqueue('document_extract', { documentId: doc.id })
+  // Previously an unguarded call: a Redis outage left the document row
+  // stuck at status 'pending' forever with no indication anything went
+  // wrong (the file was already saved, so a partial failure here is a
+  // real inconsistent state, not just a lost request). See
+  // RELIABILITY-AUDIT.md. Mirror document_extract's own failure-cleanup
+  // convention (mark failed, don't leave an unprocessable file behind)
+  // rather than leaving it silently 'pending'.
+  try {
+    await enqueue('document_extract', { documentId: doc.id })
+  } catch (err) {
+    if (err instanceof QueueUnavailableError) {
+      await db.onboardingDocument.update({
+        where: { id: doc.id },
+        data: { status: 'failed', errorMessage: 'Processing queue temporarily unavailable — please re-upload.' },
+      })
+      await getStorage().delete(storageKey).catch(() => {})
+      return NextResponse.json(
+        { error: 'queue_unavailable', message: 'Document processing is temporarily unavailable. Please try uploading again shortly.' },
+        { status: 503 },
+      )
+    }
+    throw err
+  }
 
   return NextResponse.json({ doc: { id: doc.id, filename: doc.filename, fileSize: doc.fileSize, status: doc.status } }, { status: 201 })
 }

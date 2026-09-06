@@ -2,6 +2,21 @@ import 'server-only'
 import { mkdir, readFile, writeFile, unlink, stat } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { withRetry } from '@/lib/integrations/types'
+
+/**
+ * Thrown by every StorageAdapter method except `delete` (which already
+ * fails soft by design) on a real filesystem failure — disk full,
+ * permission denied, etc. Previously these threw the raw Node `fs` error
+ * straight up to the caller with no way to distinguish "storage is
+ * broken" from any other exception. See RELIABILITY-AUDIT.md.
+ */
+export class StorageError extends Error {
+  constructor(op: string, key: string, cause: unknown) {
+    super(`Storage ${op} failed for "${key}": ${cause instanceof Error ? cause.message : String(cause)}`)
+    this.name = 'StorageError'
+  }
+}
 
 /**
  * Storage abstraction for uploaded files.
@@ -38,12 +53,28 @@ class LocalStorageAdapter implements StorageAdapter {
 
   async save(key: string, data: Buffer): Promise<void> {
     const path = this.resolve(key)
-    await mkdir(dirname(path), { recursive: true })
-    await writeFile(path, data)
+    try {
+      // A transient EBUSY/EMFILE is exactly the class of error a short
+      // retry helps with — an upload is a synchronous request a user is
+      // waiting on, worth 3 quick attempts before giving up.
+      await withRetry(
+        async () => {
+          await mkdir(dirname(path), { recursive: true })
+          await writeFile(path, data)
+        },
+        { attempts: 3, delayMs: 200 },
+      )
+    } catch (err) {
+      throw new StorageError('save', key, err)
+    }
   }
 
   async read(key: string): Promise<Buffer> {
-    return readFile(this.resolve(key))
+    try {
+      return await readFile(this.resolve(key))
+    } catch (err) {
+      throw new StorageError('read', key, err)
+    }
   }
 
   async delete(key: string): Promise<void> {
@@ -51,7 +82,11 @@ class LocalStorageAdapter implements StorageAdapter {
   }
 
   async size(key: string): Promise<number> {
-    return (await stat(this.resolve(key))).size
+    try {
+      return (await stat(this.resolve(key))).size
+    } catch (err) {
+      throw new StorageError('size', key, err)
+    }
   }
 }
 

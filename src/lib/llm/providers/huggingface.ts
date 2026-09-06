@@ -8,8 +8,14 @@
 
 import { LlmProviderStrategy, LlmRequest, LlmResponse, ProviderModel, estimateTokens } from '../types'
 import { RateLimitError, AuthError, ProviderError } from './openrouter'
+import { withTimeout } from '@/lib/integrations/types'
 
 const BASE_URL = 'https://api-inference.huggingface.co/models'
+// See groq.ts for why this exists (RELIABILITY-AUDIT.md). Longer than the
+// other providers' 20s: HF's serverless inference has a known cold-start
+// delay (spinning up an idle model) that a shorter timeout would
+// misclassify as a hung/dead provider on a normal first request.
+const COMPLETION_TIMEOUT_MS = 30_000
 
 const MODELS: ProviderModel[] = [
   { id: 'meta-llama/Llama-3.2-3B-Instruct', name: 'Llama 3.2 3B', contextWindow: 131072, isFree: true },
@@ -45,15 +51,19 @@ export class HuggingFaceProvider implements LlmProviderStrategy {
     const model = req.model ?? this.defaultModel
 
     // HF uses a chat-completions-compatible wrapper endpoint now
-    const res = await fetch(`${BASE_URL}/${model}/v1/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model, messages: req.messages,
-        temperature: req.temperature ?? 0.7,
-        max_tokens: req.maxTokens ?? 2048,
+    const res = await withTimeout(
+      fetch(`${BASE_URL}/${model}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model, messages: req.messages,
+          temperature: req.temperature ?? 0.7,
+          max_tokens: req.maxTokens ?? 2048,
+        }),
       }),
-    })
+      COMPLETION_TIMEOUT_MS,
+      'huggingface',
+    )
 
     if (!res.ok) {
       const errText = await res.text()

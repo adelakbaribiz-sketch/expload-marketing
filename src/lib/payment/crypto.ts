@@ -18,6 +18,13 @@ import crypto from 'node:crypto'
 import { CRYPTO_PAYMENT_MACHINE, type CryptoPaymentStatus } from '@/lib/workflow/definitions'
 import { logger } from '@/lib/observability/logger'
 import { recordBusinessEvent } from '@/lib/observability/metrics'
+import { withTimeout } from '@/lib/integrations/types'
+
+// createNowPayments()'s fetch had no timeout before this phase — a real
+// money-flow call, unlike the LLM/search providers, so a shorter bound
+// than those is appropriate: this is a synchronous checkout-creation
+// request a user is actively waiting on, not a background enrichment.
+const NOWPAYMENTS_TIMEOUT_MS = 10_000
 
 const NOWPAYMENTS_API_BASE = 'https://api.nowpayments.io/v1'
 
@@ -79,11 +86,15 @@ async function createNowPayments(req: CryptoPaymentRequest): Promise<CryptoPayme
     ipn_callback_url: `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/api/webhooks/crypto/nowpayments`,
   }
 
-  const resp = await fetch(`${NOWPAYMENTS_API_BASE}/invoice`, {
-    method: 'POST',
-    headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
+  const resp = await withTimeout(
+    fetch(`${NOWPAYMENTS_API_BASE}/invoice`, {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
+    NOWPAYMENTS_TIMEOUT_MS,
+    'nowpayments',
+  )
 
   if (!resp.ok) throw new Error(`NOWPayments error: ${resp.status}`)
   const data = await resp.json()
@@ -109,6 +120,22 @@ async function createManualPayment(req: CryptoPaymentRequest): Promise<CryptoPay
   return { id: `manual-${Date.now()}`, gateway: 'manual', payAddress, status: 'pending' }
 }
 
+/**
+ * Thrown when both the primary gateway AND the manual-wallet fallback
+ * fail — a route can catch this specifically for a clean 503 instead of
+ * an opaque 500. See RELIABILITY-AUDIT.md: createManualPayment() throwing
+ * ("No platform wallet for...") was previously uncaught here, since it
+ * was only ever called *inside* the primary gateway's own catch block.
+ */
+export class PaymentGatewayUnavailableError extends Error {
+  constructor(primaryError: unknown, fallbackError: unknown) {
+    super(
+      `No crypto payment gateway available — primary: ${primaryError instanceof Error ? primaryError.message : String(primaryError)}; fallback: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`,
+    )
+    this.name = 'PaymentGatewayUnavailableError'
+  }
+}
+
 export async function createCryptoPayment(
   req: CryptoPaymentRequest,
 ): Promise<{ record: any; response: CryptoPaymentResponse }> {
@@ -116,9 +143,14 @@ export async function createCryptoPayment(
   let response: CryptoPaymentResponse
   try {
     response = gateway === 'manual' ? await createManualPayment(req) : await createNowPayments(req)
-  } catch (err: any) {
-    logger.warn('crypto.gateway_fallback', { gateway, error: err.message })
-    response = await createManualPayment(req)
+  } catch (primaryErr: any) {
+    logger.warn('crypto.gateway_fallback', { gateway, error: primaryErr.message })
+    try {
+      response = await createManualPayment(req)
+    } catch (fallbackErr) {
+      logger.error('crypto.gateway_and_fallback_failed', { gateway, primaryError: primaryErr.message, fallbackError: String(fallbackErr) })
+      throw new PaymentGatewayUnavailableError(primaryErr, fallbackErr)
+    }
   }
 
   const record = await db.cryptoPayment.create({

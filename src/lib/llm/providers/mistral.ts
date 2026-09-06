@@ -8,8 +8,11 @@
 
 import { LlmProviderStrategy, LlmRequest, LlmResponse, ProviderModel, estimateTokens } from '../types'
 import { RateLimitError, AuthError, ProviderError } from './openrouter'
+import { withTimeout } from '@/lib/integrations/types'
 
 const BASE_URL = 'https://api.mistral.ai/v1'
+// See groq.ts for why this exists (RELIABILITY-AUDIT.md).
+const COMPLETION_TIMEOUT_MS = 20_000
 
 const MODELS: ProviderModel[] = [
   { id: 'mistral-small-latest', name: 'Mistral Small', contextWindow: 32768, isFree: true },
@@ -40,15 +43,19 @@ export class MistralProvider implements LlmProviderStrategy {
     if (!key) throw new AuthError('MISTRAL_API_KEY not set')
     const start = Date.now()
     const model = req.model ?? this.defaultModel
-    const res = await fetch(`${BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model, messages: req.messages,
-        temperature: req.temperature ?? 0.7,
-        max_tokens: req.maxTokens ?? 2048,
+    const res = await withTimeout(
+      fetch(`${BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model, messages: req.messages,
+          temperature: req.temperature ?? 0.7,
+          max_tokens: req.maxTokens ?? 2048,
+        }),
       }),
-    })
+      COMPLETION_TIMEOUT_MS,
+      'mistral',
+    )
     if (!res.ok) {
       const errText = await res.text()
       if (res.status === 429) throw new RateLimitError(`Mistral rate-limited`)

@@ -8,8 +8,14 @@
 
 import { LlmProviderStrategy, LlmRequest, LlmResponse, ProviderModel, estimateTokens } from '../types'
 import { RateLimitError, AuthError, ProviderError } from './openrouter'
+import { withTimeout } from '@/lib/integrations/types'
 
 const BASE_URL = 'https://api.groq.com/openai/v1'
+// No LLM provider file had any timeout on its completion call before
+// this phase — an unresponsive vendor could hang the request that
+// triggered it indefinitely, with no way for the aggregator's fallback
+// chain to ever reach the next provider. See RELIABILITY-AUDIT.md.
+const COMPLETION_TIMEOUT_MS = 20_000
 
 const MODELS: ProviderModel[] = [
   { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B Versatile', contextWindow: 131072, isFree: true },
@@ -40,16 +46,20 @@ export class GroqProvider implements LlmProviderStrategy {
     if (!key) throw new AuthError('GROQ_API_KEY not set')
     const start = Date.now()
     const model = req.model ?? this.defaultModel
-    const res = await fetch(`${BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model,
-        messages: req.messages,
-        temperature: req.temperature ?? 0.7,
-        max_tokens: req.maxTokens ?? 2048,
+    const res = await withTimeout(
+      fetch(`${BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model,
+          messages: req.messages,
+          temperature: req.temperature ?? 0.7,
+          max_tokens: req.maxTokens ?? 2048,
+        }),
       }),
-    })
+      COMPLETION_TIMEOUT_MS,
+      'groq',
+    )
     if (!res.ok) {
       const errText = await res.text()
       if (res.status === 429) throw new RateLimitError(`Groq rate-limited`)

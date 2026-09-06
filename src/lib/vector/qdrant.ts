@@ -16,6 +16,11 @@
 
 import 'server-only'
 import { db } from '@/lib/db'
+import { withTimeout } from '@/lib/integrations/types'
+import { logger } from '@/lib/observability/logger'
+
+// Qdrant's own fetch calls had no timeout at all before this phase.
+const QDRANT_TIMEOUT_MS = 8_000
 
 const QDRANT_URL = process.env.QDRANT_URL ?? ''
 const QDRANT_API_KEY = process.env.QDRANT_API_KEY ?? ''
@@ -40,19 +45,23 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     return pseudoEmbedding(text, 384)
   }
   try {
-    const res = await fetch(EMBEDDING_API, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${EMBEDDING_API_KEY}`,
-      },
-      body: JSON.stringify({ input: text, model: EMBEDDING_MODEL }),
-    })
+    const res = await withTimeout(
+      fetch(EMBEDDING_API, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${EMBEDDING_API_KEY}`,
+        },
+        body: JSON.stringify({ input: text, model: EMBEDDING_MODEL }),
+      }),
+      QDRANT_TIMEOUT_MS,
+      'embedding-api',
+    )
     if (!res.ok) throw new Error(`Embedding API ${res.status}`)
     const data = await res.json()
     return data.data?.[0]?.embedding ?? pseudoEmbedding(text, 384)
   } catch (err) {
-    console.warn('Embedding API failed, using pseudo:', err)
+    logger.warn('embedding.api_failed_using_pseudo', { error: String(err) })
     return pseudoEmbedding(text, 384)
   }
 }
@@ -86,17 +95,25 @@ export async function indexVector(params: {
   const vector = await generateEmbedding(params.textChunk)
 
   if (isQdrantEnabled()) {
-    await qdrantUpsert({
-      id: `${params.sourceType}:${params.sourceId}`,
-      vector,
-      payload: {
-        sourceType: params.sourceType,
-        sourceId: params.sourceId,
-        tenantId: params.tenantId,
-        text: params.textChunk.slice(0, 1000),
-        ...params.metadata,
-      },
-    })
+    // A live Qdrant outage must not stop the DB backup write below (the
+    // comment already says "Always also store in DB" — before this fix,
+    // qdrantUpsert() throwing here meant the vector wasn't indexed
+    // *anywhere*, contradicting that). Fails soft, logged.
+    try {
+      await qdrantUpsert({
+        id: `${params.sourceType}:${params.sourceId}`,
+        vector,
+        payload: {
+          sourceType: params.sourceType,
+          sourceId: params.sourceId,
+          tenantId: params.tenantId,
+          text: params.textChunk.slice(0, 1000),
+          ...params.metadata,
+        },
+      })
+    } catch (err) {
+      logger.warn('qdrant.upsert_failed', { sourceType: params.sourceType, sourceId: params.sourceId, error: String(err) })
+    }
   }
 
   // Always also store in DB (as backup + for dev mode)
@@ -127,7 +144,16 @@ export async function semanticSearch(params: {
   const threshold = params.threshold ?? 0.3
 
   if (isQdrantEnabled()) {
-    return qdrantSearch({ vector: queryVector, ...params, limit, threshold })
+    // A live Qdrant outage during search previously threw uncaught all
+    // the way up to the caller — the documented in-DB fallback only ever
+    // applied when Qdrant wasn't *configured*, not when it was configured
+    // but unreachable in the moment. Fall through to the same in-DB path
+    // below on failure instead.
+    try {
+      return await qdrantSearch({ vector: queryVector, ...params, limit, threshold })
+    } catch (err) {
+      logger.warn('qdrant.search_failed_falling_back', { tenantId: params.tenantId, error: String(err) })
+    }
   }
 
   // Fallback: in-DB cosine similarity
@@ -178,21 +204,29 @@ function cosineSimilarity(a: number[], b: number[]): number {
 async function qdrantUpsert(params: { id: string; vector: number[]; payload: any }): Promise<void> {
   const collection = 'expload_vectors'
   // Ensure collection exists (lazy create)
-  await fetch(`${QDRANT_URL}/collections/${collection}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'api-key': QDRANT_API_KEY },
-    body: JSON.stringify({
-      vectors: { size: params.vector.length, distance: 'Cosine' },
+  await withTimeout(
+    fetch(`${QDRANT_URL}/collections/${collection}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'api-key': QDRANT_API_KEY },
+      body: JSON.stringify({
+        vectors: { size: params.vector.length, distance: 'Cosine' },
+      }),
     }),
-  }).catch(() => {})
+    QDRANT_TIMEOUT_MS,
+    'qdrant',
+  ).catch(() => {})
 
-  await fetch(`${QDRANT_URL}/collections/${collection}/points?wait=true`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'api-key': QDRANT_API_KEY },
-    body: JSON.stringify({
-      points: [{ id: params.id, vector: params.vector, payload: params.payload }],
+  await withTimeout(
+    fetch(`${QDRANT_URL}/collections/${collection}/points?wait=true`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'api-key': QDRANT_API_KEY },
+      body: JSON.stringify({
+        points: [{ id: params.id, vector: params.vector, payload: params.payload }],
+      }),
     }),
-  })
+    QDRANT_TIMEOUT_MS,
+    'qdrant',
+  )
 }
 
 async function qdrantSearch(params: {
@@ -202,17 +236,21 @@ async function qdrantSearch(params: {
   if (params.tenantId) filter.must.push({ key: 'tenantId', match: { value: params.tenantId } })
   if (params.sourceType) filter.must.push({ key: 'sourceType', match: { value: params.sourceType } })
 
-  const res = await fetch(`${QDRANT_URL}/collections/expload_vectors/points/search`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'api-key': QDRANT_API_KEY },
-    body: JSON.stringify({
-      vector: params.vector,
-      limit: params.limit,
-      score_threshold: params.threshold,
-      with_payload: true,
-      filter: filter.must.length > 0 ? filter : undefined,
+  const res = await withTimeout(
+    fetch(`${QDRANT_URL}/collections/expload_vectors/points/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'api-key': QDRANT_API_KEY },
+      body: JSON.stringify({
+        vector: params.vector,
+        limit: params.limit,
+        score_threshold: params.threshold,
+        with_payload: true,
+        filter: filter.must.length > 0 ? filter : undefined,
+      }),
     }),
-  })
+    QDRANT_TIMEOUT_MS,
+    'qdrant',
+  )
   if (!res.ok) return []
   const data = await res.json()
   return (data.result ?? []).map((r: any) => ({
