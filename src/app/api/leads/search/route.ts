@@ -6,6 +6,17 @@ import { scrapePlaces, type MapsPlace } from '@/lib/services/google-maps-scraper
 import { extractLeadInfo } from '@/lib/ai/lead-extractor'
 import { withProtection, getTenantIdFromRequest } from '@/lib/security/with-protection'
 import { sanitizeText, sanitizeUrl, sanitizeEmail } from '@/lib/security/sanitize'
+import { mapWithConcurrency } from '@/lib/async/concurrency'
+
+// Measured live (PERFORMANCE-AUDIT.md): with real provider keys configured,
+// each extractLeadInfo() call took ~2.1s — a sequential `for` loop over
+// `maxResults` (up to 20) meant a single search could take 40+ seconds,
+// well past what a browser/load-balancer will wait on synchronously. The
+// aggregator already tracks per-provider quota/cooldowns independently of
+// caller concurrency (src/lib/llm/aggregator.ts), so running several
+// extractions at once doesn't bypass any of that — it only changes how
+// many of them are in flight at the same time.
+const ENRICHMENT_CONCURRENCY = 5
 
 /**
  * Lead generation endpoint.
@@ -68,12 +79,20 @@ async function handler(req: NextRequest) {
   const created: any[] = []
   const skipped: any[] = []
 
-  for (const w of work.slice(0, maxResults)) {
-    // 3. AI enrichment
-    let info: Awaited<ReturnType<typeof extractLeadInfo>> | null = null
-    if (enrich) {
-      info = await extractLeadInfo(`${w.title}\n${w.snippet}`, tenantId)
-    }
+  const batch = work.slice(0, maxResults)
+
+  // 3. AI enrichment — up to ENRICHMENT_CONCURRENCY snippets at once
+  // instead of one at a time (see comment above on why this was measured
+  // and fixed this phase).
+  const infos = enrich
+    ? await mapWithConcurrency(batch, ENRICHMENT_CONCURRENCY, (w) =>
+        extractLeadInfo(`${w.title}\n${w.snippet}`, tenantId),
+      )
+    : batch.map(() => null)
+
+  for (let idx = 0; idx < batch.length; idx++) {
+    const w = batch[idx]
+    const info = infos[idx]
 
     // Sanitize all persisted fields
     const leadData = {

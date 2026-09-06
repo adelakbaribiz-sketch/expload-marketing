@@ -76,6 +76,20 @@ class LlmAggregator {
 
     let lastError: Error | null = null
     for (const provider of candidates) {
+      // 1b. Fail fast on a provider with no key configured anywhere —
+      // measured live (PERFORMANCE-AUDIT.md): with every provider
+      // unconfigured, a single complete() call cost ~2.1s from 5
+      // providers x (2 quota-check queries + 1 usage-record write) = 15
+      // DB round trips, none of which could ever change the outcome for a
+      // provider that structurally cannot succeed. loadApiKey() only
+      // resolves an env var today (no per-tenant DB key yet — see its own
+      // comment), so this check is exactly as complete as loadApiKey's,
+      // just moved before the expensive quota/audit work instead of after.
+      if (!process.env[`${provider.id.toUpperCase()}_API_KEY`]) {
+        lastError = new AuthError(`${provider.id.toUpperCase()}_API_KEY not set`)
+        continue
+      }
+
       // 2. Check daily quota before calling
       const quotaCheck = await this.checkQuota(provider.id, req.tenantId)
       if (!quotaCheck.allowed) {

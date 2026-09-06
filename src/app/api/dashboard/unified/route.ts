@@ -1,6 +1,20 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireTenantId } from '@/lib/tenant'
+import { withProtection } from '@/lib/security/with-protection'
+import { withTtlCache } from '@/lib/cache/ttl-cache'
+
+// Measured live (PERFORMANCE-AUDIT.md): this endpoint issues 37 parallel
+// count/aggregate queries per request — each is cheap individually, but
+// the sheer query count made this the slowest read endpoint measured this
+// phase (~100-180ms steady-state, vs ~50-70ms for a typical single-query
+// list endpoint). Also had no withProtection at all, so it was invisible
+// to rate limiting and to the metrics this phase relies on for
+// measurement. A dashboard KPI summary tolerates a few seconds of
+// staleness with no correctness impact, so a short TTL cache removes the
+// repeat-query cost on every dashboard view/refresh without touching the
+// 37-query shape itself.
+const CACHE_TTL_MS = 30_000
 
 /**
  * Unified Dashboard API.
@@ -8,9 +22,15 @@ import { requireTenantId } from '@/lib/tenant'
  * Aggregates KPIs from ALL phases into a single response so the
  * dashboard can render a comprehensive cross-phase overview.
  */
-export async function GET() {
+async function handler() {
   const tenantId = await requireTenantId()
+  const data = await withTtlCache(`dashboard-unified:${tenantId}`, CACHE_TTL_MS, () => computeDashboard(tenantId))
+  return NextResponse.json(data)
+}
 
+export const GET = withProtection(handler, { rateLimit: 'read' })
+
+async function computeDashboard(tenantId: string) {
   const [
     totalLeads, newLeads, qualifiedLeads, wonLeads, avgLeadScore,
     totalDeals, pipelineValue, wonRevenue, totalCampaigns, emailsSent, emailOpenRate,
@@ -83,7 +103,7 @@ export async function GET() {
     { stage: 'Won', count: wonLeads, color: '#22c55e' },
   ]
 
-  return NextResponse.json({
+  return {
     leads: { total: totalLeads, new: newLeads, qualified: qualifiedLeads, won: wonLeads, avgScore: Math.round(avgLeadScore._avg.score || 0) },
     crm: { deals: totalDeals, pipelineValue: pipelineValue._sum.value || 0, wonRevenue: wonRevenue._sum.value || 0 },
     email: { campaigns: totalCampaigns, sent: emailsSent, openRate: emailsSent > 0 ? Math.round((emailOpenRate / emailsSent) * 100) : 0 },
@@ -98,5 +118,5 @@ export async function GET() {
     phases,
     funnel,
     healthScore: Math.round(phases.reduce((sum, p) => sum + p.score, 0) / phases.length),
-  })
+  }
 }

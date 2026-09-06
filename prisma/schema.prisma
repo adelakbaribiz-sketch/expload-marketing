@@ -294,6 +294,14 @@ model EmailCampaign {
   updatedAt       DateTime       @updatedAt
 
   logs EmailLog[]
+
+  // Measured (PERFORMANCE-AUDIT.md): every real query against this model
+  // filters by tenantId (list, counts, monthly-report range queries), yet
+  // this was the one model in the schema with zero @@index entries at
+  // all — every other tenant-scoped, list/date-sorted model already
+  // follows this [tenantId, createdAt] pattern from Phase 04's indexing
+  // pass.
+  @@index([tenantId, createdAt])
 }
 
 model EmailLog {
