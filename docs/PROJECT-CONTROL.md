@@ -1,6 +1,8 @@
 # PROJECT-CONTROL.md
 
-**This file is the live control document for this project. Update it whenever a phase status, decision, or risk changes — don't let it go stale.** Last updated: 2026-09-06, after Phase 09 (Frontend Engineering).
+**This file is the live control document for this project. Update it whenever a phase status, decision, or risk changes — don't let it go stale.** Last updated: 2026-09-06, after Phase 10 (File & Media Engineering).
+
+**Update 2026-09-06 (Phase 10 — File & Media)**: the project's only file/media feature (onboarding document upload) was non-functional — built end to end: private storage adapter (`src/lib/storage/`), type/size/magic-byte validation, async extraction via the job queue (never blocks the upload request), and signed-URL-gated downloads. Full detail in `FILE-MEDIA-STANDARD.md`. Side-finding, not fixed (environment config): local `.env`'s `REDIS_URL` points at a Redis that isn't running, so any `enqueue()` call 500s in this dev environment.
 
 ## Current phase
 

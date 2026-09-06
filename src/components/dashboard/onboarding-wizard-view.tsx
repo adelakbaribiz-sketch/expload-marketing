@@ -93,14 +93,17 @@ export function OnboardingWizardView() {
       fd.append('sessionId', sessionId!)
       fd.append('file', file)
       const res = await fetch('/api/onboarding/upload', { method: 'POST', body: fd })
-      if (!res.ok) throw new Error('Upload failed')
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Upload failed')
       return res.json()
     },
     onSuccess: (data) => {
-      setUploadMsg(`${data.doc.filename}: ${data.doc.charCount?.toLocaleString() ?? 0} chars extracted`)
-      toast.success('Document processed')
+      // Extraction now runs in the background job queue so a large PDF/DOCX
+      // can't block this request — the char count isn't known yet at
+      // upload time, only once the queued job finishes.
+      setUploadMsg(`${data.doc.filename}: uploaded, processing in background…`)
+      toast.success('Document uploaded — extracting text in the background')
     },
-    onError: () => toast.error('Upload failed'),
+    onError: (e: any) => toast.error(String(e?.message ?? e)),
   })
 
   const startNegotiation = useMutation({

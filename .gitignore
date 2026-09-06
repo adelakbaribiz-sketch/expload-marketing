@@ -17,6 +17,9 @@ node_modules
 /blob-report
 /playwright/.cache
 
+# user-uploaded files (private local storage adapter — see src/lib/storage)
+/storage/private/
+
 # next.js
 /.next/
 /out/

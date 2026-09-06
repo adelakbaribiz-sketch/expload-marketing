@@ -6,14 +6,15 @@
  * setting REDIS_URL — the interface stays the same.
  *
  * Supported job types:
- *   - 'email_campaign' : send a campaign to all recipients
- *   - 'lead_generation': batch lead generation with AI enrichment
- *   - 'lead_enrich'   : enrich a single lead with AI
+ *   - 'email_campaign'   : send a campaign to all recipients
+ *   - 'lead_generation'  : batch lead generation with AI enrichment
+ *   - 'lead_enrich'      : enrich a single lead with AI
+ *   - 'document_extract' : extract text from an uploaded onboarding document
  */
 
 import { sendCampaign } from '@/lib/email/service'
 
-export type JobType = 'email_campaign' | 'lead_generation' | 'lead_enrich'
+export type JobType = 'email_campaign' | 'lead_generation' | 'lead_enrich' | 'document_extract'
 
 export interface Job {
   id: string
@@ -285,6 +286,38 @@ async function processJob(job: Job): Promise<any> {
       // Batch lead generation — handled by the search API directly
       // This is here for future async batch processing
       return { note: 'Use /api/leads/search for lead generation' }
+    }
+
+    case 'document_extract': {
+      const { documentId } = job.payload
+      if (!documentId) throw new Error('documentId required')
+      const { db } = await import('@/lib/db')
+      const { extractDocument } = await import('@/lib/onboarding/extractor')
+      const { localPathFor, getStorage } = await import('@/lib/storage')
+      const doc = await db.onboardingDocument.findUnique({ where: { id: documentId } })
+      if (!doc) throw new Error('Document not found')
+
+      await db.onboardingDocument.update({ where: { id: documentId }, data: { status: 'processing' } })
+      try {
+        const extracted = await extractDocument(localPathFor(doc.storageUrl), doc.filename, doc.fileType)
+        await db.onboardingDocument.update({
+          where: { id: documentId },
+          data: { status: 'completed', extractedText: extracted.text, textLength: extracted.charCount, processedAt: new Date() },
+        })
+        await db.onboardingSession.update({
+          where: { id: doc.sessionId },
+          data: { docsProcessed: { increment: 1 } },
+        }).catch(() => {})
+        return { documentId, charCount: extracted.charCount }
+      } catch (err: any) {
+        await db.onboardingDocument.update({
+          where: { id: documentId },
+          data: { status: 'failed', errorMessage: String(err?.message ?? err).slice(0, 500), processedAt: new Date() },
+        })
+        // Don't leave the file behind if it can never be processed successfully — avoid unbounded storage growth from bad uploads.
+        await getStorage().delete(doc.storageUrl).catch(() => {})
+        throw err
+      }
     }
 
     default:
