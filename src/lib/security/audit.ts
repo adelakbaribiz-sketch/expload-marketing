@@ -10,6 +10,7 @@
  */
 
 import { db } from '@/lib/db'
+import { logger } from '@/lib/observability/logger'
 
 export interface AuditEntry {
   type: 'created' | 'updated' | 'deleted' | 'enriched' | 'auth' | 'security' | 'email_sent'
@@ -38,22 +39,23 @@ export async function audit(entry: AuditEntry): Promise<void> {
     })
   } catch (err) {
     // Audit failures must not break the request — log and continue.
-    console.error('[audit] failed to persist:', err)
+    logger.error('audit.persist_failed', { error: String(err) })
   }
 
-  // Always log to stdout for server-side log aggregation
-  console.log(
-    JSON.stringify({
-      ts: new Date().toISOString(),
-      type: entry.type,
-      message: entry.message,
-      tenantId: entry.tenantId ?? null,
-      userId: entry.userId ?? null,
-      ip: entry.ip ?? null,
-      ua: entry.userAgent?.slice(0, 120) ?? null,
-      meta: entry.metadata ?? null,
-    }),
-  )
+  // Always log to stdout for server-side log aggregation — routed through
+  // the structured logger so it picks up request/correlation id and the
+  // shared field-redaction (a caller's free-form `metadata` isn't
+  // allowlisted, so this is the backstop against accidentally logging
+  // something sensitive through it).
+  logger.info('audit.entry', {
+    type: entry.type,
+    message: entry.message,
+    tenantId: entry.tenantId ?? null,
+    userId: entry.userId ?? null,
+    ip: entry.ip ?? null,
+    ua: entry.userAgent?.slice(0, 120) ?? null,
+    ...(entry.metadata ?? {}),
+  })
 
   // Forward to SIEM if configured (no-op stub)
   forwardToSIEM(entry).catch(() => {})
@@ -75,6 +77,6 @@ async function forwardToSIEM(entry: AuditEntry): Promise<void> {
       cache: 'no-store',
     })
   } catch (err) {
-    console.error('[audit] SIEM forward failed:', err)
+    logger.error('audit.siem_forward_failed', { error: String(err) })
   }
 }

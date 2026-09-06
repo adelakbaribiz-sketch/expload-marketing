@@ -4,6 +4,8 @@ import { hashPassword } from '@/lib/auth/password'
 import { withProtection } from '@/lib/security/with-protection'
 import { sanitizeText, sanitizeEmail } from '@/lib/security/sanitize'
 import { audit } from '@/lib/security/audit'
+import { logger } from '@/lib/observability/logger'
+import { recordBusinessEvent } from '@/lib/observability/metrics'
 import { z } from 'zod'
 
 const SignupSchema = z.object({
@@ -208,10 +210,12 @@ async function handler(req: NextRequest) {
     })
     setupResults.push('goals')
 
-    console.log(`[signup] Auto-setup completed for ${tenant.name}: ${setupResults.length} items configured`)
+    logger.info('signup.auto_setup_completed', { tenantId: tenant.id, itemCount: setupResults.length })
   } catch (err) {
-    console.error('[signup] Auto-setup failed (non-fatal):', err)
+    logger.error('signup.auto_setup_failed', { tenantId: tenant.id, error: String(err) })
   }
+
+  recordBusinessEvent('signup')
 
   return NextResponse.json({
     tenant: { id: tenant.id, name: tenant.name, domain: tenant.domain },

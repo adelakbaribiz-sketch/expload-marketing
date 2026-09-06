@@ -5,6 +5,7 @@ import { withProtection } from '@/lib/security/with-protection'
 import { sanitizeText } from '@/lib/security/sanitize'
 import { ApiError } from '@/lib/api/errors'
 import { buildListWhere, buildListOrderBy, buildListPagination } from '@/lib/crud/query'
+import { recordBusinessEvent } from '@/lib/observability/metrics'
 
 export { buildListWhere, buildListOrderBy, buildListPagination } from '@/lib/crud/query'
 
@@ -94,6 +95,7 @@ export function createDomainHandlers(config: DomainConfig) {
 
     const model = db[config.model] as any
     const item = await model.create({ data })
+    recordBusinessEvent(`${String(config.model)}.created`)
     return NextResponse.json({ item }, { status: 201 })
   }
 
@@ -150,6 +152,7 @@ export function createDomainItemHandlers(config: DomainConfig) {
 
     const model = db[config.model] as any
     const item = await model.update({ where: { id }, data })
+    recordBusinessEvent(`${String(config.model)}.updated`)
     return NextResponse.json({ item })
   }
 
@@ -160,6 +163,7 @@ export function createDomainItemHandlers(config: DomainConfig) {
     if (!existing) throw new ApiError(404, 'Not found')
     const model = db[config.model] as any
     await model.delete({ where: { id } })
+    recordBusinessEvent(`${String(config.model)}.deleted`)
     return NextResponse.json({ ok: true })
   }
 

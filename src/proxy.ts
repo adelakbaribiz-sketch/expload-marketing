@@ -56,6 +56,10 @@ function isValidSessionFormat(token: string): boolean {
 // Public API routes — no auth required
 const PUBLIC_API_ROUTES = [
   '/api/health',
+  // Scraped by Prometheus, which can't carry a session cookie — the route
+  // itself does its own bearer-token check (METRICS_TOKEN), same pattern
+  // as the crypto webhook receiver below.
+  '/api/metrics',
   '/api/auth/login',
   '/api/auth/signup',
   '/api/auth/logout',
@@ -131,20 +135,46 @@ function isMaliciousPath(pathname: string): boolean {
   return false
 }
 
-function addHeaders(res: NextResponse): NextResponse {
+function addHeaders(res: NextResponse, ids?: { requestId: string; correlationId: string }): NextResponse {
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v)
   if (process.env.NODE_ENV === 'production') {
     res.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')
   }
+  if (ids) {
+    res.headers.set('X-Request-Id', ids.requestId)
+    res.headers.set('X-Correlation-Id', ids.correlationId)
+  }
   return res
+}
+
+// Request ID: unique per HTTP request, generated here (the single global
+// entry point) so every log line for this request — proxy, route handler,
+// any queue job it enqueues — can be tied together. Correlation ID: same
+// value by default, but a caller (an external system chaining calls, or a
+// client replaying a browser action) can supply its own via
+// X-Correlation-Id to tie multiple requests together into one operation.
+// Both are forwarded to the route handler as request headers (read by
+// withProtection) and echoed back as response headers for the client.
+function resolveRequestIds(req: NextRequest): { requestId: string; correlationId: string } {
+  const requestId = req.headers.get('x-request-id') || crypto.randomUUID()
+  const correlationId = req.headers.get('x-correlation-id') || requestId
+  return { requestId, correlationId }
+}
+
+function nextWithIds(req: NextRequest, ids: { requestId: string; correlationId: string }): NextResponse {
+  const headers = new Headers(req.headers)
+  headers.set('x-request-id', ids.requestId)
+  headers.set('x-correlation-id', ids.correlationId)
+  return NextResponse.next({ request: { headers } })
 }
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
+  const ids = resolveRequestIds(req)
 
   // 1. Reject malicious paths
   if (isMaliciousPath(pathname)) {
-    return new NextResponse('Bad Request', { status: 400 })
+    return addHeaders(new NextResponse('Bad Request', { status: 400 }), ids)
   }
 
   // 2. Allow static assets and Next internals
@@ -157,12 +187,12 @@ export function proxy(req: NextRequest) {
     pathname === '/robots.txt' ||
     pathname === '/sitemap.xml'
   ) {
-    return addHeaders(NextResponse.next())
+    return addHeaders(nextWithIds(req, ids), ids)
   }
 
   // 3. Allow public routes (with headers applied)
   if (isPublic(pathname)) {
-    return addHeaders(NextResponse.next())
+    return addHeaders(nextWithIds(req, ids), ids)
   }
 
   // 4. Enforce auth on /api/* and other protected routes
@@ -172,12 +202,12 @@ export function proxy(req: NextRequest) {
       return addHeaders(NextResponse.json(
         { error: 'unauthenticated', message: 'Session required' },
         { status: 401 },
-      ))
+      ), ids)
     }
     return addHeaders(NextResponse.json(
       { error: 'unauthenticated', message: 'Please sign in' },
       { status: 401 },
-    ))
+    ), ids)
   }
 
   // 5. CSRF defense-in-depth for authenticated state-changing requests.
@@ -204,12 +234,12 @@ export function proxy(req: NextRequest) {
       return addHeaders(NextResponse.json(
         { error: 'cross_origin_request_denied', message: 'Request origin does not match this site' },
         { status: 403 },
-      ))
+      ), ids)
     }
   }
 
   // 6. Authenticated — allow with headers
-  return addHeaders(NextResponse.next())
+  return addHeaders(nextWithIds(req, ids), ids)
 }
 
 export const config = {

@@ -1,4 +1,5 @@
 import { withTimeout, withRetry, timed, type IntegrationResult } from './types'
+import { logger } from '@/lib/observability/logger'
 
 /**
  * Email provider adapter. `src/lib/email/service.ts` (campaign send,
@@ -76,11 +77,21 @@ export class ConsoleEmailProvider implements EmailProvider {
   readonly name = 'console'
 
   async send(msg: EmailMessage): Promise<IntegrationResult<EmailSendData>> {
-    console.log('\n========== EMAIL (DEV MODE) ==========')
-    console.log(`To: ${msg.to}`)
-    console.log(`Subject: ${msg.subject}`)
-    console.log(`Body:\n${msg.text.slice(0, 500)}${msg.text.length > 500 ? '...' : ''}`)
-    console.log('=======================================\n')
+    if (process.env.NODE_ENV === 'production') {
+      // No SMTP configured in a production deployment — this fallback
+      // existing at all means campaigns aren't really being delivered,
+      // but the fix for that is configuring SMTP, not dumping full
+      // message bodies + recipient email addresses (PII) to stdout as a
+      // substitute. Log enough to diagnose the misconfiguration, nothing
+      // sensitive.
+      logger.warn('email.console_fallback_in_production', { subjectLength: msg.subject.length })
+    } else {
+      console.log('\n========== EMAIL (DEV MODE) ==========')
+      console.log(`To: ${msg.to}`)
+      console.log(`Subject: ${msg.subject}`)
+      console.log(`Body:\n${msg.text.slice(0, 500)}${msg.text.length > 500 ? '...' : ''}`)
+      console.log('=======================================\n')
+    }
     return { ok: true, data: { messageId: `console-${Date.now()}` }, mocked: true, latencyMs: 0 }
   }
 }

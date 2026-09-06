@@ -13,6 +13,8 @@
  */
 
 import { sendCampaign } from '@/lib/email/service'
+import { logger, getLogContext, runWithLogContext } from '@/lib/observability/logger'
+import { queueJobsTotal, queueJobDuration, registerQueueDepthSampler } from '@/lib/observability/metrics'
 
 export type JobType = 'email_campaign' | 'lead_generation' | 'lead_enrich' | 'document_extract'
 
@@ -27,6 +29,8 @@ export interface Job {
   createdAt: Date
   startedAt?: Date
   completedAt?: Date
+  /** Ties this job back to the request that enqueued it — see src/lib/observability/logger.ts. */
+  correlationId?: string
 }
 
 interface QueueAdapter {
@@ -89,11 +93,11 @@ class RedisQueueAdapter implements QueueAdapter {
     })
 
     this.redis.on('error', (err) => {
-      console.error('[queue] Redis error:', err.message)
+      logger.error('queue.redis_error', { error: err.message })
     })
 
     this.redis.on('connect', () => {
-      console.log('[queue] Redis connected')
+      logger.info('queue.redis_connected', {})
     })
   }
 
@@ -162,10 +166,10 @@ let workerRunning = false
 function getAdapter(): QueueAdapter {
   if (adapter) return adapter
   if (process.env.REDIS_URL) {
-    console.log('[queue] Using Redis adapter:', process.env.REDIS_URL.replace(/:[^:@]+@/, ':****@'))
+    logger.info('queue.adapter_selected', { adapter: 'redis', url: process.env.REDIS_URL.replace(/:[^:@]+@/, ':****@') })
     adapter = new RedisQueueAdapter(process.env.REDIS_URL)
   } else {
-    console.log('[queue] Using in-memory adapter (set REDIS_URL for production)')
+    logger.info('queue.adapter_selected', { adapter: 'in-memory' })
     adapter = new InMemoryQueueAdapter()
   }
   return adapter
@@ -187,8 +191,10 @@ export async function enqueue(
     status: 'queued',
     progress: 0,
     createdAt: new Date(),
+    correlationId: getLogContext().correlationId,
   }
   await getAdapter().enqueue(job)
+  logger.info('queue.job_enqueued', { jobId: job.id, type })
   // Start worker if not running
   startWorker()
   return job
@@ -204,13 +210,21 @@ export async function listJobs(): Promise<Job[]> {
   return getAdapter().list()
 }
 
+registerQueueDepthSampler(async () => {
+  const jobs = await listJobs()
+  return {
+    queued: jobs.filter((j) => j.status === 'queued').length,
+    processing: jobs.filter((j) => j.status === 'processing').length,
+  }
+})
+
 /** Start the background worker (idempotent). */
 function startWorker() {
   if (workerRunning) return
   workerRunning = true
   // Run async — don't block the caller
   processJobQueue().catch((err) => {
-    console.error('[queue] worker error:', err)
+    logger.error('queue.worker_error', { error: String(err) })
     workerRunning = false
   })
 }
@@ -230,7 +244,7 @@ async function processJobQueue() {
       await getAdapter().update(job)
 
       try {
-        const result = await processJob(job)
+        const result = await runWithLogContext({ correlationId: job.correlationId }, () => processJob(job))
         job.status = 'completed'
         job.progress = 100
         job.result = result
@@ -241,9 +255,21 @@ async function processJobQueue() {
         job.completedAt = new Date()
       }
 
+      const durationSec = job.startedAt && job.completedAt
+        ? (job.completedAt.getTime() - job.startedAt.getTime()) / 1000
+        : undefined
+      queueJobsTotal.labels(job.type, job.status).inc()
+      if (durationSec !== undefined) queueJobDuration.labels(job.type).observe(durationSec)
+
+      if (job.status === 'failed') {
+        logger.error('queue.job_failed', { jobId: job.id, type: job.type, durationMs: durationSec ? durationSec * 1000 : undefined, error: job.error, correlationId: job.correlationId })
+      } else {
+        logger.info('queue.job_completed', { jobId: job.id, type: job.type, durationMs: durationSec ? durationSec * 1000 : undefined, correlationId: job.correlationId })
+      }
+
       await getAdapter().update(job)
     } catch (err) {
-      console.error('[queue] dequeue error:', err)
+      logger.error('queue.dequeue_error', { error: String(err) })
       await new Promise((r) => setTimeout(r, 2000))
     }
   }

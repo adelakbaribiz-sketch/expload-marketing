@@ -14,6 +14,7 @@
 
 import { db } from '@/lib/db'
 import { SmtpEmailProvider, ConsoleEmailProvider, type EmailProvider } from '@/lib/integrations/email-provider'
+import { recordBusinessEvent } from '@/lib/observability/metrics'
 
 export interface SendEmailParams {
   to: string
@@ -214,6 +215,8 @@ export async function sendCampaign(
       bounceCount: bounced,
     },
   })
+
+  recordBusinessEvent('campaign.sent')
 
   return { sent, failed, bounced, skipped, total: recipients.length }
 }

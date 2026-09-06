@@ -16,6 +16,8 @@ import 'server-only'
 import { db } from '@/lib/db'
 import crypto from 'node:crypto'
 import { CRYPTO_PAYMENT_MACHINE, type CryptoPaymentStatus } from '@/lib/workflow/definitions'
+import { logger } from '@/lib/observability/logger'
+import { recordBusinessEvent } from '@/lib/observability/metrics'
 
 const NOWPAYMENTS_API_BASE = 'https://api.nowpayments.io/v1'
 
@@ -115,7 +117,7 @@ export async function createCryptoPayment(
   try {
     response = gateway === 'manual' ? await createManualPayment(req) : await createNowPayments(req)
   } catch (err: any) {
-    console.warn(`Crypto gateway ${gateway} failed: ${err.message}. Falling back to manual.`)
+    logger.warn('crypto.gateway_fallback', { gateway, error: err.message })
     response = await createManualPayment(req)
   }
 
@@ -169,6 +171,7 @@ export async function updateCryptoPaymentStatus(
   // a crash or slow response between them left completedAt unset, so the retry passed
   // the `!payment.completedAt` guard again and created a second Payment row for the
   // same crypto payment (double-booked revenue). See DATABASE-AUDIT.md "Transactions".
+  let paymentCompleted = false
   await db.$transaction(async (tx) => {
     const payment = await tx.cryptoPayment.findUnique({ where: { gatewayPaymentId } })
     if (!payment) return
@@ -186,7 +189,7 @@ export async function updateCryptoPaymentStatus(
       CRYPTO_PAYMENT_MACHINE.states.includes(nextStatus) &&
       !CRYPTO_PAYMENT_MACHINE.canTransition(currentStatus, nextStatus)
     ) {
-      console.warn(`[crypto] ignoring out-of-order webhook: ${gatewayPaymentId} ${currentStatus} -> ${nextStatus}`)
+      logger.warn('crypto.out_of_order_webhook', { gatewayPaymentId, currentStatus, nextStatus })
       return
     }
 
@@ -195,6 +198,7 @@ export async function updateCryptoPaymentStatus(
     }
 
     if (mappedStatus === 'completed' && !payment.completedAt) {
+      paymentCompleted = true
       updateData.completedAt = new Date()
       const newPayment = await tx.payment.create({
         data: {
@@ -218,6 +222,7 @@ export async function updateCryptoPaymentStatus(
 
     await tx.cryptoPayment.update({ where: { id: payment.id }, data: updateData })
   })
+  if (paymentCompleted) recordBusinessEvent('payment.completed')
 }
 
 export async function getCryptoRates(): Promise<Record<string, number>> {

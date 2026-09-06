@@ -22,7 +22,7 @@ const LeadCreate = z.object({
   projectId: z.string().max(100).optional(),
 })
 
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   const tenantId = await getTenantIdOrNull()
   if (!tenantId) return NextResponse.json({ leads: [] })
   const { searchParams } = new URL(req.url)
@@ -75,6 +75,14 @@ export async function GET(req: NextRequest) {
     pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
   })
 }
+
+// This bespoke (non-CRUD-factory) route's GET had no withProtection at
+// all — unlike POST below, and unlike the 91 CRUD-factory domains (Phase
+// 08) — so it had no rate limiting, no consistent error handling, and (as
+// of this phase) no API metrics/request-id tracing either. Found while
+// live-verifying Phase 15's metrics wiring: this endpoint's traffic simply
+// never showed up. See OBSERVABILITY.md.
+export const GET = withProtection(getHandler, { rateLimit: 'read' })
 
 async function postHandler(req: NextRequest) {
   const tenantId = await requireTenantId()

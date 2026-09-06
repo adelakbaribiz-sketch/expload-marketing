@@ -41,6 +41,11 @@ export interface EnvStatus {
       enabled: boolean
       extractReviews: boolean
     }
+    observability: {
+      logLevel: string
+      alertWebhookConfigured: boolean
+      metricsEnabled: boolean
+    }
   }
 }
 
@@ -152,6 +157,11 @@ export function validateEnv(): EnvStatus {
         enabled: process.env.PLAYWRIGHT_ENABLED === 'true',
         extractReviews: process.env.PLAYWRIGHT_EXTRACT_REVIEWS === 'true',
       },
+      observability: {
+        logLevel: process.env.LOG_LEVEL ?? (isProd ? 'info' : 'debug'),
+        alertWebhookConfigured: !!process.env.ALERT_WEBHOOK_URL,
+        metricsEnabled: !!process.env.METRICS_TOKEN,
+      },
     },
   }
 }
@@ -168,6 +178,9 @@ export function logEnvStatus(): void {
   console.log(`NextAuth:     secret=${status.config.nextauth.secretSet ? 'set' : 'NOT SET'}, url=${status.config.nextauth.url}`)
   console.log(`Playwright:   ${status.config.playwright.enabled ? 'enabled' : 'disabled'}`)
   console.log(`SIEM:         ${status.config.siem.webhookUrl ? 'configured' : 'not set'}`)
+  console.log(`Log level:    ${status.config.observability.logLevel}`)
+  console.log(`Alerts:       ${status.config.observability.alertWebhookConfigured ? 'configured' : 'not set (logged locally only)'}`)
+  console.log(`Metrics:      ${status.config.observability.metricsEnabled ? '/api/metrics enabled' : 'not set (METRICS_TOKEN unset — /api/metrics disabled)'}`)
 
   if (status.warnings.length > 0) {
     console.log('\n⚠ Warnings:')

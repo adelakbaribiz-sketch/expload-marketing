@@ -1,4 +1,5 @@
 import { withTimeout, withRetry, timed, type IntegrationResult } from './types'
+import { logger } from '@/lib/observability/logger'
 
 /**
  * SMS provider adapter. Previously `POST /api/messaging/sms` was a bare
@@ -72,7 +73,14 @@ export class ConsoleSmsProvider implements SmsProvider {
   readonly name = 'console'
 
   async send(msg: SmsMessage): Promise<IntegrationResult<SmsSendData>> {
-    console.log(`\n[SMS - DEV MODE] To: ${msg.to} | Body: ${msg.body.slice(0, 160)}\n`)
+    if (process.env.NODE_ENV === 'production') {
+      // No SMS gateway configured in production — same reasoning as
+      // ConsoleEmailProvider: diagnose the misconfiguration, don't leak
+      // the recipient phone number + message body to stdout.
+      logger.warn('sms.console_fallback_in_production', { bodyLength: msg.body.length })
+    } else {
+      console.log(`\n[SMS - DEV MODE] To: ${msg.to} | Body: ${msg.body.slice(0, 160)}\n`)
+    }
     return { ok: true, data: { messageId: `console-${Date.now()}`, cost: 0 }, mocked: true, latencyMs: 0 }
   }
 }

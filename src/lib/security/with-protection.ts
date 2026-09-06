@@ -9,10 +9,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'node:crypto'
 import { rateLimit, getClientId, RATE_LIMITS } from '@/lib/security/rate-limit'
 import { applySecurityHeaders } from '@/lib/security/headers'
 import { audit } from '@/lib/security/audit'
 import { ApiError } from '@/lib/api/errors'
+import { runWithLogContext, logger } from '@/lib/observability/logger'
+import { httpRequestsTotal, httpRequestDuration, errorsTotal, normalizeRoute } from '@/lib/observability/metrics'
+import { alertCritical } from '@/lib/observability/alerts'
 
 type Handler<Ctx = any> = (req: NextRequest, ctx: Ctx) => Promise<NextResponse | Response>
 
@@ -38,66 +42,94 @@ export function withProtection<Ctx = any>(
   const namespace = options.rateLimit ?? 'read'
 
   return async (req, ctx) => {
-    // 1. Rate limit check
-    const clientId = getClientId(req)
-    const rl = rateLimit({
-      key: clientId,
-      limit: preset.limit,
-      windowMs: preset.windowMs,
-      namespace,
-    })
-    if (!rl.allowed) {
-      const res = NextResponse.json(
-        { error: 'rate_limited', message: 'Too many requests. Please try again later.' },
-        { status: 429 },
-      )
-      // Attach rate limit headers
-      for (const [k, v] of Object.entries(rl.headers)) res.headers.set(k, v)
-      applySecurityHeaders(res)
-      return res
-    }
+    // Request/correlation id set by proxy.ts (the global entry point);
+    // fall back to generating one here for anything that reaches a
+    // handler outside that path (e.g. a direct unit-test call).
+    const requestId = req.headers.get('x-request-id') || randomUUID()
+    const correlationId = req.headers.get('x-correlation-id') || requestId
 
-    // 2. Run the actual handler — no route relied on an uncaught exception
-    // reaching Next.js's default handler on purpose; catching here gives
-    // every protected route the same fallback: a logged error and a
-    // consistent { error } JSON shape instead of an unstyled 500 with no
-    // security headers, no rate-limit headers, and (for GET-only routes)
-    // previously no protection layer at all to even reach this catch.
-    let result: NextResponse | Response
-    try {
-      result = await handler(req, ctx)
-    } catch (err) {
-      console.error('[api] unhandled error:', err)
-      const status = err instanceof ApiError ? err.status : 500
-      const message = err instanceof ApiError ? err.message : 'internal_error'
-      result = NextResponse.json({ error: message }, { status })
-    }
+    return runWithLogContext({ requestId, correlationId }, async () => {
+      const route = normalizeRoute(new URL(req.url).pathname)
+      const timerEnd = httpRequestDuration.startTimer({ method: req.method, route })
 
-    // 3. Apply security headers to the response
-    if (result instanceof NextResponse) {
-      applySecurityHeaders(result)
-      // Attach rate limit headers
-      for (const [k, v] of Object.entries(rl.headers)) result.headers.set(k, v)
-    }
-
-    // 4. Audit log (only on success)
-    if (options.audit && result instanceof NextResponse && result.status < 400) {
-      try {
-        await audit({
-          type: options.audit.type,
-          message: options.audit.message
-            ? options.audit.message(req)
-            : `${options.audit.type} operation`,
-          tenantId: options.audit.tenantId?.(req),
-          ip: clientId,
-          userAgent: req.headers.get('user-agent') ?? undefined,
-        })
-      } catch {
-        // never let audit failure break the response
+      // 1. Rate limit check
+      const clientId = getClientId(req)
+      const rl = rateLimit({
+        key: clientId,
+        limit: preset.limit,
+        windowMs: preset.windowMs,
+        namespace,
+      })
+      if (!rl.allowed) {
+        const res = NextResponse.json(
+          { error: 'rate_limited', message: 'Too many requests. Please try again later.' },
+          { status: 429 },
+        )
+        // Attach rate limit headers
+        for (const [k, v] of Object.entries(rl.headers)) res.headers.set(k, v)
+        applySecurityHeaders(res)
+        res.headers.set('X-Request-Id', requestId)
+        httpRequestsTotal.labels(req.method, route, '429').inc()
+        timerEnd({ status: '429' })
+        return res
       }
-    }
 
-    return result
+      // 2. Run the actual handler — no route relied on an uncaught exception
+      // reaching Next.js's default handler on purpose; catching here gives
+      // every protected route the same fallback: a logged error and a
+      // consistent { error } JSON shape instead of an unstyled 500 with no
+      // security headers, no rate-limit headers, and (for GET-only routes)
+      // previously no protection layer at all to even reach this catch.
+      let result: NextResponse | Response
+      try {
+        result = await handler(req, ctx)
+      } catch (err) {
+        logger.error('api.unhandled_error', { route, method: req.method, error: String(err) })
+        errorsTotal.labels('unhandled_exception', route).inc()
+        const status = err instanceof ApiError ? err.status : 500
+        const message = err instanceof ApiError ? err.message : 'internal_error'
+        result = NextResponse.json({ error: message }, { status })
+        if (status >= 500) {
+          alertCritical({
+            title: 'Unhandled API error',
+            detail: `${req.method} ${route}: ${String(err)}`,
+            source: `api.${route}`,
+          }).catch(() => {})
+        }
+      }
+
+      // 3. Apply security headers to the response
+      if (result instanceof NextResponse) {
+        applySecurityHeaders(result)
+        // Attach rate limit headers
+        for (const [k, v] of Object.entries(rl.headers)) result.headers.set(k, v)
+        result.headers.set('X-Request-Id', requestId)
+      }
+
+      const status = result instanceof NextResponse ? result.status : (result as Response).status
+      httpRequestsTotal.labels(req.method, route, String(status)).inc()
+      if (status >= 500) errorsTotal.labels('error_response', route).inc()
+      timerEnd({ status: String(status) })
+
+      // 4. Audit log (only on success)
+      if (options.audit && result instanceof NextResponse && result.status < 400) {
+        try {
+          await audit({
+            type: options.audit.type,
+            message: options.audit.message
+              ? options.audit.message(req)
+              : `${options.audit.type} operation`,
+            tenantId: options.audit.tenantId?.(req),
+            ip: clientId,
+            userAgent: req.headers.get('user-agent') ?? undefined,
+          })
+        } catch {
+          // never let audit failure break the response
+        }
+      }
+
+      return result
+    })
   }
 }
 
