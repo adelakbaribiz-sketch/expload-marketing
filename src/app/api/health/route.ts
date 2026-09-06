@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { validateEnv } from '@/lib/config/env'
 import { db } from '@/lib/db'
 import { isSuperAdmin } from '@/lib/auth/rbac'
+import { isQdrantEnabled, isEmbeddingApiConfigured } from '@/lib/vector/qdrant'
 
 /**
  * Health check endpoint for load balancer / container orchestration probes.
@@ -49,8 +50,23 @@ export async function GET() {
     checks.smtp = { ok: true }
   }
 
-  // Overall health
+  // Overall health — computed from the checks above only. Liveness/
+  // readiness probes must fail solely on things that make the app actually
+  // down (DB, configured Redis/SMTP); an optional AI feature running in a
+  // degraded-but-functional mode is not that, and must never flip the
+  // container into a restart loop.
   const allOk = Object.values(checks).every((c) => c.ok) && env.ok
+
+  // Semantic search — with no real embedding API key configured, vector
+  // search silently degrades to a deterministic hash-based pseudo-embedding
+  // (see src/lib/vector/qdrant.ts) that carries no real semantic meaning.
+  // Informational only (added after allOk, deliberately not part of it) —
+  // flagged so this isn't invisible in a deployed environment, not treated
+  // as a liveness failure.
+  checks.semanticSearch = {
+    ok: isEmbeddingApiConfigured(),
+    ...(isEmbeddingApiConfigured() ? {} : { error: `No embedding API key configured — falling back to non-semantic pseudo-embeddings (backend: ${isQdrantEnabled() ? 'qdrant' : 'in-db-fallback'})` }),
+  }
 
   // This route is deliberately public (proxy.ts) — container/load-balancer
   // probes and Dockerfile's HEALTHCHECK hit it with no auth available. But

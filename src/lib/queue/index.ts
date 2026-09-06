@@ -268,7 +268,7 @@ async function processJob(job: Job): Promise<any> {
       const lead = await db.lead.findUnique({ where: { id: leadId } })
       if (!lead) throw new Error('Lead not found')
       const rawText = [lead.name, lead.industry, lead.description, lead.website].filter(Boolean).join('\n')
-      const info = await extractLeadInfo(rawText)
+      const info = await extractLeadInfo(rawText, lead.tenantId)
       const updated = await db.lead.update({
         where: { id: leadId },
         data: {

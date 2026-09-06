@@ -109,8 +109,8 @@ export function SettingsView() {
           <CardDescription>{t('settings.aiDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          <Row label={t('settings.sdk')} value="z-ai-web-dev-sdk" />
-          <Row label={t('settings.usage')} value="Lead Enrichment" />
+          <Row label={t('settings.sdk')} value="Multi-provider LLM Aggregator" />
+          <Row label={t('settings.usage')} value="Lead Enrichment, Strategy Advisor, Diagnostics, Reports" />
           <div className="rounded-md bg-violet-500/5 border border-violet-500/20 p-3 text-xs text-muted-foreground">
             {t('settings.aiDescLong')}
           </div>

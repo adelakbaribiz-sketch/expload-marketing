@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth/simple-session'
 import { withProtection } from '@/lib/security/with-protection'
-import { executePlan, ExecutionPlan } from '@/lib/graph/orchestrator'
+import { executePlan, ExecutionPlan, UnconfirmedHighRiskNodesError, HIGH_RISK_NODE_TYPES } from '@/lib/graph/orchestrator'
 
 async function handler(req: NextRequest) {
   const user = await getCurrentUser()
@@ -13,9 +13,25 @@ async function handler(req: NextRequest) {
   if (!body.plan) return NextResponse.json({ error: 'plan required' }, { status: 400 })
 
   const plan = body.plan as ExecutionPlan
+  const confirmedNodeIds: string[] = Array.isArray(body.confirmedNodeIds) ? body.confirmedNodeIds : []
 
-  // Execute (this is synchronous — for production, use a queue)
-  const state = await executePlan(plan, user.tenantId, user.id)
+  // Execute (this is synchronous — for production, use a queue). Nodes
+  // with a real external effect (send email, spend ad budget, create a
+  // payment) are refused unless the caller explicitly confirmed each one —
+  // see HIGH_RISK_NODE_TYPES / AI-STACK-AUDIT.md.
+  let state
+  try {
+    state = await executePlan(plan, user.tenantId, user.id, undefined, confirmedNodeIds)
+  } catch (err) {
+    if (err instanceof UnconfirmedHighRiskNodesError) {
+      return NextResponse.json({
+        error: 'confirmation_required',
+        message: err.message,
+        unconfirmedNodes: err.nodes,
+      }, { status: 428 })
+    }
+    throw err
+  }
 
   // Convert Map to plain object for JSON response
   const results: any = {}

@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { requireTenantId } from '@/lib/tenant'
 import { withProtection } from '@/lib/security/with-protection'
 import { audit } from '@/lib/security/audit'
-import ZAI from 'z-ai-web-dev-sdk'
+import { llmAggregator } from '@/lib/llm/aggregator'
 
 /**
  * AI Strategy/Advisor endpoint.
@@ -75,22 +75,21 @@ async function handler(req: NextRequest) {
 
   try {
     // Call the LLM
-    const zai = await ZAI.create()
     const systemPrompt = buildSystemPrompt(analysisType)
     const userPrompt = `Analyze this marketing data and provide 3-5 actionable recommendations:\n\n${JSON.stringify(tenantData, null, 2)}`
 
-    const completion = await zai.chat.completions.create({
+    const completion = await llmAggregator.complete({
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.7,
+      tenantId,
+      sessionType: analysisType,
     })
 
-    const content = completion.choices?.[0]?.message?.content ?? ''
-
     // Parse recommendations (simple parsing)
-    recommendations = parseRecommendations(content)
+    recommendations = parseRecommendations(completion.text)
 
     // Persist recommendations
     for (const rec of recommendations) {

@@ -35,6 +35,30 @@ export type NodeType =
   | 'start_negotiation' | 'onboard_customer' | 'run_diagnostics'
   | 'generate_report' | 'assign_assistant' | 'process_payment' | 'notify_user'
 
+/**
+ * Node types with a real, hard-to-reverse external effect: sending mail to
+ * real people, spending real ad budget, or creating a real payment charge.
+ * An LLM-generated (or template) plan can include any of these with no
+ * inherent human review beyond "did someone click Execute" — that's not
+ * enough for this class of action, so executePlan() refuses to run one
+ * unless its id is explicitly passed back in `confirmedNodeIds`, forcing
+ * the caller (the UI) to have shown the user exactly which irreversible
+ * actions this plan will take. See AI-STACK-AUDIT.md "Human Validation".
+ */
+export const HIGH_RISK_NODE_TYPES: NodeType[] = ['send_campaign', 'process_payment', 'launch_ads']
+
+export interface UnconfirmedHighRiskNode {
+  id: string
+  type: NodeType
+}
+
+export class UnconfirmedHighRiskNodesError extends Error {
+  constructor(public nodes: UnconfirmedHighRiskNode[]) {
+    super(`Plan contains ${nodes.length} high-risk action(s) that require explicit confirmation before executing: ${nodes.map(n => n.type).join(', ')}`)
+    this.name = 'UnconfirmedHighRiskNodesError'
+  }
+}
+
 export interface GraphNode {
   id: string
   type: NodeType
@@ -279,7 +303,14 @@ export async function executePlan(
   tenantId: string,
   userId: string,
   onProgress?: (state: ExecutionState) => void,
+  confirmedNodeIds: string[] = [],
 ): Promise<ExecutionState> {
+  const confirmed = new Set(confirmedNodeIds)
+  const unconfirmed = plan.nodes.filter(n => HIGH_RISK_NODE_TYPES.includes(n.type) && !confirmed.has(n.id))
+  if (unconfirmed.length > 0) {
+    throw new UnconfirmedHighRiskNodesError(unconfirmed.map(n => ({ id: n.id, type: n.type })))
+  }
+
   const state: ExecutionState = {
     plan,
     results: new Map(),

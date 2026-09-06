@@ -4,7 +4,7 @@ import { requireTenantId } from '@/lib/tenant'
 import { withProtection } from '@/lib/security/with-protection'
 import { audit } from '@/lib/security/audit'
 import { parseJsonResponse } from '@/lib/llm/parse-json'
-import ZAI from 'z-ai-web-dev-sdk'
+import { llmAggregator } from '@/lib/llm/aggregator'
 
 /**
  * Business Diagnostics endpoint.
@@ -94,8 +94,7 @@ async function handler(req: NextRequest) {
   // AI analysis
   let aiAnalysis = null
   try {
-    const zai = await ZAI.create()
-    const completion = await zai.chat.completions.create({
+    const completion = await llmAggregator.complete({
       messages: [
         {
           role: 'system',
@@ -107,10 +106,11 @@ async function handler(req: NextRequest) {
         },
       ],
       temperature: 0.5,
+      tenantId,
+      sessionType: 'diagnostics',
     })
 
-    const content = completion.choices?.[0]?.message?.content ?? ''
-    aiAnalysis = parseJsonResponse(content)
+    aiAnalysis = parseJsonResponse(completion.text)
   } catch (err) {
     console.error('[diagnostics] AI failed:', err)
   }

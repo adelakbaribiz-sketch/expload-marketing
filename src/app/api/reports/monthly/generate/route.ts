@@ -4,7 +4,7 @@ import { requireTenantId } from '@/lib/tenant'
 import { withProtection } from '@/lib/security/with-protection'
 import { audit } from '@/lib/security/audit'
 import { parseJsonResponse } from '@/lib/llm/parse-json'
-import ZAI from 'z-ai-web-dev-sdk'
+import { llmAggregator } from '@/lib/llm/aggregator'
 
 /**
  * Monthly Report Generator.
@@ -60,10 +60,9 @@ async function handler(req: NextRequest) {
   let executiveSummary = `Monthly report for ${month}. Generated ${leadsCount} leads, ${dealsCount} deals, and $${(wonDeals._sum.value || 0).toLocaleString()} in revenue.`
 
   try {
-    const zai = await ZAI.create()
     const langName = language === 'fa' ? 'Persian' : language === 'ar' ? 'Arabic' : 'English'
 
-    const completion = await zai.chat.completions.create({
+    const completion = await llmAggregator.complete({
       messages: [
         {
           role: 'system',
@@ -75,11 +74,12 @@ async function handler(req: NextRequest) {
         },
       ],
       temperature: 0.5,
+      tenantId,
+      sessionType: 'monthly_report',
     })
 
-    const content = completion.choices?.[0]?.message?.content ?? ''
     try {
-      aiAnalysis = parseJsonResponse<Record<string, any>>(content)
+      aiAnalysis = parseJsonResponse<Record<string, any>>(completion.text)
       if (aiAnalysis?.executiveSummary) executiveSummary = String(aiAnalysis.executiveSummary)
     } catch {
       // keep default summary

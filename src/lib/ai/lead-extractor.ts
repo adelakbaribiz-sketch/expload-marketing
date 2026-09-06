@@ -1,16 +1,18 @@
 /**
  * Lead Extractor Agent.
  *
- * Original spec used LangChain + Ollama (mistral). In this Next.js
- * sandbox we use the z-ai-web-dev-sdk LLM, which is already wired up
- * and runs server-side only.
- *
  * Given a raw business snippet or website text, the agent returns
  * structured fields (industry, description, contact email, services)
  * that we persist on the Lead row.
+ *
+ * Uses the portable llmAggregator (5-provider fallback, cost/usage
+ * tracking) rather than a single vendor SDK — see AI-STACK-AUDIT.md
+ * "Model Adapter" for why the z-ai-web-dev-sdk call sites were migrated
+ * off a single environment-coupled vendor.
  */
 
-import ZAI from 'z-ai-web-dev-sdk'
+import { llmAggregator } from '@/lib/llm/aggregator'
+import { parseJsonResponse } from '@/lib/llm/parse-json'
 
 export interface ExtractedLeadInfo {
   industry: string | null
@@ -32,7 +34,7 @@ STRICT JSON with these fields:
 
 Reply with JSON only. No prose, no markdown.`
 
-export async function extractLeadInfo(rawText: string): Promise<ExtractedLeadInfo> {
+export async function extractLeadInfo(rawText: string, tenantId?: string): Promise<ExtractedLeadInfo> {
   const fallback: ExtractedLeadInfo = {
     industry: null,
     description: rawText.slice(0, 200),
@@ -42,8 +44,7 @@ export async function extractLeadInfo(rawText: string): Promise<ExtractedLeadInf
   }
 
   try {
-    const zai = await ZAI.create()
-    const completion = await zai.chat.completions.create({
+    const completion = await llmAggregator.complete({
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         {
@@ -52,10 +53,11 @@ export async function extractLeadInfo(rawText: string): Promise<ExtractedLeadInf
         },
       ],
       temperature: 0.2,
+      tenantId,
+      sessionType: 'extraction',
     })
 
-    const content = completion.choices?.[0]?.message?.content ?? ''
-    const parsed = safeParseJson(content)
+    const parsed = parseJsonResponse<Record<string, any>>(completion.text)
     if (!parsed) return fallback
 
     return {
@@ -77,24 +79,6 @@ export async function extractLeadInfo(rawText: string): Promise<ExtractedLeadInf
   } catch (err) {
     console.error('[lead-extractor] LLM call failed:', err)
     return fallback
-  }
-}
-
-function safeParseJson(text: string): any | null {
-  // Tolerate models that wrap JSON in ``` fences or preface it with prose.
-  const cleaned = text
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/```\s*$/i, '')
-    .trim()
-  // Find the first { and the last }
-  const start = cleaned.indexOf('{')
-  const end = cleaned.lastIndexOf('}')
-  if (start === -1 || end === -1 || end <= start) return null
-  try {
-    return JSON.parse(cleaned.slice(start, end + 1))
-  } catch {
-    return null
   }
 }
 

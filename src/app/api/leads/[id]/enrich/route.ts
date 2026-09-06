@@ -24,7 +24,7 @@ async function handler(_req: NextRequest, ctx: { params: Promise<{ id: string }>
   }
 
   const rawText = [lead.name, lead.industry, lead.description, lead.website].filter(Boolean).join('\n')
-  const info = await extractLeadInfo(rawText)
+  const info = await extractLeadInfo(rawText, lead.tenantId)
 
   const updated = await db.lead.update({
     where: { id },

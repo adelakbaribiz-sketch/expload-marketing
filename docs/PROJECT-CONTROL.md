@@ -1,6 +1,8 @@
 # PROJECT-CONTROL.md
 
-**This file is the live control document for this project. Update it whenever a phase status, decision, or risk changes — don't let it go stale.** Last updated: 2026-09-06, after Phase 10 (File & Media Engineering).
+**This file is the live control document for this project. Update it whenever a phase status, decision, or risk changes — don't let it go stale.** Last updated: 2026-09-06, after Phase 11 (AI/ML Engineering).
+
+**Update 2026-09-06 (Phase 11 — AI/ML)**: full AI-stack audit (`AI-STACK-AUDIT.md`; no traditional ML pipeline exists, so this covers the LLM stack). Critical fix: the graph-agent orchestrator could execute AI-generated plans containing real-world-effect actions (send a real campaign, spend real ad budget, create a real payment) with only a coarse whole-plan click — no confirmation naming the specific irreversible action. `executePlan()` now server-enforces explicit per-action confirmation for those node types (`428` otherwise); negotiation and the rule-based "autonomous agent" were already correctly human-gated. Also: migrated the last 4 `z-ai-web-dev-sdk` call sites onto the existing portable `llmAggregator`; surfaced the silent pseudo-embedding fallback in `/api/health`. Deferred: prompt-catalog consolidation, an eval harness, extending the `AiDecision` feedback loop beyond negotiation.
 
 **Update 2026-09-06 (Phase 10 — File & Media)**: the project's only file/media feature (onboarding document upload) was non-functional — built end to end: private storage adapter (`src/lib/storage/`), type/size/magic-byte validation, async extraction via the job queue (never blocks the upload request), and signed-URL-gated downloads. Full detail in `FILE-MEDIA-STANDARD.md`. Side-finding, not fixed (environment config): local `.env`'s `REDIS_URL` points at a Redis that isn't running, so any `enqueue()` call 500s in this dev environment.
 

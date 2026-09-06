@@ -28,6 +28,11 @@ export function isQdrantEnabled(): boolean {
   return Boolean(QDRANT_URL)
 }
 
+/** Check if a real embedding API key is configured — if not, generateEmbedding() silently falls back to a non-semantic pseudo-embedding. */
+export function isEmbeddingApiConfigured(): boolean {
+  return Boolean(EMBEDDING_API_KEY)
+}
+
 /** Generate embedding for a text using OpenAI-compatible API. */
 export async function generateEmbedding(text: string): Promise<number[]> {
   if (!EMBEDDING_API_KEY) {

@@ -74,20 +74,34 @@ export function GraphAgentView() {
     },
   })
 
+  // Mirrors HIGH_RISK_NODE_TYPES in src/lib/graph/orchestrator.ts — the
+  // backend is the real enforcement point (it rejects with 428 if a
+  // high-risk node's id isn't in confirmedNodeIds); this is just so the
+  // user sees exactly what they're approving instead of a generic confirm.
+  const HIGH_RISK_NODE_TYPES = ['send_campaign', 'process_payment', 'launch_ads']
+
   const executePlan = useMutation({
     mutationFn: async () => {
+      const highRisk = (plan?.nodes ?? []).filter((n: any) => HIGH_RISK_NODE_TYPES.includes(n.type))
+      let confirmedNodeIds: string[] = []
+      if (highRisk.length > 0) {
+        const list = highRisk.map((n: any) => `• ${n.type} (${n.id})`).join('\n')
+        const ok = confirm(`This plan will take ${highRisk.length} real, hard-to-reverse action(s):\n\n${list}\n\nProceed?`)
+        if (!ok) throw new Error('Cancelled — high-risk actions not confirmed')
+        confirmedNodeIds = highRisk.map((n: any) => n.id)
+      }
       const res = await fetch('/api/graph/execute', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, confirmedNodeIds }),
       })
-      if (!res.ok) throw new Error('Execution failed')
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.message || 'Execution failed')
       return res.json()
     },
     onSuccess: (data) => {
       setExecution(data)
       toast.success(`Execution ${data.status}: ${Object.keys(data.results).filter(k => data.results[k].status === 'completed').length} nodes completed`)
     },
-    onError: () => toast.error('Execution failed'),
+    onError: (e: any) => toast.error(String(e?.message ?? e)),
   })
 
   const templates = templatesData?.templates ?? []

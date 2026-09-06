@@ -13,7 +13,7 @@ import { sanitizeText, sanitizeUrl, sanitizeEmail } from '@/lib/security/sanitiz
  * Mirrors the original FastAPI `/leads/search` route:
  *   1. Serper organic search for businesses
  *   2. (optional) Google Maps places scrape
- *   3. AI enrichment of each snippet via z-ai-web-dev-sdk LLM
+ *   3. AI enrichment of each snippet via the portable llmAggregator
  *   4. Persist as Lead rows scoped to the active tenant / project
  */
 async function handler(req: NextRequest) {
@@ -72,7 +72,7 @@ async function handler(req: NextRequest) {
     // 3. AI enrichment
     let info: Awaited<ReturnType<typeof extractLeadInfo>> | null = null
     if (enrich) {
-      info = await extractLeadInfo(`${w.title}\n${w.snippet}`)
+      info = await extractLeadInfo(`${w.title}\n${w.snippet}`, tenantId)
     }
 
     // Sanitize all persisted fields
