@@ -8,6 +8,7 @@ export async function GET() {
     where: { isActive: true },
     orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }],
     include: { _count: { select: { keys: true, usage: true } } },
+    take: 200,
   })
   return NextResponse.json({ products })
 }

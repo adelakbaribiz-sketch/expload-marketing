@@ -21,6 +21,7 @@ async function handler(req: NextRequest) {
     }
     const territories = await db.territoryExclusivity.findMany({
       where, include: { distributor: { select: { companyName: true } } },
+      orderBy: { startDate: 'desc' }, take: 200,
     })
     return NextResponse.json({ territories })
   }

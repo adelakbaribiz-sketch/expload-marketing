@@ -3,6 +3,15 @@ import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth/simple-session'
 import { withProtection } from '@/lib/security/with-protection'
 
+/**
+ * LlmAuditEvent has no tenantId — provider quota/rate-limit is a
+ * platform-shared resource, not per-tenant, so this is genuinely
+ * platform-wide operational data by design. Intentionally readable by
+ * every tenant, same reasoning as GET /api/llm/providers just above it in
+ * llm-settings-view.tsx (both calls on the same page, for every user) — no
+ * secret is included, just event type/message/timestamp. Confirmed
+ * intentional, not re-scoped here — see SEARCH-REPORTING-ANALYTICS.md.
+ */
 async function handler(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })

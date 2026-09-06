@@ -21,7 +21,7 @@ async function handler(req: NextRequest) {
     }
     const contracts = await db.distributorContract.findMany({
       where, include: { distributor: { select: { companyName: true, country: true } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' }, take: 200,
     })
     return NextResponse.json({ contracts })
   }

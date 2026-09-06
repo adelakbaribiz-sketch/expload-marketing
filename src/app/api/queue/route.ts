@@ -1,8 +1,17 @@
 import { NextResponse } from 'next/server'
 import { listJobs } from '@/lib/queue'
+import { isSuperAdmin } from '@/lib/auth/rbac'
 
-/** Returns the current job queue status. */
+/**
+ * Returns the current job queue status — an Operational report surfaced in
+ * super-admin-view.tsx. Had no authorization check of any kind: any
+ * authenticated user of any tenant could see every job across the entire
+ * platform (email-campaign sends, lead-enrichment, document-extraction
+ * payloads for every other tenant), not just their own. Fixed to require
+ * super admin, matching what the UI already assumed the backend enforced.
+ */
 export async function GET() {
+  if (!(await isSuperAdmin())) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   try {
     const jobs = await listJobs()
     return NextResponse.json({

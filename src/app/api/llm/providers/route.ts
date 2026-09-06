@@ -11,7 +11,13 @@ async function handler(req: NextRequest) {
   const superAdmin = await isSuperAdmin()
 
   if (req.method === 'GET') {
-    // List configured providers + their strategies
+    // Intentionally readable by every tenant (llm-settings-view.tsx calls
+    // this for all users, not just admins) — the shared AI infrastructure's
+    // quota/priority status explains why AI features might be degraded
+    // right now, and no secret is included (hasApiKey is a boolean, never
+    // the key itself). Only reconfiguring it (POST/DELETE, below) is
+    // superadmin-gated. Confirmed intentional, not re-scoped here — see
+    // SEARCH-REPORTING-ANALYTICS.md.
     const providers = llmAggregator.listProviders()
     const configs = await db.llmProviderConfig.findMany()
     const configMap = new Map(configs.map(c => [c.provider, c]))

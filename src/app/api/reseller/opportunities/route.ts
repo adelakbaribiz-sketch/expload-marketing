@@ -9,10 +9,13 @@ export async function GET() {
     db.resellerOpportunity.findMany({
       where: { isActive: true },
       orderBy: [{ isFeatured: 'desc' }, { title: 'asc' }],
+      take: 200,
     }),
     db.resellerApplication.findMany({
       where: { tenantId },
       include: { opportunity: true },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
     }),
   ])
   return NextResponse.json({ opportunities, myApplications })

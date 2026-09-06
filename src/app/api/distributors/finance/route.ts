@@ -24,9 +24,9 @@ async function handler(req: NextRequest) {
   // Aggregate financial summary
   const [distributor, allocations, payouts, cryptoPayments] = await Promise.all([
     db.distributor.findUnique({ where: { id: distId } }),
-    db.licenseAllocation.findMany({ where: { distributorId: distId } }),
-    db.distributorPayout.findMany({ where: { distributorId: distId } }),
-    db.cryptoPayment.findMany({ where: { distributorId: distId } }),
+    db.licenseAllocation.findMany({ where: { distributorId: distId }, orderBy: { createdAt: 'desc' }, take: 500 }),
+    db.distributorPayout.findMany({ where: { distributorId: distId }, orderBy: { createdAt: 'desc' }, take: 500 }),
+    db.cryptoPayment.findMany({ where: { distributorId: distId }, orderBy: { createdAt: 'desc' }, take: 500 }),
   ])
 
   const activeLicenses = allocations.filter(a => a.status === 'activated' || a.status === 'allocated').length

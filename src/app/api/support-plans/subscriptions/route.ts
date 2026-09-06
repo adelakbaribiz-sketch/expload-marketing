@@ -14,7 +14,7 @@ async function handler(req: NextRequest) {
     const where: any = { tenantId: user.tenantId }
     if (status) where.status = status
     const subs = await db.supportSubscription.findMany({
-      where, include: { plan: true }, orderBy: { createdAt: 'desc' },
+      where, include: { plan: true }, orderBy: { createdAt: 'desc' }, take: 200,
     })
     return NextResponse.json({ subscriptions: subs })
   }

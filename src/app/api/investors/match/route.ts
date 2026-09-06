@@ -9,7 +9,7 @@ async function handler(req: NextRequest) {
   const tenant = await db.tenant.findUnique({ where: { id: tenantId } })
 
   // Get all active investors
-  const investors = await db.investorProfile.findMany({ where: { isActive: true } })
+  const investors = await db.investorProfile.findMany({ where: { isActive: true }, orderBy: { createdAt: 'desc' }, take: 300 })
 
   // Calculate match scores
   const matched = investors.map(inv => {

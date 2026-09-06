@@ -4,6 +4,7 @@ import { requireTenantId, getTenantIdOrNull } from '@/lib/tenant'
 import { withProtection, getTenantIdFromRequest } from '@/lib/security/with-protection'
 import { sanitizeText, sanitizeEmail, sanitizeUrl, sanitizePhone, sanitizeStringList, sanitizeMultiline } from '@/lib/security/sanitize'
 import { requireNonViewer } from '@/lib/auth/rbac'
+import { buildListPagination } from '@/lib/crud/query'
 import { z } from 'zod'
 
 const LeadCreate = z.object({
@@ -38,20 +39,41 @@ export async function GET(req: NextRequest) {
       ? { [sortField]: sortDir === 'asc' ? 'asc' as const : 'desc' as const }
       : { createdAt: sortDir === 'asc' ? 'asc' as const : 'desc' as const }
 
-  const leads = await db.lead.findMany({
-    where: {
-      tenantId,
-      ...(status ? { status } : {}),
-      ...(industry ? { industry } : {}),
-      ...(projectId ? { projectId } : {}),
-      ...(q ? { name: { contains: q } } : {}),
-      ...(minScore ? { score: { gte: Number(minScore) } } : {}),
-    },
-    orderBy: order,
-    include: { project: true, company: true },
-    take: 200,
+  // `q` matches across name/description/industry/website — a single-field
+  // `name`-only search missed a lead whose company name didn't contain the
+  // term but whose description/industry did. Still substring (`LIKE`)
+  // matching, not true full-text search with ranking/stemming — SQLite FTS5
+  // would need a virtual table + sync triggers, which needs the real
+  // migration system this project doesn't have yet (adr/0006). See
+  // SEARCH-REPORTING-ANALYTICS.md.
+  const searchOr = q
+    ? [
+        { name: { contains: q } },
+        { description: { contains: q } },
+        { industry: { contains: q } },
+        { website: { contains: q } },
+      ]
+    : undefined
+
+  const { page, limit, skip } = buildListPagination(searchParams, 200)
+
+  const where = {
+    tenantId,
+    ...(status ? { status } : {}),
+    ...(industry ? { industry } : {}),
+    ...(projectId ? { projectId } : {}),
+    ...(searchOr ? { OR: searchOr } : {}),
+    ...(minScore ? { score: { gte: Number(minScore) } } : {}),
+  }
+
+  const [leads, total] = await Promise.all([
+    db.lead.findMany({ where, orderBy: order, include: { project: true, company: true }, take: limit, skip }),
+    db.lead.count({ where }),
+  ])
+  return NextResponse.json({
+    leads,
+    pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
   })
-  return NextResponse.json({ leads })
 }
 
 async function postHandler(req: NextRequest) {
