@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireTenantId } from '@/lib/tenant'
 import { requireNonViewer } from '@/lib/auth/rbac'
+import { LEAD_STATUS_MACHINE, type LeadStatus } from '@/lib/workflow/definitions'
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const tenantId = await requireTenantId()
@@ -27,6 +28,17 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   const body = await req.json().catch(() => ({}))
   const services = Array.isArray(body.services) ? JSON.stringify(body.services) : undefined
+
+  if (body.status) {
+    const nextStatus = String(body.status) as LeadStatus
+    if (!LEAD_STATUS_MACHINE.states.includes(nextStatus)) {
+      return NextResponse.json({ error: `Invalid status "${nextStatus}"` }, { status: 400 })
+    }
+    if (!LEAD_STATUS_MACHINE.canTransition(existing.status as LeadStatus, nextStatus)) {
+      return NextResponse.json({ error: `Cannot move a lead from "${existing.status}" to "${nextStatus}"` }, { status: 409 })
+    }
+  }
+
   const updated = await db.lead.update({
     where: { id },
     data: {

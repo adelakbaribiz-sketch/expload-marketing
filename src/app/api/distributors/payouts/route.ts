@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth/simple-session'
 import { isSuperAdmin } from '@/lib/auth/rbac'
 import { withProtection } from '@/lib/security/with-protection'
+import { DISTRIBUTOR_PAYOUT_MACHINE, type DistributorPayoutStatus } from '@/lib/workflow/definitions'
 
 async function handler(req: NextRequest) {
   const user = await getCurrentUser()
@@ -48,6 +49,17 @@ async function handler(req: NextRequest) {
     // Approve / mark paid
     if (!superAdmin) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
     const body = await req.json()
+    const existing = await db.distributorPayout.findUnique({ where: { id: body.id } })
+    if (!existing) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+    if (body.status) {
+      const nextStatus = String(body.status) as DistributorPayoutStatus
+      if (!DISTRIBUTOR_PAYOUT_MACHINE.states.includes(nextStatus)) {
+        return NextResponse.json({ error: `Invalid status "${nextStatus}"` }, { status: 400 })
+      }
+      if (!DISTRIBUTOR_PAYOUT_MACHINE.canTransition(existing.status as DistributorPayoutStatus, nextStatus)) {
+        return NextResponse.json({ error: `Cannot move a payout from "${existing.status}" to "${nextStatus}"` }, { status: 409 })
+      }
+    }
     const update: any = { status: body.status }
     if (body.status === 'approved') {
       update.approvedBy = user.id

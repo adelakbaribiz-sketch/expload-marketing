@@ -31,8 +31,16 @@ export interface DomainConfig {
    * factory itself.
    */
   validate?: (body: unknown) => { valid: true; data: Record<string, any> } | { valid: false; error: string }
-  /** Transform the allowlisted data before it's written — e.g. compute a derived field. Runs after `validate`/allowlisting, before the Prisma write. */
-  beforeWrite?: (data: Record<string, any>, tenantId: string) => Record<string, any> | Promise<Record<string, any>>
+  /**
+   * Transform the allowlisted data before it's written — e.g. compute a
+   * derived field, or enforce a state-machine transition on PATCH. Runs
+   * after `validate`/allowlisting, before the Prisma write. `existing` is
+   * the current row (PATCH only, undefined on create) — the intended place
+   * to reject an illegal status/stage transition using
+   * `src/lib/workflow/state-machine.ts` rather than trusting whatever the
+   * client sent. See WORKFLOW-AUDIT.md.
+   */
+  beforeWrite?: (data: Record<string, any>, tenantId: string, existing?: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>
 }
 
 function prepareValue(val: any): any {
@@ -138,7 +146,7 @@ export function createDomainItemHandlers(config: DomainConfig) {
         data[field] = prepareValue(source[field])
       }
     }
-    if (config.beforeWrite) data = await config.beforeWrite(data, tenantId)
+    if (config.beforeWrite) data = await config.beforeWrite(data, tenantId, existing)
 
     const model = db[config.model] as any
     const item = await model.update({ where: { id }, data })

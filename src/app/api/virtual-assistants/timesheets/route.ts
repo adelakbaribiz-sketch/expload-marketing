@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth/simple-session'
-import { isSuperAdmin } from '@/lib/auth/rbac'
+import { isSuperAdmin, isPlatformStaffAdmin } from '@/lib/auth/rbac'
 import { withProtection } from '@/lib/security/with-protection'
+import { TIMESHEET_STATUS_MACHINE, type TimesheetStatus } from '@/lib/workflow/definitions'
 
 async function handler(req: NextRequest) {
   const user = await getCurrentUser()
@@ -63,11 +64,29 @@ async function handler(req: NextRequest) {
   }
 
   if (req.method === 'PATCH') {
-    // Approve / reject timesheet
+    // Approve / reject timesheet. This directly feeds payroll/run's
+    // "approved" hours calculation — approving must be restricted to
+    // platform staff, not just anyone in the owning tenant (which can
+    // include the assistant/client side of the assignment, not an
+    // authorized approver). Previously only checked tenant membership,
+    // meaning a self-approval or client-side approval could inflate real
+    // salary payments. See WORKFLOW-AUDIT.md.
     const body = await req.json()
     const existing = await db.assistantTimesheet.findUnique({ where: { id: body.id }, include: { assignment: true } })
     if (!existing || (existing.assignment?.tenantId !== user.tenantId && !(await isSuperAdmin()))) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 })
+    }
+    if (body.status) {
+      if (!(await isPlatformStaffAdmin())) {
+        return NextResponse.json({ error: 'Only platform staff can approve or reject timesheets' }, { status: 403 })
+      }
+      const nextStatus = String(body.status) as TimesheetStatus
+      if (!TIMESHEET_STATUS_MACHINE.states.includes(nextStatus)) {
+        return NextResponse.json({ error: `Invalid status "${nextStatus}"` }, { status: 400 })
+      }
+      if (!TIMESHEET_STATUS_MACHINE.canTransition(existing.status as TimesheetStatus, nextStatus)) {
+        return NextResponse.json({ error: `Cannot move a timesheet from "${existing.status}" to "${nextStatus}"` }, { status: 409 })
+      }
     }
     const update: any = { status: body.status }
     if (body.status === 'approved') {

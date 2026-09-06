@@ -15,6 +15,7 @@
 import 'server-only'
 import { db } from '@/lib/db'
 import crypto from 'node:crypto'
+import { CRYPTO_PAYMENT_MACHINE, type CryptoPaymentStatus } from '@/lib/workflow/definitions'
 
 const NOWPAYMENTS_API_BASE = 'https://api.nowpayments.io/v1'
 
@@ -171,6 +172,23 @@ export async function updateCryptoPaymentStatus(
   await db.$transaction(async (tx) => {
     const payment = await tx.cryptoPayment.findUnique({ where: { gatewayPaymentId } })
     if (!payment) return
+
+    // NOWPayments retries webhooks and doesn't guarantee delivery order — a
+    // late "expired"/"failed" event arriving after the payment already
+    // completed must never regress it back out of the money-received state.
+    // Same reasoning as the completedAt guard below, one level up: that
+    // guard stops a double Payment row, this one stops the status field
+    // itself from lying about whether the money arrived.
+    const currentStatus = payment.status as CryptoPaymentStatus
+    const nextStatus = mappedStatus as CryptoPaymentStatus
+    if (
+      CRYPTO_PAYMENT_MACHINE.states.includes(currentStatus) &&
+      CRYPTO_PAYMENT_MACHINE.states.includes(nextStatus) &&
+      !CRYPTO_PAYMENT_MACHINE.canTransition(currentStatus, nextStatus)
+    ) {
+      console.warn(`[crypto] ignoring out-of-order webhook: ${gatewayPaymentId} ${currentStatus} -> ${nextStatus}`)
+      return
+    }
 
     const updateData: any = {
       status: mappedStatus, confirmations, rawPayload: JSON.stringify(rawPayload),
