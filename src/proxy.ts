@@ -19,8 +19,10 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 const SESSION_COOKIE = 'session'
 
 // Fail closed in production — see src/lib/auth/simple-session.ts for the
-// matching check (this file must sign/verify with the exact same secret).
-if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
+// matching check (this file must sign/verify with the exact same secret),
+// including why NEXT_PHASE is excluded here (build-time page-data
+// collection vs. actually serving requests).
+if (process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE !== 'phase-production-build' && !process.env.NEXTAUTH_SECRET) {
   throw new Error('NEXTAUTH_SECRET must be set in production — refusing to start with a public default session secret.')
 }
 const SECRET = process.env.NEXTAUTH_SECRET || 'dev-secret-change-in-production-please-use-a-long-random-string'

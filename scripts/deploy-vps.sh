@@ -55,35 +55,45 @@ echo -e "${GREEN}✓ Docker ready on remote${NC}"
 # 2. Copy project to remote
 echo -e "\n${YELLOW}[2/6] Copying project to remote...${NC}"
 ssh "$SSH_TARGET" "mkdir -p $PROJECT_DIR"
-# Use rsync if available, fallback to scp
+# SCRIPT_DIR/.. is this repo's root, regardless of where the script is
+# invoked from — the previous hardcoded /home/z/my-project/ source path was
+# leftover scaffold boilerplate that never matched a real checkout of this
+# repo, so every rsync/scp call here had always synced nothing (or someone
+# else's project) rather than this codebase.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 if command -v rsync &> /dev/null; then
   rsync -az --progress \
     --exclude 'node_modules' --exclude '.next' --exclude 'db/*.db' \
     --exclude '.git' --exclude 'upload/' --exclude 'download/' \
     --exclude '.env' --exclude '.env.production' \
-    /home/z/my-project/ "$SSH_TARGET:$PROJECT_DIR/"
+    "$REPO_ROOT/" "$SSH_TARGET:$PROJECT_DIR/"
 else
-  ssh "$SSH_TARGET" "cd $PROJECT_DIR"
-  scp -r /home/z/my-project/* "$SSH_TARGET:$PROJECT_DIR/" 2>/dev/null || true
+  scp -r "$REPO_ROOT"/* "$SSH_TARGET:$PROJECT_DIR/"
 fi
 echo -e "${GREEN}✓ Files synced${NC}"
 
-# 3. Generate production env on remote
+# 3. Generate production env on remote (from .env.production.example, the
+# real Postgres/Caddy-in-Docker template — not .env.example, which is the
+# SQLite/no-Caddy local-dev file and doesn't even declare REDIS_PASSWORD or
+# DOMAIN, both `:?`-required by docker-compose.prod.yml).
 echo -e "\n${YELLOW}[3/6] Generating production environment...${NC}"
 POSTGRES_PASSWORD=$(openssl rand -hex 24)
+REDIS_PASSWORD=$(openssl rand -hex 24)
 NEXTAUTH_SECRET=$(openssl rand -base64 32)
 
 ssh "$SSH_TARGET" "bash -s" << REMOTE_EOF
 set -e
 cd $PROJECT_DIR
-cp .env.example .env.production
+cp .env.production.example .env.production
 
-# Set critical vars
-sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://marketing:$POSTGRES_PASSWORD@postgres:5432/marketing_saas?schema=public|' .env.production
-sed -i 's|^NEXTAUTH_SECRET=.*|NEXTAUTH_SECRET=$NEXTAUTH_SECRET|' .env.production
-sed -i 's|^NEXT_PUBLIC_APP_URL=.*|NEXT_PUBLIC_APP_URL=https://$DOMAIN|' .env.production
+sed -i 's|^DEPLOY_ENV=.*|DEPLOY_ENV=production|' .env.production
+sed -i 's|^DOMAIN=.*|DOMAIN=$DOMAIN|' .env.production
 sed -i 's|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$POSTGRES_PASSWORD|' .env.production
-sed -i 's|^REDIS_URL=.*|REDIS_URL=redis://redis:6379|' .env.production
+sed -i 's|^REDIS_PASSWORD=.*|REDIS_PASSWORD=$REDIS_PASSWORD|' .env.production
+sed -i 's|^NEXTAUTH_SECRET=.*|NEXTAUTH_SECRET=$NEXTAUTH_SECRET|' .env.production
+sed -i 's|^NEXTAUTH_URL=.*|NEXTAUTH_URL=https://$DOMAIN|' .env.production
+sed -i 's|^NEXT_PUBLIC_APP_URL=.*|NEXT_PUBLIC_APP_URL=https://$DOMAIN|' .env.production
 
 echo "Production env created."
 REMOTE_EOF
@@ -100,70 +110,32 @@ ssh "$SSH_TARGET" "cd $PROJECT_DIR && docker compose -f docker-compose.prod.yml 
 sleep 10
 echo -e "${GREEN}✓ Services started${NC}"
 
-# Run migrations
+# Run migrations — against schema.production.prisma (postgresql), no more
+# db-push fallback: a real prisma/migrations/ history exists now (Phase
+# 19), so `migrate deploy` is a real, repeatable operation, not a no-op
+# needing a silent fallback to schema-sync. Demo-data seeding
+# (seed-distributor.ts etc.) is deliberately not run here — see
+# scripts/deploy.sh's comment on why that line was always a silent no-op
+# in this container anyway, and why production shouldn't seed fake demo
+# data in the first place.
 echo -e "${YELLOW}  → Running migrations...${NC}"
-ssh "$SSH_TARGET" "cd $PROJECT_DIR && docker compose -f docker-compose.prod.yml exec -T app npx prisma migrate deploy" 2>&1 | tail -10 || \
-  ssh "$SSH_TARGET" "cd $PROJECT_DIR && docker compose -f docker-compose.prod.yml exec -T app npx prisma db push" 2>&1 | tail -10
-ssh "$SSH_TARGET" "cd $PROJECT_DIR && docker compose -f docker-compose.prod.yml exec -T app npx tsx scripts/seed-distributor.ts" 2>&1 | tail -5 || true
+ssh "$SSH_TARGET" "cd $PROJECT_DIR && docker compose -f docker-compose.prod.yml exec -T app npx prisma migrate deploy --schema=prisma/schema.production.prisma" 2>&1 | tail -10
 
-# 6. Setup Caddy reverse proxy with automatic HTTPS
-echo -e "\n${YELLOW}[6/6] Setting up Caddy with automatic HTTPS for $DOMAIN...${NC}"
-ssh "$SSH_TARGET" "bash -s" << REMOTE_EOF
-set -e
-
-# Install Caddy
-if ! command -v caddy &> /dev/null; then
-  echo "Installing Caddy..."
-  apt update -qq
-  apt install -y -qq debian-keyring debian-archive-keyring apt-transport-https curl > /dev/null 2>&1
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg 2>/dev/null
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list > /dev/null
-  apt update -qq
-  apt install -y -qq caddy > /dev/null 2>&1
-fi
-
-# Configure Caddy with auto-HTTPS
-cat > /etc/caddy/Caddyfile << CADDY_EOF
-$DOMAIN {
-  reverse_proxy localhost:3000 {
-    header_up Host {host}
-    header_up X-Forwarded-For {remote_host}
-    header_up X-Forwarded-Proto {scheme}
-    header_up X-Real-IP {remote_host}
-  }
-  
-  # Security headers
-  header {
-    Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
-    X-Content-Type-Options nosniff
-    X-Frame-Options DENY
-    Referrer-Policy strict-origin-when-cross-origin
-  }
-  
-  # Compression
-  encode gzip zstd
-  
-  # Cache static assets
-  @static path /_next/static/* /fonts/* /images/* /favicon.ico
-  header @static Cache-Control "public, max-age=31536000, immutable"
-  
-  log {
-    output file /var/log/caddy/\$DOMAIN.log
-    format json
-  }
-}
-CADDY_EOF
-
-systemctl restart caddy
-systemctl enable caddy
-echo "Caddy configured with auto-HTTPS for $DOMAIN"
-REMOTE_EOF
-echo -e "${GREEN}✓ HTTPS configured${NC}"
+# 6. Reverse proxy + HTTPS: nothing to do here — Caddy runs as the `caddy`
+# service inside docker-compose.prod.yml (Phase 19) and was already started
+# in step 5 along with the rest of the stack. It reads $DOMAIN from
+# .env.production and requests its own Let's Encrypt certificate on first
+# request; no host-level `apt install caddy` or SSH-heredoc-generated
+# /etc/caddy/Caddyfile is needed (or wanted — a host-level Caddy would fight
+# the containerized one for ports 80/443). See Caddyfile's own header
+# comment for the containerization rationale.
+echo -e "\n${YELLOW}[6/6] Reverse proxy (Caddy, containerized)${NC}"
+echo -e "${GREEN}✓ Caddy is running as part of the compose stack — requesting HTTPS cert for $DOMAIN on first request${NC}"
 
 # Final verification
 echo -e "\n${YELLOW}Verifying deployment...${NC}"
 sleep 15
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://$DOMAIN/api/health" 2>/dev/null || echo "000")
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://$DOMAIN/api/health/ready" 2>/dev/null || echo "000")
 if [ "$HTTP_CODE" = "200" ]; then
   echo -e "${GREEN}✓ App is live and healthy at https://$DOMAIN${NC}"
 else
@@ -183,7 +155,9 @@ echo -e "     ssh $SSH_TARGET 'nano $PROJECT_DIR/.env.production'"
 echo -e "     ssh $SSH_TARGET 'cd $PROJECT_DIR && docker compose -f docker-compose.prod.yml restart app'"
 echo -e "  2. View logs:"
 echo -e "     ssh $SSH_TARGET 'cd $PROJECT_DIR && docker compose -f docker-compose.prod.yml logs -f'"
-echo -e "  3. Update code (redeploy):"
-echo -e "     rsync -az --exclude='node_modules' --exclude='.next' --exclude='db/' /home/z/my-project/ $SSH_TARGET:$PROJECT_DIR/"
+echo -e "  3. Update code (redeploy): just re-run this script — it re-syncs"
+echo -e "     the repo, rebuilds, and re-applies migrations idempotently. Or,"
+echo -e "     to redeploy without touching the env file:"
+echo -e "     rsync -az --exclude='node_modules' --exclude='.next' --exclude='db/*.db' --exclude='.env.production' $REPO_ROOT/ $SSH_TARGET:$PROJECT_DIR/"
 echo -e "     ssh $SSH_TARGET 'cd $PROJECT_DIR && docker compose -f docker-compose.prod.yml up -d --build app'"
 echo -e ""

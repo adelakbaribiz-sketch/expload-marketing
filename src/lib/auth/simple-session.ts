@@ -17,7 +17,15 @@ const SESSION_MAX_AGE = 30 * 24 * 60 * 60 // 30 days
 // Fail closed in production: a session secret that ships as a public,
 // hardcoded default would let anyone forge a valid session cookie for any
 // userId. The dev fallback only applies outside production.
-if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
+//
+// Skipped during `next build`'s "collecting page data" phase — Next.js sets
+// NODE_ENV=production there too (it's a real production build) but imports
+// every route module with no runtime secrets available yet, since none have
+// been injected at that point (they're supplied later, at container start,
+// via docker-compose's `environment:`). NEXT_PHASE=phase-production-build is
+// the documented way to tell "being built" apart from "actually serving
+// requests" — the check still runs, unweakened, the moment the server starts.
+if (process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE !== 'phase-production-build' && !process.env.NEXTAUTH_SECRET) {
   throw new Error('NEXTAUTH_SECRET must be set in production — refusing to start with a public default session secret.')
 }
 const SECRET = process.env.NEXTAUTH_SECRET || 'dev-secret-change-in-production-please-use-a-long-random-string'

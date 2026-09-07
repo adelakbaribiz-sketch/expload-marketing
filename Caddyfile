@@ -1,25 +1,28 @@
-# Reference Caddyfile — matches what `scripts/deploy-vps.sh` generates on the
-# actual production host (see that script for the live, auto-generated
-# version with the real domain substituted in). Kept here as a checked-in
-# reference matching TECHNICAL_SPECIFICATION.md §9.7's documented intent:
-# auto-HTTPS, reverse proxy to localhost:3000, security headers.
+# Production Caddyfile — now a real docker-compose SERVICE
+# (docker-compose.prod.yml's `caddy`), not a script-generated host-level
+# install. Phase 19 (DevOps & Deployment): the previous approach —
+# scripts/deploy-vps.sh installing Caddy via `apt` on the host and
+# heredoc-generating this exact same config over SSH — worked, but meant
+# the reverse proxy sat outside the `docker compose up` reproducibility
+# story every other service already had. Containerizing it means the
+# whole stack (app+postgres+redis+caddy) comes up from one command on any
+# host with Docker, with nothing to configure by hand first.
 #
-# Replace example.com with your real domain before using this file directly
-# — Caddy only issues Let's Encrypt certificates for a real registered
-# domain block, not for a bare port/IP listener.
+# Security note (fixed 2026-09-05, preserved from the prior version of
+# this file): an earlier version listened on plain HTTP :81 with an
+# unauthenticated `?XTransformPort=<n>` open-proxy handler — removed
+# outright, never reintroduced here.
 #
-# Security note (fixed 2026-09-05): an earlier version of this file listened
-# on plain HTTP :81 with an unauthenticated `?XTransformPort=<n>` handler
-# that reverse-proxied to ANY caller-chosen local port with no allowlist —
-# a real open-proxy primitive into whatever else might be listening on
-# loopback. It was never part of the actual deploy path (deploy-vps.sh
-# generates its own Caddyfile independently of this one) but its presence
-# here could mislead someone into deploying it as-is. Removed outright
-# rather than "fixed in place," since no legitimate use for an
-# arbitrary-port proxy was found anywhere in this project.
+# DOMAIN comes from .env.production (see .env.production.example) — Caddy
+# substitutes {$DOMAIN} at startup and only issues a real Let's Encrypt
+# certificate for a real registered domain pointed at this host, not a bare
+# IP. (No ACME_EMAIL is configured — Caddy's ACME registration works
+# without one; add a global `{ email {$ACME_EMAIL} }` block above the site
+# block, plus the matching env var in docker-compose.prod.yml and
+# .env.production.example, if renewal-failure notifications are wanted.)
 
-example.com {
-  reverse_proxy localhost:3000 {
+{$DOMAIN} {
+  reverse_proxy app:3000 {
     header_up Host {host}
     header_up X-Forwarded-For {remote_host}
     header_up X-Forwarded-Proto {scheme}

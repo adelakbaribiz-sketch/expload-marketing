@@ -2,14 +2,29 @@
 # Docker Compose for Expload Marketing SaaS — Production Setup
 # ============================================================================
 # Services:
-#   - app: Next.js production server (port 3000)
-#   - postgres: PostgreSQL 15 database (port 5432)
-#   - redis: Redis 7 for job queue (port 6379)
+#   - app: Next.js production server (internal network only — see below)
+#   - postgres: PostgreSQL 15 database (internal network only)
+#   - redis: Redis 7 for job queue (internal network only, password-protected)
+#   - caddy: reverse proxy + automatic HTTPS (the only service publishing
+#     ports to the host — 80/443)
 #
 # Usage:
 #   1. Copy .env.production.example to .env.production and fill in values
-#   2. docker compose -f docker-compose.prod.yml --env-file .env.production up -d
-#   3. Run migrations: docker compose exec app npx prisma migrate deploy
+#   2. docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#   3. Run migrations: docker compose -f docker-compose.prod.yml exec app npx prisma migrate deploy --schema=prisma/schema.production.prisma
+#      (or just `bun run db:migrate:prod` on a host with bun+source, pointed at DATABASE_URL)
+#   4. Health check: curl https://$DOMAIN/api/health/ready
+#
+# Phase 19 (DevOps & Deployment) changes from the previous version of this
+# file: Redis now requires a password (previously none at all); a
+# `storage_data` volume now persists uploaded files across redeploys
+# (previously lost — the app wrote to a path inside the container's
+# writable layer with nothing backing it); Caddy is now a real service
+# here instead of a script-installed host package (see Caddyfile's own
+# comment); the app no longer publishes ANY host port — only Caddy does,
+# so the app is reachable only via the internal `marketing-network`,
+# making X-Forwarded-For spoofing structurally impossible rather than
+# merely discouraged by a loopback-only bind.
 # ============================================================================
 
 services:
@@ -47,14 +62,17 @@ services:
     image: redis:7-alpine
     container_name: marketing-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    # Password now required (Phase 19) — previously this had no auth at
+    # all, relying entirely on network isolation (no published port) as
+    # the only protection. Defense-in-depth: an operator error that ever
+    # exposes this port (e.g. a future compose override adding `ports:`)
+    # no longer means an unauthenticated queue/cache.
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env.production — no default is provided}
     volumes:
       - redis_data:/data
-    # No host port published — same reasoning as postgres above; Redis here
-    # has no auth configured at all, so exposing 6379 publicly would let
-    # anyone read/write the job queue with zero credentials.
+    # No host port published — same reasoning as postgres above.
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "--no-auth-warning", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -77,43 +95,112 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
+      DEPLOY_ENV: ${DEPLOY_ENV:-production}
       PORT: 3000
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://${DOMAIN}}
 
       # Database
       DATABASE_URL: postgresql://${POSTGRES_USER:-marketing}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env.production — no default is provided}@postgres:5432/${POSTGRES_DB:-marketing_saas}?schema=public
 
-      # Redis
-      REDIS_URL: redis://redis:6379
+      # Redis (queue + cache) — now includes the required password
+      REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env.production — no default is provided}@redis:6379
 
       # Auth
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET must be set in .env.production — no default is provided}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://${DOMAIN}}
 
       # SMTP
-      SMTP_HOST: ${SMTP_HOST}
+      SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASS: ${SMTP_PASS}
-      SMTP_FROM: ${SMTP_FROM}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
 
-      # Serper API (optional)
+      # Search
       SERPER_API_KEY: ${SERPER_API_KEY:-}
+
+      # LLM providers (multi-provider aggregator, src/lib/llm/aggregator.ts —
+      # all optional individually, but at least one should be set for AI
+      # features to do anything beyond heuristic fallbacks)
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      CEREBRAS_API_KEY: ${CEREBRAS_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY:-}
+
+      # Vector search (Qdrant — falls back to in-DB cosine similarity if unset)
+      QDRANT_URL: ${QDRANT_URL:-}
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+
+      # Crypto payments (NOWPayments — the one real, non-stub gateway; see
+      # KNOWN-ISSUES.md #7 on the others)
+      CRYPTO_GATEWAY: ${CRYPTO_GATEWAY:-nowpayments}
+      NOWPAYMENTS_API_KEY: ${NOWPAYMENTS_API_KEY:-}
+      NOWPAYMENTS_WEBHOOK_SECRET: ${NOWPAYMENTS_WEBHOOK_SECRET:-}
+      PLATFORM_WALLET_BTC_BITCOIN: ${PLATFORM_WALLET_BTC_BITCOIN:-}
+      PLATFORM_WALLET_ETH_ETHEREUM: ${PLATFORM_WALLET_ETH_ETHEREUM:-}
+      PLATFORM_WALLET_USDT_TRON: ${PLATFORM_WALLET_USDT_TRON:-}
+
+      # SMS
+      SMS_API_KEY: ${SMS_API_KEY:-}
+      SMS_API_URL: ${SMS_API_URL:-}
 
       # Playwright (optional)
       PLAYWRIGHT_ENABLED: ${PLAYWRIGHT_ENABLED:-false}
       PLAYWRIGHT_EXTRACT_REVIEWS: ${PLAYWRIGHT_EXTRACT_REVIEWS:-false}
 
-      # SIEM (optional)
+      # SIEM (optional — security event forwarding, src/lib/security/audit.ts)
       SIEM_WEBHOOK_URL: ${SIEM_WEBHOOK_URL:-}
-    # Bound to loopback only: Caddy (Caddyfile) runs on the host and reverse
-    # proxies to localhost:3000, which this satisfies — but "3000:3000"
-    # (Docker's default 0.0.0.0 bind) would ALSO make the app directly
-    # reachable on the public interface, bypassing Caddy entirely and, with
-    # it, every X-Forwarded-For-trusting rate limit (src/lib/security/
-    # rate-limit.ts's getClientId() unconditionally trusts that header,
-    # which is only safe because Caddy — not the client — sets it).
+
+      # Observability (Phase 15) — none of these were wired here before
+      # Phase 19; every deployment using this file previously ran with
+      # LOG_LEVEL/alerting/metrics silently defaulted to "off," not a
+      # deliberate choice.
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+
+      # Public landing page
+      PUBLIC_LANDING: ${PUBLIC_LANDING:-true}
+    volumes:
+      # Uploaded files (src/lib/storage/index.ts's LocalStorageAdapter,
+      # PRIVATE_ROOT = storage/private) previously had no volume at all —
+      # every redeploy (`docker compose up -d --build app`) recreated the
+      # container from a fresh image with an empty writable layer, silently
+      # losing every file a customer had uploaded. Found while standardizing
+      # storage for Phase 19.
+      - storage_data:/app/storage/private
+    # No host port published (Phase 19) — Caddy reaches this over the
+    # internal network at app:3000. Previously bound to
+    # "127.0.0.1:3000:3000", which only worked because Caddy ran on the
+    # SAME host; now that Caddy is itself a container on this network,
+    # the app needs no host-facing port at all, which is strictly safer:
+    # X-Forwarded-For spoofing (src/lib/security/rate-limit.ts's
+    # getClientId() trusts that header) is no longer merely discouraged by
+    # a loopback bind, it's structurally impossible — nothing outside this
+    # compose network can reach the app directly, at all, ever.
+    networks:
+      - marketing-network
+
+  # --------------------------------------------------------------------------
+  # Caddy (reverse proxy + automatic HTTPS)
+  # --------------------------------------------------------------------------
+  caddy:
+    image: caddy:2-alpine
+    container_name: marketing-caddy
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN must be set in .env.production (your real domain, e.g. app.example.com) — Caddy needs it to request a Let's Encrypt certificate}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     ports:
-      - "127.0.0.1:3000:3000"
+      - "80:80"
+      - "443:443"
     networks:
       - marketing-network
 
@@ -121,6 +208,12 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  storage_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
     driver: local
 
 networks:

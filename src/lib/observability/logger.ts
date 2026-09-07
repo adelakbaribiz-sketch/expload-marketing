@@ -80,6 +80,15 @@ function safeStringify(entry: Record<string, unknown>): string {
   }
 }
 
+// Not imported from src/lib/config/env.ts's own getDeployEnv() (same
+// one-line logic) to avoid a circular import: env.ts pulls in
+// src/lib/email/service.ts, which pulls in the integrations layer, which
+// already imports this logger — env.ts -> ... -> logger.ts -> env.ts
+// would cycle. A single duplicated line is the safer trade.
+function deployEnv(): string {
+  return process.env.DEPLOY_ENV || process.env.NODE_ENV || 'development'
+}
+
 function write(level: Level, message: string, meta?: Record<string, unknown>): void {
   if (LEVELS[level] < configuredLevel()) return
   const ctx = getLogContext()
@@ -87,6 +96,7 @@ function write(level: Level, message: string, meta?: Record<string, unknown>): v
     ts: new Date().toISOString(),
     level,
     message,
+    env: deployEnv(),
     ...(ctx.requestId ? { requestId: ctx.requestId } : {}),
     ...(ctx.correlationId ? { correlationId: ctx.correlationId } : {}),
     ...(ctx.tenantId ? { tenantId: ctx.tenantId } : {}),

@@ -1,0 +1,60 @@
+name: Rollback
+
+# Manually-triggered redeploy of a previous commit, for when a deploy on
+# `main` turns out to be broken in production. Rebuilds and redeploys that
+# older commit the same way scripts/deploy.sh always has (source-build on
+# the target host) — this reverts application code, NOT the database: Prisma
+# migrations applied by the bad deploy are NOT automatically reverted (there
+# is no auto-generated "down" migration — see adr/0006). Only roll back
+# across a migration boundary after confirming the older code is compatible
+# with the current schema, or restore a database snapshot separately first.
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Git commit SHA to roll back to (see ghcr.io/<repo> tags, or `git log`, for candidates)'
+        required: true
+        type: string
+
+jobs:
+  rollback:
+    name: Roll back production
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Verify deploy target is configured
+        run: |
+          if [ -z "${{ secrets.DEPLOY_SSH_HOST }}" ]; then
+            echo "::error::DEPLOY_SSH_HOST secret is not configured — there is no production target to roll back. Configure repository/environment secrets (DEPLOY_SSH_HOST, DEPLOY_SSH_USER, DEPLOY_SSH_KEY) and the DEPLOY_DOMAIN/DEPLOY_PROJECT_DIR variables first."
+            exit 1
+          fi
+
+      - name: Roll back over SSH
+        env:
+          SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          PROJECT_DIR: ${{ vars.DEPLOY_PROJECT_DIR }}
+          TARGET_SHA: ${{ inputs.sha }}
+        run: |
+          install -m 600 -D /dev/null ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
+            "cd ${PROJECT_DIR:-/opt/marketing-saas} && git fetch --all --quiet && git checkout $TARGET_SHA && ./scripts/deploy.sh"
+
+      - name: Post-rollback health check
+        env:
+          DOMAIN: ${{ vars.DEPLOY_DOMAIN }}
+        run: |
+          for i in $(seq 1 20); do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://${DOMAIN}/api/health/ready" 2>/dev/null || echo "000")
+            if [ "$CODE" = "200" ]; then
+              echo "Healthy (HTTP $CODE) after rolling back to ${{ inputs.sha }}"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $CODE, retrying in 5s..."
+            sleep 5
+          done
+          echo "::error::Health check failed after rollback — app never returned 200 from /api/health/ready. Check server logs directly."
+          exit 1

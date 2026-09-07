@@ -14,6 +14,7 @@ export interface EnvStatus {
   warnings: string[]
   config: {
     nodeEnv: string
+    deployEnv: string
     database: {
       provider: 'sqlite' | 'postgresql'
       url: string // masked
@@ -61,6 +62,21 @@ function getDbProvider(): 'sqlite' | 'postgresql' {
   const url = process.env.DATABASE_URL ?? ''
   if (url.startsWith('postgresql://') || url.startsWith('postgres://')) return 'postgresql'
   return 'sqlite'
+}
+
+/**
+ * Which named environment this actually is (development/staging/
+ * production/test) — distinct from NODE_ENV, which Next.js itself always
+ * sets to exactly "production" for any production-mode build. There's no
+ * framework-level way to tell "staging" and "production" apart from
+ * NODE_ENV alone, since staging deliberately runs the identical build —
+ * that's the whole point of having a staging environment. DEPLOY_ENV
+ * (see .env.staging.example / .env.production.example) is this project's
+ * own label for that, defaulting to NODE_ENV when unset so existing
+ * deployments that never set it behave exactly as before.
+ */
+export function getDeployEnv(): string {
+  return process.env.DEPLOY_ENV || process.env.NODE_ENV || 'development'
 }
 
 /** Validate environment variables. Returns the status + any errors/warnings. */
@@ -130,6 +146,7 @@ export function validateEnv(): EnvStatus {
     warnings,
     config: {
       nodeEnv: process.env.NODE_ENV ?? 'development',
+      deployEnv: getDeployEnv(),
       database: {
         provider: getDbProvider(),
         url: mask(dbUrl),
@@ -171,6 +188,7 @@ export function logEnvStatus(): void {
   const status = validateEnv()
   console.log('\n=== Environment Status ===')
   console.log(`Node Env:     ${status.config.nodeEnv}`)
+  console.log(`Deploy Env:   ${status.config.deployEnv}`)
   console.log(`Database:     ${status.config.database.provider} (${status.config.database.url})`)
   console.log(`Redis:        ${status.config.redis.configured ? 'configured' : 'not set (in-memory queue)'} (${status.config.redis.url})`)
   console.log(`SMTP:         ${status.config.smtp.configured ? 'configured' : 'not set (console mode)'} (${status.config.smtp.host}:${status.config.smtp.port})`)

@@ -56,7 +56,7 @@ Open **http://localhost:3000** in your browser.
 
 ### Default Login
 - **Email**: `admin@expload.io`
-- **Password**: `admin123`
+- **Password**: `demo12345`
 
 ---
 
@@ -70,9 +70,10 @@ unzip expload-marketing.zip -d /opt/expload-marketing
 cd /opt/expload-marketing
 
 # 2. Create production env
-cp .env.example .env.production
+cp .env.production.example .env.production
 # Edit .env.production with production values:
-#   - DATABASE_URL=postgresql://...  (use Postgres for prod)
+#   - DOMAIN=your-domain.com          (Caddy needs this for HTTPS)
+#   - POSTGRES_PASSWORD / REDIS_PASSWORD=<strong random strings>
 #   - NEXTAUTH_SECRET=<strong random string>
 #   - GROQ_API_KEY=<your key>
 #   - All other API keys
@@ -82,10 +83,10 @@ chmod +x scripts/deploy.sh
 ./scripts/deploy.sh
 ```
 
-This starts:
-- **PostgreSQL** (port 5432)
-- **Redis** (port 6379)
-- **App** (port 3000)
+This starts PostgreSQL, Redis, and the app, all on an internal network with
+no host ports of their own, plus **Caddy** — the only service publishing
+ports (80/443), reverse-proxying to the app and terminating HTTPS. See
+`DEPLOY.md` for why the app itself is not reachable on any host port.
 
 ### Option B: Remote VPS Deployment (One Command)
 
@@ -100,9 +101,8 @@ This script:
 1. Installs Docker on the VPS
 2. Syncs files via rsync
 3. Generates production env
-4. Builds Docker image
-5. Configures **Caddy** with automatic HTTPS (Let's Encrypt)
-6. Runs migrations + seeds
+4. Builds Docker image and starts the full stack, including **Caddy** with automatic HTTPS (Let's Encrypt) — already part of the compose stack, no separate install step
+5. Runs migrations (demo/sample-data seeding is intentionally not run against production — see `scripts/deploy.sh`'s own comment)
 
 **Requirements**:
 - Fresh Ubuntu 22.04+ VPS (2GB RAM min, 4GB recommended)
@@ -123,8 +123,8 @@ export NODE_ENV=production
 export DATABASE_URL="postgresql://..."
 export NEXTAUTH_SECRET="..."
 
-# 4. Run migrations
-npx prisma migrate deploy
+# 4. Run migrations (--schema is required — see DEPLOY.md's "Two schema files")
+npx prisma migrate deploy --schema=prisma/schema.production.prisma
 
 # 5. Start the server
 bun start

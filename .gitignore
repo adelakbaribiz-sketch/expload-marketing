@@ -37,8 +37,14 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — but NOT the .env.*.example templates, which are meant to be
+# committed (placeholder values only, no real secrets) so a fresh clone has
+# something to `cp` from. Found Phase 19: this blanket pattern had silently
+# excluded every .env*.example file from this repo's entire git history,
+# including the pre-existing .env.example — a fresh `git clone` had none of
+# the files every deploy script and doc tells you to copy.
 .env*
+!.env*.example
 
 # vercel
 .vercel

@@ -16,7 +16,12 @@
 
 set -e
 
-PROJECT_ROOT="/home/z/my-project"
+# This repo's root, regardless of where the script is invoked from — the
+# previous hardcoded /home/z/my-project was leftover scaffold boilerplate
+# that never matched a real checkout (found while auditing this script for
+# Phase 19; same bug existed in deploy-vps.sh's rsync source path).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 GREEN='\033[0;32m'
@@ -44,10 +49,13 @@ echo -e "${GREEN}✓ Docker Compose v2${NC}"
 # 2. Verify .env.production
 echo -e "\n${YELLOW}[2/5] Verifying environment...${NC}"
 if [ ! -f ".env.production" ]; then
-  echo -e "${YELLOW}  → .env.production not found. Creating from .env.example${NC}"
-  cp .env.example .env.production
+  # .env.production.example (Postgres + Caddy/DOMAIN + REDIS_PASSWORD), not
+  # .env.example (the SQLite/no-Caddy local-dev template) — the latter is
+  # missing several vars docker-compose.prod.yml hard-fails without.
+  echo -e "${YELLOW}  → .env.production not found. Creating from .env.production.example${NC}"
+  cp .env.production.example .env.production
   echo -e "${RED}  ✗ Edit .env.production and fill in production values, then re-run.${NC}"
-  echo -e "${YELLOW}    Required: NEXTAUTH_SECRET, POSTGRES_PASSWORD, all API keys${NC}"
+  echo -e "${YELLOW}    Required: DOMAIN, NEXTAUTH_SECRET, POSTGRES_PASSWORD, REDIS_PASSWORD${NC}"
   exit 1
 fi
 
@@ -60,7 +68,7 @@ fi
 
 # Verify required vars
 source .env.production
-for var in NEXTAUTH_SECRET POSTGRES_PASSWORD; do
+for var in DOMAIN NEXTAUTH_SECRET POSTGRES_PASSWORD REDIS_PASSWORD; do
   if [ -z "${!var:-}" ]; then
     echo -e "${RED}  ✗ $var is required in .env.production${NC}"
     exit 1
@@ -88,19 +96,40 @@ for i in $(seq 1 30); do
   [ $i -eq 30 ] && { echo -e "${RED}  ✗ PostgreSQL failed to start${NC}"; exit 1; }
 done
 
-# Run database migrations
+# Run database migrations — against schema.production.prisma (postgresql).
+# A real prisma/migrations/ history now exists (Phase 19) so this is a
+# real migration run, not the no-op it used to be against an empty
+# migrations folder.
 echo -e "${YELLOW}  → Running database migrations...${NC}"
-docker compose -f docker-compose.prod.yml exec -T app npx prisma migrate deploy 2>&1 | tail -10
-docker compose -f docker-compose.prod.yml exec -T app npx tsx scripts/seed-distributor.ts 2>&1 | tail -5 || true
+docker compose -f docker-compose.prod.yml exec -T app npx prisma migrate deploy --schema=prisma/schema.production.prisma 2>&1 | tail -10
 echo -e "${GREEN}✓ Migrations complete${NC}"
 
+# Demo/sample-data seeding (scripts/seed.ts, seed-distributor.ts, etc.) is
+# deliberately NOT run here — those create fake example.com leads/
+# companies for local dev/demo convenience (see scripts/dev-setup.sh),
+# which has no place in a real production database. This line used to
+# call `docker compose exec app npx tsx scripts/seed-distributor.ts`,
+# which was *always* a silent no-op anyway (only `|| true`'d past the
+# real error): the production runtime image never copies `scripts/` or
+# installs `bun`/`tsx` (see Dockerfile's runner stage) — found while
+# implementing Phase 19's migration fix.
+
 # 5. Verify health
+# Checked from *inside* the app container, not the host — Phase 19 removed
+# the app's host port publish entirely (only Caddy binds 80/443 now; see
+# docker-compose.prod.yml's header comment), so `curl http://localhost:3000`
+# from the host has nothing to connect to any more. The container itself
+# still listens on 3000 internally, which is all `docker compose exec` needs
+# — via 127.0.0.1, not `localhost`: confirmed live against a real running
+# container that Alpine resolves "localhost" to ::1 first, and the
+# HOSTNAME=0.0.0.0 fix in the Dockerfile only binds the IPv4 socket (see
+# that file's own comment on this exact failure mode).
 echo -e "\n${YELLOW}[5/5] Verifying health...${NC}"
 sleep 5
 for i in $(seq 1 30); do
-  HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health 2>/dev/null || echo "000")
+  HEALTH=$(docker compose -f docker-compose.prod.yml exec -T app curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/api/health 2>/dev/null || echo "000")
   if [ "$HEALTH" = "200" ]; then
-    echo -e "${GREEN}✓ App healthy at http://localhost:3000${NC}"
+    echo -e "${GREEN}✓ App healthy${NC}"
     break
   fi
   sleep 2
@@ -110,9 +139,9 @@ done
 echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${GREEN}  🎉 Production deployment complete!${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "\n  → App: ${YELLOW}http://localhost:3000${NC}"
-echo -e "  → Postgres: ${YELLOW}localhost:5432${NC}"
-echo -e "  → Redis: ${YELLOW}localhost:6379${NC}"
+echo -e "\n  → App: ${YELLOW}https://\${DOMAIN} (via Caddy — see .env.production)${NC}"
+echo -e "  → Postgres: ${YELLOW}internal network only, no host port (docker compose exec postgres psql ...)${NC}"
+echo -e "  → Redis: ${YELLOW}internal network only, no host port${NC}"
 echo -e "\n  Useful commands:"
 echo -e "    ${YELLOW}docker compose -f docker-compose.prod.yml logs -f app${NC}  # view app logs"
 echo -e "    ${YELLOW}docker compose -f docker-compose.prod.yml down${NC}         # stop services"
