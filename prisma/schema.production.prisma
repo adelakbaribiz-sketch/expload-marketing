@@ -1394,7 +1394,7 @@ model Subscription {
   id                   String    @id @default(cuid())
   tenantId             String    @unique
   plan                 String    @default("starter") // starter | growth | enterprise
-  status               String    @default("active") // active | past_due | canceled | trialing
+  status               String    @default("active") // pending_payment | active | past_due | canceled | trialing
   billingCycle         String    @default("monthly") // monthly | yearly
   amount               Float     @default(0)
   currency             String    @default("USD")
@@ -4163,7 +4163,7 @@ model SupportSubscription {
   paymentMethod        String? // stripe | paypal | crypto | manual
   stripeSubscriptionId String?
   // Status
-  status               String      @default("active") // active | past_due | cancelled | expired
+  status               String      @default("active") // pending_payment | active | past_due | cancelled | expired — application code always sets this explicitly on create (src/app/api/support-plans/subscriptions/route.ts), so the DB-level default here is a fallback only, never actually relied on
   cancelledAt          DateTime?
   // Usage this cycle
   ticketsUsedThisCycle Int         @default(0)

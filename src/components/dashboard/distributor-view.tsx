@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { useAuth } from '@/components/auth/session-provider'
 import {
   Building2, Package, MapPin, Wallet, LifeBuoy, FileText, TrendingUp, BadgeCheck,
 } from 'lucide-react'
@@ -24,6 +25,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function DistributorView() {
   const qc = useQueryClient()
+  const { user } = useAuth()
 
   const { data: distData, isLoading } = useQuery({
     queryKey: ['distributors'],
@@ -234,16 +236,24 @@ export function DistributorView() {
         </TabsContent>
 
         <TabsContent value="licenses" className="space-y-3">
-          <Card>
-            <CardContent className="p-4 space-y-3">
-              <div className="font-semibold">Issue new licenses</div>
-              <LicenseIssueForm
-                distributors={distributors}
-                onSubmit={(v) => issueLicense.mutate(v)}
-                loading={issueLicense.isPending}
-              />
-            </CardContent>
-          </Card>
+          {user?.isSuperAdmin ? (
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <div className="font-semibold">Issue new licenses</div>
+                <LicenseIssueForm
+                  distributors={distributors}
+                  onSubmit={(v) => issueLicense.mutate(v)}
+                  loading={issueLicense.isPending}
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-4 text-sm text-muted-foreground">
+                License issuance requires platform approval — contact your account manager to request additional licenses.
+              </CardContent>
+            </Card>
+          )}
           {allocations.slice(0, 20).map(a => (
             <Card key={a.id}>
               <CardContent className="p-3 flex items-center justify-between text-sm">

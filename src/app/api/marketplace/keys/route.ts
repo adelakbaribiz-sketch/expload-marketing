@@ -31,7 +31,17 @@ async function postHandler(req: NextRequest) {
       tenantId,
       productIds: body.productIds ? JSON.stringify(body.productIds) : null,
       billingCycle: body.billingCycle || 'prepaid',
-      balance: Number(body.balance || 0),
+      // `balance` (documented as "prepaid balance in USD") is deliberately
+      // NOT settable by the client — always starts at 0. Found in the
+      // Phase 20 audit: this previously let any tenant member mint an
+      // arbitrary prepaid balance for themselves with no payment. No
+      // metering code currently decrements/consumes this balance anywhere
+      // in the codebase, so it wasn't yet exploitable for real spend, but
+      // it already misrepresented state on the marketplace usage
+      // dashboard and would become a real gap the moment metering is
+      // wired up. A real top-up mechanism (SuperAdmin-confirmed, matching
+      // the pattern used for support-plan/license/subscription payments
+      // elsewhere in this audit) can be added when metering exists.
       customRateLimit: body.customRateLimit || null,
       customDailyLimit: body.customDailyLimit || null,
       expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,

@@ -280,7 +280,193 @@ async function checkCampaignSend() {
 }
 
 // ---------------------------------------------------------------------------
-// 5. Response-shape contract checks
+// 5. Payment-integrity gates (Phase 20 production-readiness audit) — a
+// real, free-signup-reachable revenue-fraud hole this phase found and
+// fixed: POST /api/support-plans/subscriptions used to activate
+// immediately with no payment collected anywhere, and POST
+// /api/distributors/licenses let any distributor-tenant member mint free
+// license inventory. Both now require a SuperAdmin to manually confirm
+// payment before anything real happens. See DEVOPS-DEPLOYMENT.md/
+// PRODUCTION-READINESS.md for the full writeup.
+// ---------------------------------------------------------------------------
+
+async function makeSuperAdmin(userId: string) {
+  await db.superAdmin.create({ data: { userId, level: 1, assignedBy: 'api-integration-checks' } })
+}
+
+async function checkSupportSubscriptionPaymentGate() {
+  const owner = await signupAndLogin('subplan-owner')
+  try {
+    const plan = await db.supportPlan.create({
+      data: {
+        name: 'CI Test Plan', description: 'test', monthlyPrice: 99, features: '[]',
+        responseTimeHours: 24, channels: '["email"]',
+      },
+    })
+    try {
+      const subRes = await fetch(`${BASE_URL}/api/support-plans/subscriptions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: owner.cookie },
+        body: JSON.stringify({ planId: plan.id, billingCycle: 'monthly' }),
+      })
+      const subBody = await subRes.json()
+      const subId = subBody.subscription?.id
+      check(
+        'payment gate: a new support subscription starts pending_payment, not active',
+        subRes.status === 201 && subBody.subscription?.status === 'pending_payment',
+        JSON.stringify(subBody),
+      )
+      if (!subId) return
+
+      const planAfterCreate = await db.supportPlan.findUnique({ where: { id: plan.id } })
+      check(
+        'payment gate: creating a pending subscription does not increment plan revenue',
+        planAfterCreate?.monthlyRevenue === 0 && planAfterCreate?.totalSubscribers === 0,
+        JSON.stringify(planAfterCreate),
+      )
+
+      const confirmAsOwnerRes = await fetch(`${BASE_URL}/api/support-plans/subscriptions`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: owner.cookie },
+        body: JSON.stringify({ id: subId, action: 'confirm_payment' }),
+      })
+      check(
+        'payment gate: a non-SuperAdmin cannot confirm their own subscription payment',
+        confirmAsOwnerRes.status === 403,
+        `got ${confirmAsOwnerRes.status}`,
+      )
+
+      await makeSuperAdmin(owner.userId)
+      const confirmAsAdminRes = await fetch(`${BASE_URL}/api/support-plans/subscriptions`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: owner.cookie },
+        body: JSON.stringify({ id: subId, action: 'confirm_payment' }),
+      })
+      const confirmBody = await confirmAsAdminRes.json()
+      check(
+        'payment gate: a SuperAdmin can confirm payment, activating the subscription',
+        confirmAsAdminRes.status === 200 && confirmBody.subscription?.status === 'active',
+        JSON.stringify(confirmBody),
+      )
+
+      const planAfterConfirm = await db.supportPlan.findUnique({ where: { id: plan.id } })
+      check(
+        'payment gate: confirming payment correctly records the revenue exactly once',
+        planAfterConfirm?.monthlyRevenue === 99 && planAfterConfirm?.totalSubscribers === 1,
+        JSON.stringify(planAfterConfirm),
+      )
+    } finally {
+      await db.supportSubscription.deleteMany({ where: { planId: plan.id } })
+      await db.supportPlan.delete({ where: { id: plan.id } }).catch(() => {})
+    }
+  } finally {
+    await db.superAdmin.deleteMany({ where: { userId: owner.userId } })
+    await cleanupTenant(owner.tenantId)
+  }
+}
+
+async function checkLicenseIssuancePaymentGate() {
+  const owner = await signupAndLogin('license-owner')
+  try {
+    const distributor = await db.distributor.create({
+      data: {
+        tenantId: owner.tenantId, companyName: 'CI Test Distributor', country: 'US',
+        contactName: 'CI Test', contactEmail: owner.email,
+      },
+    })
+    const pkg = await db.licensePackage.create({
+      data: {
+        sku: `CI-TEST-${Date.now()}`, name: 'CI Test Package', licenseCount: 10,
+        wholesalePrice: 5, retailPriceSuggestion: 10,
+      },
+    })
+    try {
+      const issueAsOwnerRes = await fetch(`${BASE_URL}/api/distributors/licenses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: owner.cookie },
+        body: JSON.stringify({ distributorId: distributor.id, packageId: pkg.id, count: 50 }),
+      })
+      check(
+        'payment gate: a non-SuperAdmin distributor-tenant member cannot self-issue licenses',
+        issueAsOwnerRes.status === 403,
+        `got ${issueAsOwnerRes.status}`,
+      )
+
+      await makeSuperAdmin(owner.userId)
+      const issueAsAdminRes = await fetch(`${BASE_URL}/api/distributors/licenses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: owner.cookie },
+        body: JSON.stringify({ distributorId: distributor.id, packageId: pkg.id, count: 50 }),
+      })
+      const issueBody = await issueAsAdminRes.json()
+      check(
+        'payment gate: a SuperAdmin can issue licenses',
+        issueAsAdminRes.status === 201 && issueBody.issued === 50,
+        JSON.stringify(issueBody),
+      )
+
+      const distAfter = await db.distributor.findUnique({ where: { id: distributor.id } })
+      check(
+        'payment gate: issuing 50 licenses at $5 each records $250 in revenue, not $5 (the pre-fix accounting bug)',
+        distAfter?.totalPaidToPlatform === 250 && distAfter?.totalLicensesPurchased === 50,
+        JSON.stringify(distAfter),
+      )
+    } finally {
+      await db.licenseAllocation.deleteMany({ where: { packageId: pkg.id } })
+      await db.licensePackage.delete({ where: { id: pkg.id } }).catch(() => {})
+      await db.distributor.delete({ where: { id: distributor.id } }).catch(() => {})
+    }
+  } finally {
+    await db.superAdmin.deleteMany({ where: { userId: owner.userId } })
+    await cleanupTenant(owner.tenantId)
+  }
+}
+
+async function checkTenantDeletionPurgesPii() {
+  const owner = await signupAndLogin('pii-purge-owner')
+  const auditLog = await db.auditLogEntry.create({
+    data: {
+      tenantId: owner.tenantId, action: 'test.action', entityType: 'test', description: 'CI test entry',
+      userName: 'Real Person Name', ipAddress: '203.0.113.5', userAgent: 'CI-Test-Agent/1.0', entityName: 'Some Real Entity',
+    },
+  })
+  const pricingCalc = await db.pricingCalculation.create({
+    data: {
+      tenantId: owner.tenantId, monthlyBudget: 1000, productPrice: 50, reviewCount: 10, reviewPlatforms: 2,
+      funnelLeads: 100, funnelQualified: 20, funnelDeals: 5,
+      customerName: 'Real Customer Name', customerEmail: 'realcustomer@example.com',
+    },
+  })
+  await makeSuperAdmin(owner.userId)
+  try {
+    const deleteRes = await fetch(`${BASE_URL}/api/tenants/${owner.tenantId}`, { method: 'DELETE', headers: { Cookie: owner.cookie } })
+    check('PII purge: SuperAdmin can delete a tenant', deleteRes.status === 200, `got ${deleteRes.status}`)
+
+    const auditAfter = await db.auditLogEntry.findUnique({ where: { id: auditLog.id } })
+    check(
+      'PII purge: AuditLogEntry survives tenant deletion but its PII fields are cleared',
+      auditAfter !== null && auditAfter.userName === null && auditAfter.ipAddress === null && auditAfter.userAgent === null && auditAfter.entityName === null,
+      JSON.stringify(auditAfter),
+    )
+
+    const pricingAfter = await db.pricingCalculation.findUnique({ where: { id: pricingCalc.id } })
+    check(
+      'PII purge: PricingCalculation survives tenant deletion but customer name/email are cleared',
+      pricingAfter !== null && pricingAfter.customerName === null && pricingAfter.customerEmail === null,
+      JSON.stringify(pricingAfter),
+    )
+  } finally {
+    await db.auditLogEntry.deleteMany({ where: { id: auditLog.id } })
+    await db.pricingCalculation.deleteMany({ where: { id: pricingCalc.id } })
+    await db.superAdmin.deleteMany({ where: { userId: owner.userId } })
+    // The tenant itself should already be gone via the DELETE call above —
+    // this is just a safety net if that assertion failed partway through.
+    await cleanupTenant(owner.tenantId)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 6. Response-shape contract checks
 // ---------------------------------------------------------------------------
 
 function hasExactKeys(obj: Record<string, unknown>, expected: string[]): boolean {
@@ -326,6 +512,9 @@ async function main() {
   await checkCustomRoleReadOnly()
   await checkWebhookIdempotency()
   await checkCampaignSend()
+  await checkSupportSubscriptionPaymentGate()
+  await checkLicenseIssuancePaymentGate()
+  await checkTenantDeletionPurgesPii()
   await checkResponseContracts()
 
   console.log(`\n${passed + failed} checks run, ${failed} failed.`)

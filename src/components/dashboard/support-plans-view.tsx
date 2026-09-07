@@ -58,7 +58,10 @@ export function SupportPlansView() {
       return res.json()
     },
     onSuccess: () => {
-      toast.success('Subscribed! Plan is now active.')
+      // Matches the backend: no real payment gateway is wired for this
+      // flow, so the subscription starts pending, not active — see
+      // src/app/api/support-plans/subscriptions/route.ts's POST comment.
+      toast.success('Subscription requested — pending payment confirmation.')
       qc.invalidateQueries({ queryKey: ['support-subs'] })
     },
   })
@@ -149,10 +152,14 @@ export function SupportPlansView() {
               </div>
               <Button
                 className="w-full bg-brand-accent-gradient btn-3d"
-                disabled={subs.some(s => s.planId === plan.id && s.status === 'active')}
+                disabled={subs.some((s: any) => s.planId === plan.id && (s.status === 'active' || s.status === 'pending_payment'))}
                 onClick={() => subscribe.mutate({ planId: plan.id, billingCycle: 'monthly' })}
               >
-                {subs.some(s => s.planId === plan.id && s.status === 'active') ? 'Active' : 'Subscribe'}
+                {subs.some((s: any) => s.planId === plan.id && s.status === 'active')
+                  ? 'Active'
+                  : subs.some((s: any) => s.planId === plan.id && s.status === 'pending_payment')
+                    ? 'Pending Payment'
+                    : 'Subscribe'}
               </Button>
             </CardContent>
           </Card>

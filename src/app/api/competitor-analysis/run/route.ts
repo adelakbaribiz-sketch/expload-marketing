@@ -97,7 +97,16 @@ async function handler(req: NextRequest) {
     include: { competitor: true },
   })
 
-  return NextResponse.json({ analysis })
+  return NextResponse.json({
+    analysis,
+    // Every metric above is Math.random()-generated, not a real scrape/API
+    // read of the competitor — unconditional, no real analytics provider is
+    // wired anywhere in this codebase. Flagged here (Phase 20
+    // production-readiness audit, KNOWN-ISSUES.md #8) so any caller/UI can
+    // — and should — surface this as simulated, not a real competitive
+    // analysis result.
+    simulated: true,
+  })
 }
 
 export const POST = withProtection(handler, { rateLimit: 'ai' })

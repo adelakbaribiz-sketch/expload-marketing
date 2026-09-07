@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireTenantId } from '@/lib/tenant'
+import { isSuperAdmin } from '@/lib/auth/rbac'
+import { withProtection } from '@/lib/security/with-protection'
 
-export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+async function patchHandler(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const tenantId = await requireTenantId()
   const { id } = await ctx.params
   const existing = await db.clubAdvertisement.findFirst({ where: { id, tenantId } })
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   const body = await req.json().catch(() => ({}))
+
+  // `status`/`reviewedAt` are a platform-moderation gate (ads created via
+  // club/membership start `pending`) — the tenant that owns the ad could
+  // previously self-approve straight to `active`, bypassing moderation
+  // entirely. Found in the Phase 20 audit, same self-approval bug class as
+  // reseller/applications. Content edits (title/description) stay
+  // self-service; only the moderation decision requires staff.
+  if (body.status !== undefined) {
+    const superAdmin = await isSuperAdmin()
+    if (!superAdmin) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  }
+
   const updated = await db.clubAdvertisement.update({
     where: { id },
     data: {
@@ -19,7 +33,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   return NextResponse.json({ ad: updated })
 }
 
-export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+async function deleteHandler(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const tenantId = await requireTenantId()
   const { id } = await ctx.params
   const existing = await db.clubAdvertisement.findFirst({ where: { id, tenantId } })
@@ -27,3 +41,6 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
   await db.clubAdvertisement.delete({ where: { id } })
   return NextResponse.json({ ok: true })
 }
+
+export const PATCH = withProtection(patchHandler, { rateLimit: 'write' })
+export const DELETE = withProtection(deleteHandler, { rateLimit: 'write' })

@@ -34,16 +34,27 @@ async function handler(req: NextRequest) {
   }
 
   if (req.method === 'POST') {
-    // Issue licenses: distributor buys a package, generate N license keys
+    // Issue licenses: distributor buys a package, generate N license keys.
+    // SuperAdmin-only — this mints real, immediately-usable inventory
+    // (`totalPaidToPlatform`/`totalRevenue` are incremented as if a
+    // payment was just collected) with no actual payment verification
+    // anywhere in this handler or called from it. Previously any user on
+    // the distributor's own tenant could call this directly, letting a
+    // legitimate-but-unvetted distributor team member self-issue up to
+    // 1000 free license keys per call with no cap on calls — a real
+    // revenue-integrity hole, not just a UX gap (found in the Phase 20
+    // production-readiness audit). Until a real payment gate exists here
+    // (mirroring the crypto-payment webhook-confirm pattern used
+    // elsewhere), a platform SuperAdmin must issue licenses manually,
+    // the same "fail honestly, require a trusted human" principle already
+    // applied to the non-crypto payment gateways (see
+    // src/lib/integrations/payment-provider.ts).
     const body = await req.json()
     const superAdmin = await isSuperAdmin()
+    if (!superAdmin) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
 
-    // Verify distributor ownership
     const dist = await db.distributor.findUnique({ where: { id: body.distributorId } })
     if (!dist) return NextResponse.json({ error: 'distributor_not_found' }, { status: 404 })
-    if (!superAdmin && dist.tenantId !== user.tenantId) {
-      return NextResponse.json({ error: 'forbidden' }, { status: 403 })
-    }
 
     const pkg = await db.licensePackage.findUnique({ where: { id: body.packageId } })
     if (!pkg || !pkg.isActive) return NextResponse.json({ error: 'invalid_package' }, { status: 400 })
@@ -81,18 +92,25 @@ async function handler(req: NextRequest) {
     await db.$transaction(async (tx) => {
       await tx.licenseAllocation.createMany({ data: allocations })
 
+      // wholesalePrice is the PER-LICENSE price — incrementing by the bare
+      // unit price regardless of `count` under-recorded revenue on every
+      // multi-license issuance (e.g. issuing 50 licenses only recorded 1
+      // unit's worth of revenue). Found in the Phase 20 audit alongside
+      // the missing-payment-gate issue above; both are financial-integrity
+      // bugs in the same handler, fixed together.
+      const totalPrice = pkg.wholesalePrice * count
       await tx.distributor.update({
         where: { id: dist.id },
         data: {
           totalLicensesPurchased: { increment: count },
-          totalPaidToPlatform: { increment: pkg.wholesalePrice },
+          totalPaidToPlatform: { increment: totalPrice },
         },
       })
       await tx.licensePackage.update({
         where: { id: pkg.id },
         data: {
           totalSold: { increment: count },
-          totalRevenue: { increment: pkg.wholesalePrice },
+          totalRevenue: { increment: totalPrice },
         },
       })
 

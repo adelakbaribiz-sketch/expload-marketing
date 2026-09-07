@@ -108,6 +108,11 @@ async function handler(req: NextRequest) {
       authenticityWarning: authenticityScore < 60 ? 'Potential fake followers detected' : 'Authentic audience',
       recommendedAction: influenceScore > 70 ? 'Partner for influencer campaign' : influenceScore > 40 ? 'Monitor for growth' : 'Low influence — skip',
     },
+    // Already recorded as `rawData.source: 'simulated'` above, but buried
+    // in a JSON blob — surfaced at the top level too (Phase 20
+    // production-readiness audit, KNOWN-ISSUES.md #8) so every analyzer
+    // endpoint's caller/UI can check one consistent field name.
+    simulated: true,
   })
 }
 

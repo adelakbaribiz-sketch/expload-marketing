@@ -101,6 +101,11 @@ async function handler(req: NextRequest, ctx: { params: Promise<{ id: string }> 
     crawl: completed,
     pagesCrawled: pagesToAnalyze,
     issuesFound: totalIssues,
+    // Issues/duration above are Math.random()-generated, not a real crawl
+    // of the site — no real crawler is wired to this endpoint. Flagged
+    // here (Phase 20 production-readiness audit, KNOWN-ISSUES.md #8) so
+    // any caller/UI can — and should — surface this as simulated.
+    simulated: true,
   })
 }
 

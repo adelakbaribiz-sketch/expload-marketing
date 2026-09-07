@@ -25,6 +25,19 @@
 # so the app is reachable only via the internal `marketing-network`,
 # making X-Forwarded-For spoofing structurally impossible rather than
 # merely discouraged by a loopback-only bind.
+#
+# Phase 20 (Production Readiness): removed the hardcoded `container_name:`
+# on every service. Found live, running a real backup/restore drill
+# alongside a leftover test stack: those names were fixed strings
+# (marketing-postgres/-redis/-app/-caddy) regardless of `-p <project>`,
+# which directly contradicted .env.staging.example's own documented claim
+# that `-p expload-staging` keeps a staging stack's containers fully
+# separate from a production one on the same host — the volumes/network
+# would separate correctly, but the containers themselves would collide on
+# name and refuse to start. Nothing referenced these names directly
+# (scripts/docs all correctly use `docker compose exec <service>`, not a
+# literal container name), so removing them is safe — Compose's own
+# per-project default naming already makes every container's name unique.
 # ============================================================================
 
 services:
@@ -33,7 +46,6 @@ services:
   # --------------------------------------------------------------------------
   postgres:
     image: postgres:15-alpine
-    container_name: marketing-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-marketing}
@@ -60,7 +72,6 @@ services:
   # --------------------------------------------------------------------------
   redis:
     image: redis:7-alpine
-    container_name: marketing-redis
     restart: unless-stopped
     # Password now required (Phase 19) — previously this had no auth at
     # all, relying entirely on network isolation (no published port) as
@@ -86,7 +97,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: marketing-app
     restart: unless-stopped
     depends_on:
       postgres:
@@ -188,7 +198,6 @@ services:
   # --------------------------------------------------------------------------
   caddy:
     image: caddy:2-alpine
-    container_name: marketing-caddy
     restart: unless-stopped
     depends_on:
       - app

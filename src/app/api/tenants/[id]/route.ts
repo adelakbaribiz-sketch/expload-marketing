@@ -44,6 +44,45 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
   // Deleting a tenant is destructive platform-wide — restrict to super admins,
   // even though a tenant owner can view/edit their own tenant above.
   if (!(await isSuperAdmin())) return NextResponse.json({ error: 'Super admin only' }, { status: 403 })
-  await db.tenant.delete({ where: { id } })
+
+  // A handful of models deliberately keep their row after the owning tenant
+  // is gone (`onDelete: SetNull` — they're audit/business records this app
+  // never silently destroys, e.g. AuditLogEntry's own comment). But several
+  // of them carry direct PII in fields that have nothing to do with WHY
+  // they're kept (a name, an email, an IP/user-agent) — found in the Phase
+  // 20 production-readiness audit: tenant deletion left this PII behind as
+  // orphaned, unreferenced data with no purge path anywhere in the app, a
+  // real gap for any GDPR-style "right to be forgotten" request. Anonymize
+  // those specific fields (never the whole row — the record itself, and
+  // its financial/audit value, is exactly what's meant to survive) in the
+  // same transaction as the tenant delete, so this can't partially apply.
+  await db.$transaction(async (tx) => {
+    await tx.auditLogEntry.updateMany({
+      where: { tenantId: id },
+      data: { userName: null, ipAddress: null, userAgent: null, entityName: null, changes: null },
+    })
+    await tx.pricingCalculation.updateMany({
+      where: { tenantId: id },
+      data: { customerName: null, customerEmail: null },
+    })
+    await tx.investorProfile.updateMany({
+      where: { tenantId: id },
+      data: { name: '[deleted]', email: null },
+    })
+    await tx.cofounderProfile.updateMany({
+      where: { tenantId: id },
+      data: { name: '[deleted]', email: null },
+    })
+    await tx.partnershipOpportunity.updateMany({
+      where: { tenantId: id },
+      data: { partnerName: '[deleted]' },
+    })
+    await tx.referral.updateMany({
+      where: { refereeTenantId: id },
+      data: { refereeEmail: '[deleted]' },
+    })
+    await tx.tenant.delete({ where: { id } })
+  })
+
   return NextResponse.json({ ok: true })
 }

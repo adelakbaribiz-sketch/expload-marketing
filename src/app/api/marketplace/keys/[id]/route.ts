@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireTenantId } from '@/lib/tenant'
+import { withProtection } from '@/lib/security/with-protection'
 
-export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+async function patchHandler(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const tenantId = await requireTenantId()
   const { id } = await ctx.params
   const existing = await db.apiKey.findFirst({ where: { id, tenantId } })
@@ -13,13 +14,14 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     data: {
       ...(body.name ? { name: String(body.name).slice(0, 100) } : {}),
       ...(typeof body.isActive === 'boolean' ? { isActive: body.isActive, revokedAt: body.isActive ? null : new Date() } : {}),
-      ...(body.balance !== undefined ? { balance: Number(body.balance) } : {}),
+      // `balance` is deliberately not client-settable here either — see
+      // the POST handler's comment in ../route.ts.
     },
   })
   return NextResponse.json({ apiKey: updated })
 }
 
-export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+async function deleteHandler(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const tenantId = await requireTenantId()
   const { id } = await ctx.params
   const existing = await db.apiKey.findFirst({ where: { id, tenantId } })
@@ -27,3 +29,6 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
   await db.apiKey.update({ where: { id }, data: { isActive: false, revokedAt: new Date() } })
   return NextResponse.json({ ok: true })
 }
+
+export const PATCH = withProtection(patchHandler, { rateLimit: 'write' })
+export const DELETE = withProtection(deleteHandler, { rateLimit: 'write' })

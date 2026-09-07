@@ -59,6 +59,15 @@ async function handler(req: NextRequest) {
     domain: targetDomain,
     discovered: opportunities.length,
     opportunities,
+    // Every field above (domain authority, contact email, link type) is
+    // Math.random()-generated, not a real crawl of the target domain — see
+    // this handler's own header comment. Unconditional, not gated behind
+    // "no provider configured": no real SEO API (Ahrefs/SEMrush/Majestic)
+    // is wired anywhere in this codebase. Flagged here (Phase 20
+    // production-readiness audit, KNOWN-ISSUES.md #8) so any caller/UI can
+    // — and should — surface this as simulated, not silently present it as
+    // a real backlink audit result a customer could act on.
+    simulated: true,
   })
 }
 

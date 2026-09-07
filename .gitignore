@@ -20,6 +20,9 @@ node_modules
 # user-uploaded files (private local storage adapter — see src/lib/storage)
 /storage/private/
 
+# database backups (scripts/backup.sh) — contain real customer data, never commit
+/backups/
+
 # next.js
 /.next/
 /out/
