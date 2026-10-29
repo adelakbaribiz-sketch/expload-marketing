@@ -96,19 +96,20 @@ export function LandingPage() {
       <nav className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-md">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="grid place-items-center h-9 w-9 rounded-xl bg-brand-accent-gradient text-primary-foreground shadow-md">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="grid shrink-0 place-items-center h-9 w-9 rounded-xl bg-brand-accent-gradient text-primary-foreground shadow-md">
                 <Rocket className="h-5 w-5" />
               </div>
-              <span className="font-bold text-lg">Expload Marketing</span>
+              {/* On phones the logo mark alone keeps room for the sign-up CTA. */}
+              <span className="hidden sm:inline font-bold text-lg">Expload Marketing</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               <LanguageSwitcher />
               <Button variant="ghost" size="sm" onClick={() => openAuthModal('login')}>
                 {t('landing.nav.signIn')}
               </Button>
               <Button size="sm" className="gap-2" onClick={() => openAuthModal('signup')}>
-                <Sparkles className="h-4 w-4" />
+                <Sparkles className="hidden sm:block h-4 w-4" />
                 {t('landing.nav.getStarted')}
               </Button>
             </div>
